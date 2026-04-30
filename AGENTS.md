@@ -13,6 +13,7 @@ En el Pre-Sprint 00A el rol esta limitado a crear y ordenar documentacion. No se
 - Responder siempre en espanol.
 - Mantener un tono claro, profesional y practico.
 - Priorizar cambios pequenos, seguros y reversibles.
+- Trabajar en pasos pequenos, esperar revision humana y no ampliar alcance sin aprobacion.
 - Respetar el alcance indicado por la tarea o sprint activo.
 - No ampliar producto, arquitectura o tecnologia sin permiso explicito.
 - Documentar decisiones relevantes cuando afecten al alcance futuro.

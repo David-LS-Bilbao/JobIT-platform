@@ -37,6 +37,21 @@ Modulos conceptuales a considerar en la evolucion del producto:
 
 Estos modulos son una vision de producto, no una autorizacion para implementarlos en el Pre-Sprint 00A.
 
+## Vision modular oficial
+
+La vision modular oficial de JobIT se organiza en los siguientes bloques:
+
+- JobIT Talent: zona del candidato.
+- JobIT CV: perfil y curriculum tech.
+- JobIT Jobs: buscador de ofertas.
+- JobIT Match: matching explicable basico.
+- JobIT Recruit: futuro, fuera del MVP inicial.
+- JobIT Radar: futuro.
+- JobIT Community: futuro.
+- JobIT Admin: administracion interna.
+
+Para el MVP inicial, la prioridad esta en los modulos candidate-first. Los modulos futuros no deben implementarse ni detallarse funcionalmente sin aprobacion expresa.
+
 ## MVP candidate-first
 
 El MVP debe validar primero la experiencia del candidato.

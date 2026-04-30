@@ -46,14 +46,14 @@ Queda fuera del MVP inicial:
 
 ## Stack previsto
 
-El stack definitivo se decidira en sprints tecnicos posteriores. Como orientacion inicial, el proyecto podria evolucionar hacia:
+El stack definitivo se decidira en sprints tecnicos posteriores. Como orientacion inicial, el proyecto preve:
 
-- Frontend web con TypeScript y un framework moderno.
-- Backend modular con TypeScript.
-- Base de datos relacional.
-- Autenticacion, CI/CD, Docker y despliegue cuando existan especificaciones aprobadas.
+- Frontend: Next.js + TypeScript + Tailwind.
+- Backend: Node.js + TypeScript con Express o Fastify.
+- Base de datos: PostgreSQL + Prisma.
+- Deploy futuro: Docker + VPS + Nginx o Nginx Proxy Manager.
 
-Nada de este stack esta implementado todavia en el repositorio.
+Nada de este stack esta implementado todavia en el repositorio. Su adopcion requiere especificaciones tecnicas aprobadas en sprints posteriores.
 
 ## Estado actual del repositorio
 
