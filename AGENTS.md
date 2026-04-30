@@ -46,6 +46,8 @@ Cada tarea para agentes deberia incluir:
 - Verificaciones esperadas.
 - Formato de salida.
 
+La biblioteca neutral de apoyo para prompts, plantillas, checklists y skills documentales esta en `docs/agents/`. Esa carpeta no es configuracion ejecutable.
+
 ## Restricciones de seguridad
 
 - No ejecutar cambios destructivos sin aprobacion explicita.
