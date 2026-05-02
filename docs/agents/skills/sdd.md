@@ -46,3 +46,7 @@ Guiar el trabajo mediante Specification-Driven Development: especificar antes de
 4. Criterios de aceptacion.
 5. Riesgos.
 6. Siguiente paso recomendado.
+
+## Criterio de parada
+
+Detener la skill cuando exista una spec o plan suficientemente claro para revision humana, con alcance, fuera de alcance, criterios de aceptacion y riesgos documentados. Si falta informacion critica, devolver preguntas o supuestos pendientes antes de continuar.
