@@ -31,6 +31,47 @@ No se debe crear `.claude/skills/`, `.claude/settings.json`, hooks ni configurac
 - `workflow.md`: flujo SDD base historico.
 - `concepts.md`: glosario conceptual para agentes.
 
+## Skills documentales neutrales
+
+Bajo `docs/agents/skills/`. Todas siguen el mismo esquema (objetivo, cuando usarla, entradas, archivos permitidos, restricciones, checklist, formato de salida, criterio de parada) y son neutrales: no instalan nada ni conceden permisos.
+
+- `sdd.md`: Specification-Driven Development.
+- `code-review.md`: revision de cambios y diffs.
+- `documentation.md`: creacion y actualizacion de documentacion.
+- `git-workflow.md`: flujo de Git en ramas cortas.
+- `architecture.md`: decisiones de arquitectura modular candidate-first.
+- `security.md`: revision de seguridad documental.
+- `testing.md`: definicion de tests minimos con TDD pragmatico.
+- `backend-api.md`: diseno documental de endpoints y contratos.
+- `frontend-ui.md`: diseno documental de pantallas y estados.
+- `database-prisma.md`: diseno documental de modelo de datos.
+- `devops-vps.md`: criterios para futuras tareas de despliegue en VPS.
+
+## Guias especificas para Codex
+
+Bajo `docs/agents/codex/`.
+
+- `README.md`: punto de entrada para trabajar con Codex.
+- `prompt-patterns.md`: patrones de prompt seguros y reproducibles.
+- `safe-operating-mode.md`: modo de operacion seguro.
+- `codex-scope-guard.md`: control de alcance para evitar cambios fuera de lista.
+- `codex-diff-review.md`: uso de Codex como revisor de diff, no como implementador.
+- `codex-task-brief.md`: plantilla operativa de task brief.
+
+## Guias especificas para Claude Code
+
+Bajo `docs/agents/claude/`.
+
+- `README.md`: punto de entrada para trabajar con Claude Code.
+- `skill-authoring-guide.md`: como escribir skills documentales y cuando convertirlas en nativas.
+- `permissions-and-hooks.md`: criterios para NO crear hooks ni configuracion ejecutable hoy.
+- `claude-plan-mode.md`: flujo plan -> aprobacion humana -> edicion.
+- `claude-permission-review.md`: revision documental de permisos antes de activar herramientas.
+- `claude-research-review.md`: modo read-only para investigacion y revision.
+- `native-skills-future-plan.md`: condiciones para evaluar skills nativas en el futuro.
+
+Recordatorio: tanto las guias para Codex como para Claude Code son documentacion neutral. No configuran agentes, no conceden permisos y no activan automatizaciones.
+
 ## Principio de uso
 
 Los agentes deben partir de `AGENTS.md`, consultar la documentacion neutral necesaria y ejecutar tareas pequenas con archivos permitidos, criterios de aceptacion claros y revision humana.
