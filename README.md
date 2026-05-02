@@ -74,6 +74,9 @@ El objetivo actual es crear una base clara para alinear producto, alcance, metod
     │   ├── sdd-tdd-ai-audit-workflow.md
     │   └── tdd-guidelines.md
     ├── decisions
+    │   ├── ADR-0001-start-from-scratch.md
+    │   ├── ADR-0002-initial-stack.md
+    │   ├── ADR-0003-sdd-and-agent-workflow.md
     │   └── adr-0004-sdd-tdd-ai-audit-workflow.md
     ├── product
     │   └── 00-product-brief.md
@@ -149,28 +152,3 @@ Las reglas operativas para agentes estan en [AGENTS.md](AGENTS.md).
 ## Siguiente paso
 
 El siguiente paso recomendado es completar Pre-Sprint 00B con la gobernanza de flujo, arquitectura inicial y primeras specs funcionales del MVP candidate-first, sin implementar todavia codigo hasta que el alcance este aprobado.
-
-
-## Metodología de desarrollo
-
-JobIT seguirá un flujo de trabajo basado en:
-
-- **SDD — Specification-Driven Development**: no se implementa una feature importante sin una spec previa en `/docs/specs`.
-- **TDD pragmático**: cada feature debe definir tests mínimos antes o durante la implementación, priorizando las partes críticas.
-- **Agentes IA controlados**: Codex, Claude Code u otros agentes podrán ayudar, pero siempre con prompts pequeños, alcance limitado y revisión humana.
-- **Auditoría de calidad y seguridad**: antes de abrir una PR, el trabajo debe pasar una revisión de alcance, calidad, testing, seguridad, arquitectura y documentación.
-- **Docs as Code**: la documentación forma parte del repositorio y debe actualizarse dentro de la misma rama de trabajo antes de abrir PR.
-
-Flujo base:
-
-```text
-Spec
- → Tests mínimos / TDD
- → Implementación asistida por IA
- → Verificaciones locales
- → Auditoría quality/security
- → Correcciones si procede
- → Documentación actualizada
- → PR hacia dev
- → Revisión humana
- → Merge
