@@ -43,3 +43,7 @@ Por defecto, ninguno. La revision debe ser de solo lectura salvo que la tarea au
 3. Verificaciones revisadas.
 4. Resumen breve.
 5. Recomendacion final.
+
+## Criterio de parada
+
+Detener la skill cuando los hallazgos esten clasificados por severidad y exista una recomendacion final clara: PASS, PASS_WITH_NOTES o FAIL. Si hay un bloqueo de alcance, seguridad o verificacion, marcar FAIL y no recomendar merge.

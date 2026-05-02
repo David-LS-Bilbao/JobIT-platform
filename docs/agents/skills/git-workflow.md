@@ -43,3 +43,7 @@ No aplica por defecto. Esta skill orienta comandos y revision de estado, no camb
 3. Archivos cambiados.
 4. Riesgos o bloqueos.
 5. Siguiente paso recomendado.
+
+## Criterio de parada
+
+Detener la skill cuando la rama, estado del working tree, archivos cambiados, riesgos y siguiente paso esten claros. Si la rama es main o dev, hay cambios ajenos o aparece un archivo fuera de alcance, detenerse y pedir revision humana.

@@ -1,5 +1,7 @@
 # Workflow SDD para agentes
 
+> **Nota:** Este documento describe el flujo SDD base e historico del proyecto. El flujo operativo vigente y completo, que incorpora TDD pragmatico, AI Audit y PR, esta en `docs/agents/sdd-tdd-ai-audit-workflow.md`.
+
 JobIT-platform sigue un flujo SDD, Specification-Driven Development:
 
 ```text

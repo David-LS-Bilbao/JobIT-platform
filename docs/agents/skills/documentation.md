@@ -46,3 +46,7 @@ Los indicados por la tarea. Si no se indican, pedir aclaracion o limitarse a doc
 5. Verificaciones ejecutadas.
 6. Riesgos o dudas.
 7. Siguiente paso recomendado.
+
+## Criterio de parada
+
+Detener la skill cuando los documentos permitidos esten actualizados, el cambio refleje el estado real del repositorio y queden documentados riesgos, verificaciones y siguiente paso. Si falta contexto o hay riesgo de inventar estado futuro, detenerse y pedir revision humana.
