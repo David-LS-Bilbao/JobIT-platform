@@ -2,7 +2,7 @@
 
 JobIT es una plataforma fullstack modular de empleo tecnologico. Su objetivo es ayudar a profesionales tech a gestionar mejor su busqueda laboral, preparar su perfil y conectar con oportunidades relevantes.
 
-El repositorio se encuentra en fase documental inicial dentro del Pre-Sprint 00A. En esta etapa no se implementa frontend, backend, base de datos, Docker, autenticacion, CI/CD ni ninguna configuracion tecnica.
+El repositorio se encuentra en fase documental inicial. En esta etapa no se implementa frontend, backend, base de datos, Docker, autenticacion, CI/CD ni ninguna configuracion tecnica.
 
 ## Vision modular
 
@@ -35,7 +35,7 @@ Todo el alcance funcional debera definirse mediante especificaciones antes de im
 
 Queda fuera del MVP inicial:
 
-- Frontend, backend, base de datos o infraestructura durante el Pre-Sprint 00A.
+- Frontend, backend, base de datos o infraestructura durante la fase documental inicial.
 - Modulo recruiter completo.
 - IA avanzada o automatizaciones complejas.
 - Monetizacion.
@@ -59,7 +59,7 @@ Nada de este stack esta implementado todavia en el repositorio. Su adopcion requ
 
 Estado: fase documental inicial.
 
-El objetivo actual es crear una base clara para alinear producto, alcance, metodologia y trabajo con agentes IA antes de escribir codigo.
+El objetivo actual es crear una base clara para alinear producto, alcance, metodologia, calidad, seguridad y trabajo con agentes IA antes de escribir codigo.
 
 ## Estructura documental inicial
 
@@ -68,43 +68,109 @@ El objetivo actual es crear una base clara para alinear producto, alcance, metod
 ├── AGENTS.md
 ├── README.md
 └── docs
+    ├── agents
+    │   ├── audit-quality-security-skill.md
+    │   ├── pr-checklist.md
+    │   ├── sdd-tdd-ai-audit-workflow.md
+    │   └── tdd-guidelines.md
+    ├── decisions
+    │   └── adr-0004-sdd-tdd-ai-audit-workflow.md
     ├── product
     │   └── 00-product-brief.md
+    ├── specs
+    │   └── spec-template.md
     └── sprints
         └── pre-sprint-00A-documentation.md
 ```
 
-## Flujo de trabajo Git
+## Flujo oficial de ramas
 
-- No trabajar directamente en `main` ni en `dev`.
-- Crear ramas cortas y descriptivas para cada bloque de trabajo.
+JobIT usa ramas cortas y revisables. No se trabaja directamente sobre `main` ni `dev`.
+
+- `main`: rama estable. Solo recibe cambios validados desde `dev`.
+- `dev`: rama de integracion. Todas las PR deben apuntar aqui salvo decision explicita.
+- `docs/*`: documentacion, decisiones, specs y guias.
+- `feat/*`: nuevas funcionalidades con spec previa.
+- `fix/*`: correcciones acotadas.
+- `chore/*`: mantenimiento, ajustes internos o tareas no funcionales.
+
+Reglas operativas:
+
+- Crear cada rama desde `dev` actualizado.
+- Confirmar rama activa y `git status --short` antes de modificar.
 - Mantener cambios pequenos, revisables y reversibles.
-- Separar cambios documentales de cambios de codigo.
-- Confirmar rama activa y estado del working tree antes de modificar.
+- Separar cambios documentales de cambios de codigo cuando el alcance lo permita.
+- Abrir PR hacia `dev` solo tras verificaciones y auditoria.
 
-Rama usada para esta base documental:
+Rama usada para formalizar este flujo:
 
 ```text
-docs/pre-sprint-00a-docs-init
+docs/pre-sprint-00b-workflow-governance
 ```
 
-## Metodologia SDD
+## Flujo oficial SDD + TDD + AI Audit + PR
 
-JobIT seguira una metodologia SDD, Specification-Driven Development.
+JobIT sigue una metodologia SDD, Specification-Driven Development, combinada con TDD pragmatico, agentes IA controlados, auditoria documental/tecnica de calidad y seguridad, Pull Requests y Docs as Code.
 
-Reglas base:
+Flujo base:
 
-- Primero se documenta el objetivo.
-- Despues se define alcance, fuera de alcance y criterios de aceptacion.
-- Solo se implementa cuando existe una especificacion aprobada.
-- Cada sprint debe cerrar con evidencias verificables.
+1. Crear rama desde `dev`.
+2. Crear o actualizar una spec en `docs/specs/`.
+3. Definir tests minimos antes de implementar.
+4. Implementar con TDD pragmatico y asistencia controlada de IA.
+5. Ejecutar verificaciones locales.
+6. Pasar auditoria de calidad y seguridad.
+7. Corregir cualquier fallo detectado.
+8. Actualizar la documentacion dentro de la misma rama.
+9. Abrir PR hacia `dev`.
+
+Reglas de bloqueo:
+
+- No se implementa una feature sin spec previa en `docs/specs/`.
+- No se abre PR si la auditoria quality/security devuelve `FAIL`.
+- No se abre PR si faltan verificaciones locales razonables para el alcance.
+- La documentacion afectada debe actualizarse en la misma rama antes de la PR.
+- La IA es copiloto, no piloto automatico: una persona revisa y valida el resultado.
+
+Documentos de referencia:
+
+- [Flujo SDD + TDD + AI Audit](docs/agents/sdd-tdd-ai-audit-workflow.md).
+- [Guia de TDD pragmatico](docs/agents/tdd-guidelines.md).
+- [Auditoria quality/security](docs/agents/audit-quality-security-skill.md).
+- [Checklist de PR](docs/agents/pr-checklist.md).
+- [Plantilla de spec](docs/specs/spec-template.md).
 
 ## Uso de agentes IA
 
-Los agentes IA pueden ayudar a documentar, analizar, proponer y ejecutar tareas controladas. Deben respetar siempre el alcance aprobado, trabajar con cambios reversibles y entregar un resumen final.
+Los agentes IA pueden ayudar a documentar, analizar, proponer, implementar tareas controladas y revisar cambios. Deben respetar siempre el alcance aprobado, trabajar con prompts pequenos, aplicar prompt chaining cuando el trabajo sea largo, mantener cambios reversibles y entregar un resumen final.
 
 Las reglas operativas para agentes estan en [AGENTS.md](AGENTS.md).
 
 ## Siguiente paso
 
-El siguiente paso recomendado es abrir un Pre-Sprint 00B para definir la arquitectura inicial y las primeras especificaciones funcionales del MVP candidate-first, sin implementar todavia codigo hasta que el alcance este aprobado.
+El siguiente paso recomendado es completar Pre-Sprint 00B con la gobernanza de flujo, arquitectura inicial y primeras specs funcionales del MVP candidate-first, sin implementar todavia codigo hasta que el alcance este aprobado.
+
+
+## Metodología de desarrollo
+
+JobIT seguirá un flujo de trabajo basado en:
+
+- **SDD — Specification-Driven Development**: no se implementa una feature importante sin una spec previa en `/docs/specs`.
+- **TDD pragmático**: cada feature debe definir tests mínimos antes o durante la implementación, priorizando las partes críticas.
+- **Agentes IA controlados**: Codex, Claude Code u otros agentes podrán ayudar, pero siempre con prompts pequeños, alcance limitado y revisión humana.
+- **Auditoría de calidad y seguridad**: antes de abrir una PR, el trabajo debe pasar una revisión de alcance, calidad, testing, seguridad, arquitectura y documentación.
+- **Docs as Code**: la documentación forma parte del repositorio y debe actualizarse dentro de la misma rama de trabajo antes de abrir PR.
+
+Flujo base:
+
+```text
+Spec
+ → Tests mínimos / TDD
+ → Implementación asistida por IA
+ → Verificaciones locales
+ → Auditoría quality/security
+ → Correcciones si procede
+ → Documentación actualizada
+ → PR hacia dev
+ → Revisión humana
+ → Merge

@@ -98,6 +98,7 @@ Queda fuera del Pre-Sprint 00A:
 - Claridad: cada modulo debe tener un objetivo comprensible.
 - Iteracion: avanzar por sprints con criterios de aceptacion verificables.
 - Especificacion antes de implementacion: no escribir codigo sin una definicion previa.
+- Calidad y seguridad desde el flujo: cada feature futura debe pasar por spec, tests minimos, verificacion local, auditoria quality/security y documentacion actualizada antes de PR.
 
 ## Riesgos de scope creep
 
@@ -115,3 +116,4 @@ Mitigacion:
 - Registrar fuera de alcance en cada documento.
 - Rechazar ampliaciones no aprobadas.
 - Priorizar entregables pequenos y verificables.
+- Usar auditoria de calidad/seguridad como gate antes de Pull Request.
