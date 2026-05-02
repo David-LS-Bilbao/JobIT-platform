@@ -12,7 +12,7 @@ Mayo de 2026.
 
 JobIT-platform esta en fase documental inicial y el MVP sera candidate-first. El proyecto usara agentes IA como apoyo para documentar, analizar, implementar tareas futuras y revisar cambios, pero necesita un flujo controlado para evitar scope creep, deuda invisible y cambios sin trazabilidad.
 
-Ya existe una base SDD y reglas iniciales para agentes. Este ADR formaliza la evolucion del flujo incorporando TDD pragmatico, auditoria de calidad/seguridad, Pull Requests hacia `dev` y Docs as Code.
+Ya existe una base SDD y reglas iniciales para agentes, documentadas en `ADR-0003-sdd-and-agent-workflow.md`. Este ADR formaliza la evolucion del flujo incorporando TDD pragmatico, auditoria de calidad/seguridad, Pull Requests hacia `dev` y Docs as Code.
 
 ## Decision
 
