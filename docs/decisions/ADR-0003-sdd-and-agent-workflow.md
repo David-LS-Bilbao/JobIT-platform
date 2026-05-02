@@ -10,6 +10,8 @@ JobIT-platform usara agentes IA para acelerar documentacion, analisis, revisione
 
 El repositorio ya cuenta con `AGENTS.md`, `CLAUDE.md` y documentacion neutral en `docs/agents/`.
 
+Esta decision define la base SDD y el uso controlado de agentes. La evolucion metodologica con TDD pragmatico, auditoria quality/security y PR queda formalizada despues en `ADR-0004-sdd-tdd-ai-audit-workflow.md`.
+
 ## Decision
 
 El proyecto usara SDD, Specification-Driven Development, y agentes IA guiados por:

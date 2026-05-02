@@ -4,6 +4,8 @@
 
 Definir una auditoria documental y tecnica previa a Pull Request. En esta fase es un documento de trabajo, no una skill ejecutable ni una herramienta automatizada.
 
+Aunque el archivo use `skill` en el nombre, su ubicacion actual en `docs/agents/` indica que es un checklist neutral de trabajo. No crea una skill instalada, no configura agentes y no activa automatizaciones.
+
 ## Checklist de alcance
 
 - [ ] La rama coincide con la tarea.

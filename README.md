@@ -66,24 +66,39 @@ El objetivo actual es crear una base clara para alinear producto, alcance, metod
 ```text
 .
 ├── AGENTS.md
+├── CLAUDE.md
 ├── README.md
 └── docs
     ├── agents
+    │   ├── README.md
+    │   ├── concepts.md
+    │   ├── workflow.md
+    │   ├── sdd-tdd-ai-audit-workflow.md
+    │   ├── tdd-guidelines.md
     │   ├── audit-quality-security-skill.md
     │   ├── pr-checklist.md
-    │   ├── sdd-tdd-ai-audit-workflow.md
-    │   └── tdd-guidelines.md
+    │   ├── checklists
+    │   ├── claude
+    │   ├── codex
+    │   ├── prompts
+    │   ├── skills
+    │   └── templates
+    ├── architecture
+    │   ├── 00-architecture-overview.md
+    │   ├── 01-repository-structure.md
+    │   └── 02-mvp-modules.md
     ├── decisions
     │   ├── ADR-0001-start-from-scratch.md
     │   ├── ADR-0002-initial-stack.md
     │   ├── ADR-0003-sdd-and-agent-workflow.md
-    │   └── adr-0004-sdd-tdd-ai-audit-workflow.md
+    │   └── ADR-0004-sdd-tdd-ai-audit-workflow.md
     ├── product
     │   └── 00-product-brief.md
     ├── specs
     │   └── spec-template.md
     └── sprints
-        └── pre-sprint-00A-documentation.md
+        ├── pre-sprint-00A-documentation.md
+        └── pre-sprint-00B-architecture.md
 ```
 
 ## Flujo oficial de ramas
@@ -142,6 +157,7 @@ Documentos de referencia:
 - [Auditoria quality/security](docs/agents/audit-quality-security-skill.md).
 - [Checklist de PR](docs/agents/pr-checklist.md).
 - [Plantilla de spec](docs/specs/spec-template.md).
+- [ADR-0004 metodologico](docs/decisions/ADR-0004-sdd-tdd-ai-audit-workflow.md).
 
 ## Uso de agentes IA
 
