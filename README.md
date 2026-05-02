@@ -57,9 +57,9 @@ Nada de este stack esta implementado todavia en el repositorio. Su adopcion requ
 
 ## Estado actual del repositorio
 
-Estado: fase documental inicial.
+Estado: fase documental avanzada. Las specs funcionales del MVP candidate-first han sido creadas. El siguiente paso es iniciar el desarrollo tecnico.
 
-El objetivo actual es crear una base clara para alinear producto, alcance, metodologia, calidad, seguridad y trabajo con agentes IA antes de escribir codigo.
+El objetivo de esta fase ha sido crear una base clara de producto, alcance, metodologia, calidad, seguridad y trabajo con agentes IA antes de escribir codigo.
 
 ## Estructura documental inicial
 
@@ -95,10 +95,19 @@ El objetivo actual es crear una base clara para alinear producto, alcance, metod
     ├── product
     │   └── 00-product-brief.md
     ├── specs
-    │   └── spec-template.md
+    │   ├── 00-mvp-scope.md
+    │   ├── spec-template.md
+    │   └── features
+    │       ├── auth.md
+    │       ├── candidate-profile-cv.md
+    │       ├── jobs.md
+    │       ├── saved-jobs.md
+    │       ├── match-basic.md
+    │       └── dashboard.md
     └── sprints
         ├── pre-sprint-00A-documentation.md
-        └── pre-sprint-00B-architecture.md
+        ├── pre-sprint-00B-architecture.md
+        └── pre-sprint-00C-functional-specs.md
 ```
 
 ## Flujo oficial de ramas
@@ -167,4 +176,4 @@ Las reglas operativas para agentes estan en [AGENTS.md](AGENTS.md).
 
 ## Siguiente paso
 
-El siguiente paso recomendado es completar Pre-Sprint 00B con la gobernanza de flujo, arquitectura inicial y primeras specs funcionales del MVP candidate-first, sin implementar todavia codigo hasta que el alcance este aprobado.
+El siguiente paso recomendado es revisar las specs funcionales del MVP con el equipo de producto y tecnico, cerrar las decisiones de stack (ADRs pendientes) y abrir el primer sprint de implementacion.
