@@ -82,3 +82,9 @@ Objetivo sugerido:
 - Identificar modulos candidatos para el MVP.
 - Crear especificaciones antes de implementar.
 - Mantener fuera de alcance cualquier codigo hasta que las especificaciones esten aprobadas.
+
+## Nota de evolucion
+
+Durante Pre-Sprint 00B se formaliza el flujo SDD + TDD pragmatico + agentes IA controlados + auditoria quality/security + PR hacia `dev` + Docs as Code.
+
+Esta evolucion no cambia el resultado de Pre-Sprint 00A: la base sigue siendo documental y no autoriza implementar frontend, backend, infraestructura, dependencias ni CI/CD.
