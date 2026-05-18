@@ -2,9 +2,9 @@
 
 ## Objetivo
 
-Crear la base minima del monorepo TypeScript de JobIT-platform para poder iniciar despues la configuracion tecnica de frontend, backend, base de datos y tests sin mezclarla con funcionalidades del MVP.
+Crear la base tecnica inicial del monorepo TypeScript de JobIT-platform y dejar un backend API minimo verificable, sin implementar funcionalidades del MVP.
 
-Este sprint prepara el repositorio, no implementa producto.
+Este sprint prepara el repositorio para desarrollo posterior: estructura raiz, workspace pnpm, configuracion TypeScript, API Express minima, endpoint tecnico de salud y smoke test. No implementa producto ni reglas funcionales de negocio.
 
 ## Alcance
 
@@ -13,52 +13,70 @@ Este sprint prepara el repositorio, no implementa producto.
 - Crear `tsconfig.base.json` estricto y reutilizable.
 - Crear `.gitignore` para Node, Next.js, TypeScript, Prisma futuro, entornos locales y editores.
 - Crear `.env.example` con variables placeholder sin secretos reales.
-- Crear carpetas base `apps/` y `packages/` con `.gitkeep`.
+- Crear estructura base de `apps/` y `packages/`.
+- Crear `apps/api` como skeleton tecnico de backend.
+- Configurar Express minimo con TypeScript.
+- Crear middleware tecnico base para errores y rutas no encontradas.
+- Crear endpoint tecnico `GET /health`.
+- Crear smoke test tecnico de `GET /health` con Vitest y Supertest.
+- Instalar dependencias minimas de backend y testing.
+- Crear `pnpm-lock.yaml` asociado a las dependencias instaladas.
 - Documentar el alcance y verificaciones de este sprint.
 
 ## Fuera de alcance
 
-- Crear `apps/api`.
 - Crear `apps/web`.
-- Instalar dependencias.
-- Crear backend Express funcional.
 - Crear frontend Next.js funcional.
 - Crear Prisma, schema, migraciones o seeds.
+- Crear autenticacion real.
+- Crear endpoints funcionales del MVP.
+- Implementar profile, jobs, saved jobs, match o dashboard.
 - Crear Docker o CI/CD.
-- Implementar endpoints, pantallas, autenticacion o features del MVP.
+- Crear configuracion de deploy o produccion.
 - Introducir secretos reales.
 
-## Fases previstas
+## Fases realizadas
 
-1. Base raiz del monorepo: `package.json`, workspaces y configuracion TypeScript base.
-2. Preparacion de carpetas: `apps/` y `packages/` sin aplicaciones funcionales.
-3. Variables y seguridad local: `.env.example` y `.gitignore`.
-4. Documentacion de sprint y verificaciones.
-5. Siguiente sprint tecnico: crear `apps/api` y `apps/web` en prompts separados.
+1. Setup raiz: `package.json`, workspaces pnpm, TypeScript base, `.gitignore` y `.env.example`.
+2. Backend API skeleton: `apps/api`, Express minimo, configuracion de entorno y middlewares tecnicos.
+3. Smoke test tecnico: endpoint `GET /health` cubierto con Vitest y Supertest.
+4. Actualizacion documental: documento de sprint alineado con el alcance real implementado.
 
 ## Criterios de aceptacion
 
 - [ ] La rama activa es `feat/sprint-00-technical-setup`.
-- [ ] El working tree contiene solo cambios esperados del setup tecnico minimo.
+- [ ] El working tree contiene solo cambios esperados del setup tecnico inicial.
 - [ ] Existe `package.json` raiz privado.
 - [ ] Existe `pnpm-workspace.yaml`.
 - [ ] Existe `tsconfig.base.json`.
 - [ ] Existen `apps/` y `packages/`.
 - [ ] Existe `.env.example` sin secretos reales.
+- [ ] Existe `apps/api` como skeleton tecnico.
+- [ ] Express esta configurado de forma minima.
+- [ ] Existen middlewares tecnicos base para errores y rutas no encontradas.
+- [ ] Existe el endpoint tecnico `GET /health`.
+- [ ] Existe smoke test tecnico para `GET /health`.
+- [ ] Las dependencias minimas estan registradas en `package.json` y `pnpm-lock.yaml`.
 - [ ] Existe este documento de sprint.
-- [ ] No se crean aplicaciones funcionales ni features.
-- [ ] No se instalan dependencias.
+- [ ] No se crea `apps/web`.
+- [ ] No se crea Prisma ni base de datos.
+- [ ] No se implementan features del MVP.
+- [ ] No se crean Docker, CI/CD ni deploy.
 
 ## Comandos de verificacion
 
 ```bash
-git branch --show-current
-git status --short
-find . -maxdepth 3 -type f | sort
+pnpm --filter @jobit/api typecheck
+pnpm --filter @jobit/api test
+pnpm --filter @jobit/api build
+pnpm --filter @jobit/api clean
+pnpm typecheck
+pnpm test
+pnpm build
 git diff --check
-git diff --stat
+git status --short
 ```
 
 ## Nota sobre dependencias
 
-No se ejecuta `pnpm install` en este paso. La instalacion de dependencias queda para un prompt posterior, cuando se creen las aplicaciones o paquetes concretos que las necesiten.
+Las dependencias incluidas en este sprint son las minimas necesarias para levantar y verificar el skeleton tecnico de `apps/api`. Cualquier dependencia futura debera justificarse por una spec, ADR o tarea tecnica aprobada.
