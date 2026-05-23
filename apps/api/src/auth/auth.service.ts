@@ -3,6 +3,22 @@ import { signAccessToken } from "./jwt.util.js";
 import { hash, verify } from "./password.util.js";
 import { generateRefreshToken, hashRefreshToken } from "./refresh-token.util.js";
 
+export async function logout(refreshToken: string | undefined): Promise<void> {
+  if (!refreshToken) return;
+
+  const tokenHash = hashRefreshToken(refreshToken);
+  const record = await prisma.refreshToken.findFirst({
+    where: { tokenHash, revokedAt: null }
+  });
+
+  if (!record) return;
+
+  await prisma.refreshToken.update({
+    where: { id: record.id },
+    data: { revokedAt: new Date() }
+  });
+}
+
 export class AppError extends Error {
   constructor(
     public readonly code: string,

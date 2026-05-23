@@ -3,7 +3,7 @@ import { ZodError } from "zod";
 
 import { prisma } from "../lib/prisma.js";
 import { registerSchema, loginSchema } from "./auth.schemas.js";
-import { AppError, login, register } from "./auth.service.js";
+import { AppError, login, logout, register } from "./auth.service.js";
 import { requireAuth, type AuthenticatedRequest } from "./require-auth.middleware.js";
 
 export const authRouter = Router();
@@ -66,6 +66,24 @@ authRouter.post(
         sendError(res, err.statusCode, err.code, err.message);
         return;
       }
+      next(err);
+    }
+  }
+);
+
+authRouter.post(
+  "/logout",
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const refreshToken = req.cookies["refresh_token"] as string | undefined;
+      await logout(refreshToken);
+      res.clearCookie("refresh_token", {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env["NODE_ENV"] === "production"
+      });
+      res.status(204).send();
+    } catch (err) {
       next(err);
     }
   }
