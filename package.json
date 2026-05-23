@@ -10,5 +10,8 @@
     "typecheck": "pnpm -r --if-present typecheck",
     "format": "pnpm -r --if-present format",
     "clean": "pnpm -r --if-present clean"
-  }
+  },
+  "pnpm": {
+   "onlyBuiltDependencies": ["@prisma/client", "@prisma/engines", "esbuild", "prisma"]
+ }
 }
