@@ -142,15 +142,15 @@ Todos los endpoints de mutación validan en el servidor. El frontend no es fuent
 
 ## Criterios de aceptación
 
-- [ ] Un candidato puede registrarse con email y contraseña válidos.
-- [ ] Un candidato no puede registrarse con un email ya existente.
-- [ ] Un candidato puede iniciar sesión con credenciales correctas.
-- [ ] Un candidato no puede iniciar sesión con credenciales incorrectas.
-- [ ] El logout revoca el refresh token en DB (revokedAt no nulo) y elimina la cookie del cliente.
-- [ ] Una ruta privada devuelve 401 Unauthorized si no hay token válido.
-- [ ] Las contraseñas se almacenan hasheadas.
-- [ ] Los errores no revelan existencia de emails.
-- [ ] Un candidato no puede registrarse con una contraseña que no cumpla los requisitos mínimos de seguridad (mínimo 8 caracteres, al menos una mayúscula y un número).
+- [x] Un candidato puede registrarse con email y contraseña válidos.
+- [x] Un candidato no puede registrarse con un email ya existente.
+- [x] Un candidato puede iniciar sesión con credenciales correctas.
+- [x] Un candidato no puede iniciar sesión con credenciales incorrectas.
+- [x] El logout revoca el refresh token en DB (revokedAt no nulo) y elimina la cookie del cliente.
+- [x] Una ruta privada devuelve 401 Unauthorized si no hay token válido.
+- [x] Las contraseñas se almacenan hasheadas.
+- [x] Los errores no revelan existencia de emails.
+- [x] Un candidato no puede registrarse con una contraseña que no cumpla los requisitos mínimos de seguridad (mínimo 8 caracteres, al menos una mayúscula y un número).
 
 ## Tests mínimos
 

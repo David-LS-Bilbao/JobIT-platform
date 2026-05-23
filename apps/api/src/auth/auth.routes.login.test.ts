@@ -80,6 +80,7 @@ describe("POST /api/auth/login", () => {
       .post("/api/auth/login")
       .send({ email: VALID_EMAIL, password: VALID_PASSWORD });
 
+    expect(response.status).toBe(200);
     const body = JSON.stringify(response.body);
     expect(body).not.toContain("passwordHash");
     expect(body).not.toContain("tokenHash");
