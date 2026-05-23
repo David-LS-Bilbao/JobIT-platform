@@ -11,6 +11,7 @@ export default defineConfig({
     globalSetup: ["./src/tests/setup.ts"],
     include: ["src/**/*.test.ts"],
     environment: "node",
+    fileParallelism: false,
     env: {
       DATABASE_URL: process.env["DATABASE_URL_TEST"] ?? "",
       DATABASE_URL_TEST: process.env["DATABASE_URL_TEST"] ?? "",
