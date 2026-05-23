@@ -15,7 +15,7 @@ Candidato tech que necesita una cuenta para acceder a su perfil, ofertas guardad
 1. El candidato accede a la pantalla de registro.
 2. Introduce email y contraseña.
 3. El sistema valida formato y requisitos mínimos de contraseña en el servidor.
-4. Si el email ya existe, devuelve error específico.
+4. Si el email ya existe, devuelve error genérico que no confirme ni descarte su existencia (prevención de enumeración de usuarios).
 5. Si los datos son válidos, crea el usuario con contraseña hasheada.
 6. El candidato queda autenticado y se le redirige al dashboard o al formulario de perfil inicial.
 
@@ -30,13 +30,13 @@ Candidato tech que necesita una cuenta para acceder a su perfil, ofertas guardad
 ### Logout
 
 1. El candidato cierra sesión.
-2. El servidor invalida la sesión o el token.
+2. El servidor revoca el refresh token en DB (campo revokedAt no nulo) y elimina la cookie del cliente.
 3. El candidato queda sin acceso a rutas privadas.
 
 ### Protección de ruta privada
 
 1. El candidato intenta acceder a una ruta privada sin sesión activa.
-2. El sistema redirige al login.
+2. El servidor devuelve 401 Unauthorized.
 3. Tras login correcto, puede redirigir de vuelta al destino original.
 
 ## Flujos alternativos
@@ -46,6 +46,14 @@ Candidato tech que necesita una cuenta para acceder a su perfil, ofertas guardad
 - Email ya registrado: error genérico que no confirme ni descarte la existencia del email (prevención de enumeración de usuarios).
 - Credenciales incorrectas en login: error genérico sin revelar si el email existe.
 - Sesión expirada: redirigir al login con mensaje informativo.
+
+## Estrategia de sesión
+
+- **Access token**: JWT firmado, válido 15 minutos, payload `{ sub: userId }`.
+- **Refresh token**: token de alta entropía, válido 7 días, almacenado como hash en DB (nunca en texto plano).
+- **Transporte**: refresh token en cookie HttpOnly, SameSite=Lax; Secure únicamente en producción.
+- **Hashing de contraseñas**: bcryptjs, factor de coste 12.
+- **Referencia**: ADR-0006 (decisiones de sesión y tokens).
 
 ## Modelo de datos conceptual
 
@@ -61,6 +69,17 @@ Candidato tech que necesita una cuenta para acceder a su perfil, ofertas guardad
 | role | enum | `CANDIDATE` por defecto en MVP |
 
 No se almacena la contraseña en texto plano. El campo `role` prepara la futura distinción entre candidato, recruiter y admin sin implementarla todavía.
+
+### RefreshToken
+
+| Campo | Tipo | Notas |
+|---|---|---|
+| id | UUID | Clave primaria |
+| userId | UUID | Clave foránea a User |
+| tokenHash | string | Hash del token (nunca texto plano) |
+| expiresAt | datetime | Expiración del token |
+| revokedAt | datetime\|null | Nulo hasta revocación explícita |
+| createdAt | datetime | Automático |
 
 ## Endpoints previstos
 
@@ -90,13 +109,14 @@ Todos los endpoints de mutación validan en el servidor. El frontend no es fuent
 - Las sesiones/tokens tienen caducidad. No son indefinidos.
 - El logout invalida la sesión en el servidor, no solo en el cliente.
 - Los errores de autenticación no revelan si el email existe (prevención de enumeración).
+- El userId se extrae siempre del access token verificado en el servidor. Nunca se acepta del body ni de la query de la petición.
 
 ## Validaciones
 
 | Campo | Regla |
 |---|---|
 | email | Formato de email válido, requerido, normalizado a minúsculas |
-| contraseña | Mínimo 8 caracteres, al menos una mayúscula y un número (orientativo, a cerrar en implementación) |
+| contraseña | Mínimo 8 caracteres, al menos una mayúscula y un número |
 | confirmación | Igual a contraseña (validación UX en frontend, también en backend) |
 
 ## Errores
@@ -113,7 +133,7 @@ Todos los endpoints de mutación validan en el servidor. El frontend no es fuent
 ## Seguridad mínima
 
 - Contraseñas hasheadas con función de coste adaptable (bcrypt o argon2 a definir en ADR).
-- Rate limiting en endpoints de login y registro para prevenir fuerza bruta.
+- Rate limiting en endpoints de login y registro para prevenir fuerza bruta. Diferido: no entra en criterios de aceptación ni tests de Sprint 01.
 - No exponer en errores si un email existe o no.
 - Tokens/sesiones con tiempo de expiración.
 - HTTPS obligatorio en producción.
@@ -126,10 +146,11 @@ Todos los endpoints de mutación validan en el servidor. El frontend no es fuent
 - [ ] Un candidato no puede registrarse con un email ya existente.
 - [ ] Un candidato puede iniciar sesión con credenciales correctas.
 - [ ] Un candidato no puede iniciar sesión con credenciales incorrectas.
-- [ ] El logout invalida la sesión en el servidor.
-- [ ] Una ruta privada redirige al login si no hay sesión activa.
+- [ ] El logout revoca el refresh token en DB (revokedAt no nulo) y elimina la cookie del cliente.
+- [ ] Una ruta privada devuelve 401 Unauthorized si no hay token válido.
 - [ ] Las contraseñas se almacenan hasheadas.
 - [ ] Los errores no revelan existencia de emails.
+- [ ] Un candidato no puede registrarse con una contraseña que no cumpla los requisitos mínimos de seguridad (mínimo 8 caracteres, al menos una mayúscula y un número).
 
 ## Tests mínimos
 
@@ -139,8 +160,8 @@ Todos los endpoints de mutación validan en el servidor. El frontend no es fuent
 - Login con credenciales correctas → sesión activa.
 - Login con contraseña incorrecta → error genérico.
 - Login con email inexistente → error genérico (mismo mensaje que contraseña incorrecta).
-- Logout → sesión invalidada.
-- Acceso a ruta privada sin sesión → redirección al login.
+- Logout → refresh token revocado en DB (campo revokedAt no nulo) y cookie eliminada del cliente.
+- Acceso a ruta privada sin token → 401 Unauthorized.
 - Verificar que la contraseña almacenada es un hash, no texto plano.
 
 ## Fuera de alcance
