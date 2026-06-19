@@ -9,6 +9,7 @@ import type {
 } from "@prisma/client";
 
 import { prisma } from "../lib/prisma.js";
+import type { UpdateBasicInfoInput } from "./profile.schemas.js";
 
 const PROFILE_RELATIONS = {
   skills: true,
@@ -43,6 +44,30 @@ export async function getOrCreateCandidateProfile(
 
   return prisma.candidateProfile.create({
     data: { userId },
+    include: PROFILE_RELATIONS
+  });
+}
+
+export async function updateCandidateProfileBasicInfo(
+  userId: string,
+  input: UpdateBasicInfoInput
+): Promise<ProfileWithRelations> {
+  await getOrCreateCandidateProfile(userId);
+
+  return prisma.candidateProfile.update({
+    where: { userId },
+    data: {
+      firstName: input.firstName,
+      lastName: input.lastName,
+      headline: input.headline ?? null,
+      summary: input.summary ?? null,
+      location: input.location ?? null,
+      ...(input.locationRemote !== undefined && { locationRemote: input.locationRemote }),
+      ...(input.availabilityStatus !== undefined && {
+        availabilityStatus: input.availabilityStatus
+      }),
+      avatarUrl: input.avatarUrl ?? null
+    },
     include: PROFILE_RELATIONS
   });
 }
