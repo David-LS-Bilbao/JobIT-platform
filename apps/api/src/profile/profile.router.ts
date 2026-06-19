@@ -1,16 +1,39 @@
 import { Router, type NextFunction, type Request, type Response } from "express";
+import { type Skill } from "@prisma/client";
 import { ZodError } from "zod";
 
 import { requireAuth, type AuthenticatedRequest } from "../auth/require-auth.middleware.js";
-import { updateBasicInfoSchema } from "./profile.schemas.js";
+import { ProfileError } from "./profile.ownership.js";
+import { createSkillSchema, updateBasicInfoSchema } from "./profile.schemas.js";
 import {
+  addCandidateSkill,
   calculateCompletionPercentage,
+  deleteCandidateSkill,
   getOrCreateCandidateProfile,
   updateCandidateProfileBasicInfo,
   type ProfileWithRelations
 } from "./profile.service.js";
 
 export const profileRouter = Router();
+
+function sendValidationError(res: Response, err: ZodError): void {
+  res.status(400).json({
+    error: { code: "VALIDATION_ERROR", message: "Validation failed", details: err.issues }
+  });
+}
+
+function sendProfileError(res: Response, err: ProfileError): void {
+  res.status(err.statusCode).json({ error: { code: err.code, message: err.message } });
+}
+
+function serializeSkill(skill: Skill): Record<string, unknown> {
+  return {
+    id: skill.id,
+    name: skill.name,
+    level: skill.level,
+    category: skill.category
+  };
+}
 
 function serializeProfile(profile: ProfileWithRelations): Record<string, unknown> {
   return {
@@ -55,9 +78,48 @@ profileRouter.put(
       res.status(200).json(serializeProfile(profile));
     } catch (err) {
       if (err instanceof ZodError) {
-        res.status(400).json({
-          error: { code: "VALIDATION_ERROR", message: "Validation failed", details: err.issues }
-        });
+        sendValidationError(res, err);
+        return;
+      }
+      next(err);
+    }
+  }
+);
+
+profileRouter.post(
+  "/me/skills",
+  requireAuth,
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as unknown as AuthenticatedRequest).auth;
+      const input = createSkillSchema.parse(req.body);
+      const skill = await addCandidateSkill(userId, input);
+      res.status(201).json(serializeSkill(skill));
+    } catch (err) {
+      if (err instanceof ZodError) {
+        sendValidationError(res, err);
+        return;
+      }
+      if (err instanceof ProfileError) {
+        sendProfileError(res, err);
+        return;
+      }
+      next(err);
+    }
+  }
+);
+
+profileRouter.delete(
+  "/me/skills/:skillId",
+  requireAuth,
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as unknown as AuthenticatedRequest).auth;
+      await deleteCandidateSkill(userId, req.params["skillId"] as string);
+      res.status(204).send();
+    } catch (err) {
+      if (err instanceof ProfileError) {
+        sendProfileError(res, err);
         return;
       }
       next(err);

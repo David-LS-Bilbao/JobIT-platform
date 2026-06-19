@@ -14,3 +14,13 @@ export const updateBasicInfoSchema = z
   .strip();
 
 export type UpdateBasicInfoInput = z.infer<typeof updateBasicInfoSchema>;
+
+export const createSkillSchema = z
+  .object({
+    name: z.string().trim().min(1, "El nombre de la skill es obligatorio"),
+    level: z.enum(["BASIC", "INTERMEDIATE", "ADVANCED"]).optional(),
+    category: z.string().trim().optional()
+  })
+  .strip();
+
+export type CreateSkillInput = z.infer<typeof createSkillSchema>;

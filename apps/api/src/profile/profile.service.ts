@@ -1,15 +1,18 @@
-import type {
-  CandidateProfile,
-  Education,
-  Experience,
-  JobPreferences,
-  Link,
-  Project,
-  Skill
+import {
+  Prisma,
+  type CandidateProfile,
+  type Education,
+  type Experience,
+  type JobPreferences,
+  type Link,
+  type Project,
+  type Skill
 } from "@prisma/client";
 
 import { prisma } from "../lib/prisma.js";
-import type { UpdateBasicInfoInput } from "./profile.schemas.js";
+import { ProfileError } from "./profile.ownership.js";
+import { findOwnedSkillOrThrow } from "./profile.ownership.js";
+import type { CreateSkillInput, UpdateBasicInfoInput } from "./profile.schemas.js";
 
 const PROFILE_RELATIONS = {
   skills: true,
@@ -70,6 +73,39 @@ export async function updateCandidateProfileBasicInfo(
     },
     include: PROFILE_RELATIONS
   });
+}
+
+export function normalizeSkillName(name: string): string {
+  return name.trim().toLowerCase();
+}
+
+export async function addCandidateSkill(
+  userId: string,
+  input: CreateSkillInput
+): Promise<Skill> {
+  const profile = await getOrCreateCandidateProfile(userId);
+
+  try {
+    return await prisma.skill.create({
+      data: {
+        profileId: profile.id,
+        name: input.name.trim(),
+        normalizedName: normalizeSkillName(input.name),
+        level: input.level ?? null,
+        category: input.category ?? null
+      }
+    });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      throw new ProfileError("CONFLICT", 409, "Ya has añadido esa skill.");
+    }
+    throw err;
+  }
+}
+
+export async function deleteCandidateSkill(userId: string, skillId: string): Promise<void> {
+  await findOwnedSkillOrThrow(userId, skillId);
+  await prisma.skill.delete({ where: { id: skillId } });
 }
 
 function hasMeaningfulPreferences(preferences: JobPreferences | null): boolean {
