@@ -8,13 +8,14 @@ datasource db {
 }
 
 model User {
-  id            String         @id @default(uuid())
-  email         String         @unique
+  id            String            @id @default(uuid())
+  email         String            @unique
   passwordHash  String
-  role          String         @default("CANDIDATE")
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  role          String            @default("CANDIDATE")
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
   refreshTokens RefreshToken[]
+  profile       CandidateProfile?
 }
 
 model RefreshToken {
@@ -25,4 +26,127 @@ model RefreshToken {
   revokedAt DateTime?
   createdAt DateTime  @default(now())
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum AvailabilityStatus {
+  ACTIVE
+  OPEN
+  NOT_LOOKING
+}
+
+enum SkillLevel {
+  BASIC
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum LinkType {
+  GITHUB
+  LINKEDIN
+  PORTFOLIO
+  OTHER
+}
+
+enum RemotePreference {
+  REMOTE
+  HYBRID
+  ON_SITE
+  ANY
+}
+
+enum Seniority {
+  JUNIOR
+  MID
+  SENIOR
+}
+
+model CandidateProfile {
+  id                 String             @id @default(uuid())
+  userId             String             @unique
+  firstName          String?
+  lastName           String?
+  headline           String?
+  summary            String?
+  location           String?
+  locationRemote     Boolean            @default(false)
+  availabilityStatus AvailabilityStatus @default(ACTIVE)
+  avatarUrl          String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skills             Skill[]
+  experiences        Experience[]
+  education          Education[]
+  projects           Project[]
+  links              Link[]
+  preferences        JobPreferences?
+}
+
+model Skill {
+  id             String           @id @default(uuid())
+  profileId      String
+  name           String
+  normalizedName String
+  level          SkillLevel?
+  category       String?
+  profile        CandidateProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, normalizedName])
+}
+
+model Experience {
+  id          String           @id @default(uuid())
+  profileId   String
+  company     String
+  role        String
+  startDate   DateTime
+  endDate     DateTime?
+  current     Boolean          @default(false)
+  description String?
+  location    String?
+  profile     CandidateProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
+model Education {
+  id          String           @id @default(uuid())
+  profileId   String
+  institution String
+  title       String
+  field       String?
+  startDate   DateTime?
+  endDate     DateTime?
+  current     Boolean          @default(false)
+  profile     CandidateProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
+model Project {
+  id           String           @id @default(uuid())
+  profileId    String
+  name         String
+  description  String?
+  technologies String[]
+  url          String?
+  repoUrl      String?
+  profile      CandidateProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
+model Link {
+  id        String           @id @default(uuid())
+  profileId String
+  type      LinkType
+  url       String
+  profile   CandidateProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
+model JobPreferences {
+  id                 String           @id @default(uuid())
+  profileId          String           @unique
+  desiredRoles       String[]
+  preferredLocations String[]
+  remotePreference   RemotePreference @default(ANY)
+  seniority          Seniority?
+  salaryMin          Int?
+  salaryMax          Int?
+  contractTypes      String[]
+  profile            CandidateProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 }
