@@ -1,15 +1,23 @@
 import { Router, type NextFunction, type Request, type Response } from "express";
-import { type Skill } from "@prisma/client";
+import { type Experience, type Skill } from "@prisma/client";
 import { ZodError } from "zod";
 
 import { requireAuth, type AuthenticatedRequest } from "../auth/require-auth.middleware.js";
 import { ProfileError } from "./profile.ownership.js";
-import { createSkillSchema, updateBasicInfoSchema } from "./profile.schemas.js";
 import {
+  createExperienceSchema,
+  createSkillSchema,
+  updateBasicInfoSchema,
+  updateExperienceSchema
+} from "./profile.schemas.js";
+import {
+  addCandidateExperience,
   addCandidateSkill,
   calculateCompletionPercentage,
+  deleteCandidateExperience,
   deleteCandidateSkill,
   getOrCreateCandidateProfile,
+  updateCandidateExperience,
   updateCandidateProfileBasicInfo,
   type ProfileWithRelations
 } from "./profile.service.js";
@@ -32,6 +40,19 @@ function serializeSkill(skill: Skill): Record<string, unknown> {
     name: skill.name,
     level: skill.level,
     category: skill.category
+  };
+}
+
+function serializeExperience(experience: Experience): Record<string, unknown> {
+  return {
+    id: experience.id,
+    company: experience.company,
+    role: experience.role,
+    startDate: experience.startDate,
+    endDate: experience.endDate,
+    current: experience.current,
+    description: experience.description,
+    location: experience.location
   };
 }
 
@@ -116,6 +137,74 @@ profileRouter.delete(
     try {
       const { userId } = (req as unknown as AuthenticatedRequest).auth;
       await deleteCandidateSkill(userId, req.params["skillId"] as string);
+      res.status(204).send();
+    } catch (err) {
+      if (err instanceof ProfileError) {
+        sendProfileError(res, err);
+        return;
+      }
+      next(err);
+    }
+  }
+);
+
+profileRouter.post(
+  "/me/experience",
+  requireAuth,
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as unknown as AuthenticatedRequest).auth;
+      const input = createExperienceSchema.parse(req.body);
+      const experience = await addCandidateExperience(userId, input);
+      res.status(201).json(serializeExperience(experience));
+    } catch (err) {
+      if (err instanceof ZodError) {
+        sendValidationError(res, err);
+        return;
+      }
+      if (err instanceof ProfileError) {
+        sendProfileError(res, err);
+        return;
+      }
+      next(err);
+    }
+  }
+);
+
+profileRouter.put(
+  "/me/experience/:experienceId",
+  requireAuth,
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as unknown as AuthenticatedRequest).auth;
+      const input = updateExperienceSchema.parse(req.body);
+      const experience = await updateCandidateExperience(
+        userId,
+        req.params["experienceId"] as string,
+        input
+      );
+      res.status(200).json(serializeExperience(experience));
+    } catch (err) {
+      if (err instanceof ZodError) {
+        sendValidationError(res, err);
+        return;
+      }
+      if (err instanceof ProfileError) {
+        sendProfileError(res, err);
+        return;
+      }
+      next(err);
+    }
+  }
+);
+
+profileRouter.delete(
+  "/me/experience/:experienceId",
+  requireAuth,
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as unknown as AuthenticatedRequest).auth;
+      await deleteCandidateExperience(userId, req.params["experienceId"] as string);
       res.status(204).send();
     } catch (err) {
       if (err instanceof ProfileError) {

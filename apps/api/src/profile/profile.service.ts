@@ -11,8 +11,13 @@ import {
 
 import { prisma } from "../lib/prisma.js";
 import { ProfileError } from "./profile.ownership.js";
-import { findOwnedSkillOrThrow } from "./profile.ownership.js";
-import type { CreateSkillInput, UpdateBasicInfoInput } from "./profile.schemas.js";
+import { findOwnedExperienceOrThrow, findOwnedSkillOrThrow } from "./profile.ownership.js";
+import type {
+  CreateExperienceInput,
+  CreateSkillInput,
+  UpdateBasicInfoInput,
+  UpdateExperienceInput
+} from "./profile.schemas.js";
 
 const PROFILE_RELATIONS = {
   skills: true,
@@ -106,6 +111,77 @@ export async function addCandidateSkill(
 export async function deleteCandidateSkill(userId: string, skillId: string): Promise<void> {
   await findOwnedSkillOrThrow(userId, skillId);
   await prisma.skill.delete({ where: { id: skillId } });
+}
+
+export async function addCandidateExperience(
+  userId: string,
+  input: CreateExperienceInput
+): Promise<Experience> {
+  const profile = await getOrCreateCandidateProfile(userId);
+  const isCurrent = input.current ?? false;
+
+  return prisma.experience.create({
+    data: {
+      profileId: profile.id,
+      company: input.company.trim(),
+      role: input.role.trim(),
+      startDate: new Date(input.startDate),
+      endDate: isCurrent ? null : input.endDate ? new Date(input.endDate) : null,
+      current: isCurrent,
+      description: input.description ?? null,
+      location: input.location ?? null
+    }
+  });
+}
+
+export async function updateCandidateExperience(
+  userId: string,
+  experienceId: string,
+  input: UpdateExperienceInput
+): Promise<Experience> {
+  await findOwnedExperienceOrThrow(userId, experienceId);
+
+  const data: Prisma.ExperienceUpdateInput = {};
+  if (input.company !== undefined) {
+    data.company = input.company.trim();
+  }
+  if (input.role !== undefined) {
+    data.role = input.role.trim();
+  }
+  if (input.startDate !== undefined) {
+    data.startDate = new Date(input.startDate);
+  }
+  if (input.description !== undefined) {
+    data.description = input.description ?? null;
+  }
+  if (input.location !== undefined) {
+    data.location = input.location ?? null;
+  }
+
+  if (input.current === true) {
+    data.current = true;
+    data.endDate = null;
+  } else {
+    if (input.current === false) {
+      data.current = false;
+    }
+    if (input.endDate !== undefined) {
+      data.endDate = input.endDate ? new Date(input.endDate) : null;
+    }
+  }
+
+  return prisma.experience.update({
+    where: { id: experienceId },
+    data
+  });
+}
+
+export async function deleteCandidateExperience(
+  userId: string,
+  experienceId: string
+): Promise<void> {
+  await findOwnedExperienceOrThrow(userId, experienceId);
+  await prisma.experience.delete({ where: { id: experienceId } });
 }
 
 function hasMeaningfulPreferences(preferences: JobPreferences | null): boolean {
