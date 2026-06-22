@@ -34,3 +34,16 @@ export const listJobsQuerySchema = z
   .strip();
 
 export type ListJobsQuery = z.infer<typeof listJobsQuerySchema>;
+
+// Valida la forma UUID (hex 8-4-4-4-12) en lugar del variante RFC estricto:
+// un id con forma válida pero inexistente debe resolverse como 404 (no disponible),
+// reservando el 400 para identificadores que ni siquiera tienen forma de UUID.
+const UUID_SHAPE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
+export const jobIdParamSchema = z
+  .object({
+    id: z.string().regex(UUID_SHAPE)
+  })
+  .strip();
+
+export type JobIdParam = z.infer<typeof jobIdParamSchema>;
