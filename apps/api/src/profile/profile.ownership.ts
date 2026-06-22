@@ -1,4 +1,4 @@
-import type { Education, Experience, Skill } from "@prisma/client";
+import type { Education, Experience, Project, Skill } from "@prisma/client";
 
 import { prisma } from "../lib/prisma.js";
 
@@ -89,4 +89,30 @@ export async function findOwnedEducationOrThrow(
   }
 
   return education;
+}
+
+/**
+ * Devuelve el Project solo si pertenece al CandidateProfile del usuario autenticado.
+ * - No existe  -> 404 NOT_FOUND
+ * - Es de otro -> 403 FORBIDDEN
+ * El userId procede siempre del token, nunca del cliente.
+ */
+export async function findOwnedProjectOrThrow(
+  userId: string,
+  projectId: string
+): Promise<Project> {
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    include: { profile: true }
+  });
+
+  if (!project) {
+    throw new ProfileError("NOT_FOUND", 404, "Project not found.");
+  }
+
+  if (project.profile.userId !== userId) {
+    throw new ProfileError("FORBIDDEN", 403, "You do not have access to this resource.");
+  }
+
+  return project;
 }

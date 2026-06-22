@@ -1,5 +1,5 @@
 import { Router, type NextFunction, type Request, type Response } from "express";
-import { type Education, type Experience, type Skill } from "@prisma/client";
+import { type Education, type Experience, type Project, type Skill } from "@prisma/client";
 import { ZodError } from "zod";
 
 import { requireAuth, type AuthenticatedRequest } from "../auth/require-auth.middleware.js";
@@ -7,22 +7,27 @@ import { ProfileError } from "./profile.ownership.js";
 import {
   createEducationSchema,
   createExperienceSchema,
+  createProjectSchema,
   createSkillSchema,
   updateBasicInfoSchema,
   updateEducationSchema,
-  updateExperienceSchema
+  updateExperienceSchema,
+  updateProjectSchema
 } from "./profile.schemas.js";
 import {
   addCandidateEducation,
   addCandidateExperience,
+  addCandidateProject,
   addCandidateSkill,
   calculateCompletionPercentage,
   deleteCandidateEducation,
   deleteCandidateExperience,
+  deleteCandidateProject,
   deleteCandidateSkill,
   getOrCreateCandidateProfile,
   updateCandidateEducation,
   updateCandidateExperience,
+  updateCandidateProject,
   updateCandidateProfileBasicInfo,
   type ProfileWithRelations
 } from "./profile.service.js";
@@ -57,6 +62,17 @@ function serializeEducation(education: Education): Record<string, unknown> {
     startDate: education.startDate,
     endDate: education.endDate,
     current: education.current
+  };
+}
+
+function serializeProject(project: Project): Record<string, unknown> {
+  return {
+    id: project.id,
+    name: project.name,
+    description: project.description,
+    technologies: project.technologies,
+    url: project.url,
+    repoUrl: project.repoUrl
   };
 }
 
@@ -290,6 +306,74 @@ profileRouter.delete(
     try {
       const { userId } = (req as unknown as AuthenticatedRequest).auth;
       await deleteCandidateEducation(userId, req.params["educationId"] as string);
+      res.status(204).send();
+    } catch (err) {
+      if (err instanceof ProfileError) {
+        sendProfileError(res, err);
+        return;
+      }
+      next(err);
+    }
+  }
+);
+
+profileRouter.post(
+  "/me/projects",
+  requireAuth,
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as unknown as AuthenticatedRequest).auth;
+      const input = createProjectSchema.parse(req.body);
+      const project = await addCandidateProject(userId, input);
+      res.status(201).json(serializeProject(project));
+    } catch (err) {
+      if (err instanceof ZodError) {
+        sendValidationError(res, err);
+        return;
+      }
+      if (err instanceof ProfileError) {
+        sendProfileError(res, err);
+        return;
+      }
+      next(err);
+    }
+  }
+);
+
+profileRouter.put(
+  "/me/projects/:projectId",
+  requireAuth,
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as unknown as AuthenticatedRequest).auth;
+      const input = updateProjectSchema.parse(req.body);
+      const project = await updateCandidateProject(
+        userId,
+        req.params["projectId"] as string,
+        input
+      );
+      res.status(200).json(serializeProject(project));
+    } catch (err) {
+      if (err instanceof ZodError) {
+        sendValidationError(res, err);
+        return;
+      }
+      if (err instanceof ProfileError) {
+        sendProfileError(res, err);
+        return;
+      }
+      next(err);
+    }
+  }
+);
+
+profileRouter.delete(
+  "/me/projects/:projectId",
+  requireAuth,
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as unknown as AuthenticatedRequest).auth;
+      await deleteCandidateProject(userId, req.params["projectId"] as string);
       res.status(204).send();
     } catch (err) {
       if (err instanceof ProfileError) {

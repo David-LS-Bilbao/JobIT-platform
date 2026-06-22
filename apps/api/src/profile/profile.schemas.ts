@@ -114,3 +114,31 @@ export const updateEducationSchema = z
   });
 
 export type UpdateEducationInput = z.infer<typeof updateEducationSchema>;
+
+const technologiesArray = z
+  .array(z.string().trim().min(1, "Cada tecnología debe tener al menos 1 carácter"))
+  .min(1, "Debe indicar al menos una tecnología");
+
+export const createProjectSchema = z
+  .object({
+    name: z.string().trim().min(1, "El nombre del proyecto es obligatorio"),
+    description: z.string().trim().optional(),
+    technologies: technologiesArray,
+    url: z.string().url("URL inválida").optional(),
+    repoUrl: z.string().url("URL inválida").optional()
+  })
+  .strip();
+
+export type CreateProjectInput = z.infer<typeof createProjectSchema>;
+
+export const updateProjectSchema = z
+  .object({
+    name: z.string().trim().min(1, "El nombre del proyecto es obligatorio").optional(),
+    description: z.string().trim().optional(),
+    technologies: technologiesArray.optional(),
+    url: z.string().url("URL inválida").optional(),
+    repoUrl: z.string().url("URL inválida").optional()
+  })
+  .strip();
+
+export type UpdateProjectInput = z.infer<typeof updateProjectSchema>;

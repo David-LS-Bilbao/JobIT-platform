@@ -14,15 +14,18 @@ import { ProfileError } from "./profile.ownership.js";
 import {
   findOwnedEducationOrThrow,
   findOwnedExperienceOrThrow,
+  findOwnedProjectOrThrow,
   findOwnedSkillOrThrow
 } from "./profile.ownership.js";
 import type {
   CreateEducationInput,
   CreateExperienceInput,
+  CreateProjectInput,
   CreateSkillInput,
   UpdateBasicInfoInput,
   UpdateEducationInput,
-  UpdateExperienceInput
+  UpdateExperienceInput,
+  UpdateProjectInput
 } from "./profile.schemas.js";
 
 const PROFILE_RELATIONS = {
@@ -255,6 +258,62 @@ export async function deleteCandidateEducation(
 ): Promise<void> {
   await findOwnedEducationOrThrow(userId, educationId);
   await prisma.education.delete({ where: { id: educationId } });
+}
+
+export async function addCandidateProject(
+  userId: string,
+  input: CreateProjectInput
+): Promise<Project> {
+  const profile = await getOrCreateCandidateProfile(userId);
+
+  return prisma.project.create({
+    data: {
+      profileId: profile.id,
+      name: input.name.trim(),
+      description: input.description ?? null,
+      technologies: input.technologies.map((tech) => tech.trim()),
+      url: input.url ?? null,
+      repoUrl: input.repoUrl ?? null
+    }
+  });
+}
+
+export async function updateCandidateProject(
+  userId: string,
+  projectId: string,
+  input: UpdateProjectInput
+): Promise<Project> {
+  await findOwnedProjectOrThrow(userId, projectId);
+
+  const data: Prisma.ProjectUpdateInput = {};
+  if (input.name !== undefined) {
+    data.name = input.name.trim();
+  }
+  if (input.description !== undefined) {
+    data.description = input.description ?? null;
+  }
+  if (input.technologies !== undefined) {
+    data.technologies = input.technologies.map((tech) => tech.trim());
+  }
+  if (input.url !== undefined) {
+    data.url = input.url ?? null;
+  }
+  if (input.repoUrl !== undefined) {
+    data.repoUrl = input.repoUrl ?? null;
+  }
+
+  return prisma.project.update({
+    where: { id: projectId },
+    data
+  });
+}
+
+export async function deleteCandidateProject(
+  userId: string,
+  projectId: string
+): Promise<void> {
+  await findOwnedProjectOrThrow(userId, projectId);
+  await prisma.project.delete({ where: { id: projectId } });
 }
 
 function hasMeaningfulPreferences(preferences: JobPreferences | null): boolean {
