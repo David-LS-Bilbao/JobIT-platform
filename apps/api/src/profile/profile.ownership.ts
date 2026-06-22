@@ -1,4 +1,4 @@
-import type { Experience, Skill } from "@prisma/client";
+import type { Education, Experience, Skill } from "@prisma/client";
 
 import { prisma } from "../lib/prisma.js";
 
@@ -63,4 +63,30 @@ export async function findOwnedExperienceOrThrow(
   }
 
   return experience;
+}
+
+/**
+ * Devuelve la Education solo si pertenece al CandidateProfile del usuario autenticado.
+ * - No existe  -> 404 NOT_FOUND
+ * - Es de otro -> 403 FORBIDDEN
+ * El userId procede siempre del token, nunca del cliente.
+ */
+export async function findOwnedEducationOrThrow(
+  userId: string,
+  educationId: string
+): Promise<Education> {
+  const education = await prisma.education.findUnique({
+    where: { id: educationId },
+    include: { profile: true }
+  });
+
+  if (!education) {
+    throw new ProfileError("NOT_FOUND", 404, "Education not found.");
+  }
+
+  if (education.profile.userId !== userId) {
+    throw new ProfileError("FORBIDDEN", 403, "You do not have access to this resource.");
+  }
+
+  return education;
 }

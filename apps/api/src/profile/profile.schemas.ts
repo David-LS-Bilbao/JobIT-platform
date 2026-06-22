@@ -80,3 +80,37 @@ export const updateExperienceSchema = z
   });
 
 export type UpdateExperienceInput = z.infer<typeof updateExperienceSchema>;
+
+export const createEducationSchema = z
+  .object({
+    institution: z.string().trim().min(1, "La institución es obligatoria"),
+    title: z.string().trim().min(1, "El título es obligatorio"),
+    field: z.string().trim().optional(),
+    startDate: dateString,
+    endDate: dateString.nullish(),
+    current: z.boolean().optional()
+  })
+  .strip()
+  .refine(startNotAfterEnd, {
+    message: "startDate no puede ser posterior a endDate",
+    path: ["endDate"]
+  });
+
+export type CreateEducationInput = z.infer<typeof createEducationSchema>;
+
+export const updateEducationSchema = z
+  .object({
+    institution: z.string().trim().min(1, "La institución es obligatoria").optional(),
+    title: z.string().trim().min(1, "El título es obligatorio").optional(),
+    field: z.string().trim().optional(),
+    startDate: dateString.optional(),
+    endDate: dateString.nullish(),
+    current: z.boolean().optional()
+  })
+  .strip()
+  .refine(startNotAfterEnd, {
+    message: "startDate no puede ser posterior a endDate",
+    path: ["endDate"]
+  });
+
+export type UpdateEducationInput = z.infer<typeof updateEducationSchema>;

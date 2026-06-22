@@ -11,11 +11,17 @@ import {
 
 import { prisma } from "../lib/prisma.js";
 import { ProfileError } from "./profile.ownership.js";
-import { findOwnedExperienceOrThrow, findOwnedSkillOrThrow } from "./profile.ownership.js";
+import {
+  findOwnedEducationOrThrow,
+  findOwnedExperienceOrThrow,
+  findOwnedSkillOrThrow
+} from "./profile.ownership.js";
 import type {
+  CreateEducationInput,
   CreateExperienceInput,
   CreateSkillInput,
   UpdateBasicInfoInput,
+  UpdateEducationInput,
   UpdateExperienceInput
 } from "./profile.schemas.js";
 
@@ -182,6 +188,73 @@ export async function deleteCandidateExperience(
 ): Promise<void> {
   await findOwnedExperienceOrThrow(userId, experienceId);
   await prisma.experience.delete({ where: { id: experienceId } });
+}
+
+export async function addCandidateEducation(
+  userId: string,
+  input: CreateEducationInput
+): Promise<Education> {
+  const profile = await getOrCreateCandidateProfile(userId);
+  const isCurrent = input.current ?? false;
+
+  return prisma.education.create({
+    data: {
+      profileId: profile.id,
+      institution: input.institution.trim(),
+      title: input.title.trim(),
+      field: input.field ?? null,
+      startDate: new Date(input.startDate),
+      endDate: isCurrent ? null : input.endDate ? new Date(input.endDate) : null,
+      current: isCurrent
+    }
+  });
+}
+
+export async function updateCandidateEducation(
+  userId: string,
+  educationId: string,
+  input: UpdateEducationInput
+): Promise<Education> {
+  await findOwnedEducationOrThrow(userId, educationId);
+
+  const data: Prisma.EducationUpdateInput = {};
+  if (input.institution !== undefined) {
+    data.institution = input.institution.trim();
+  }
+  if (input.title !== undefined) {
+    data.title = input.title.trim();
+  }
+  if (input.field !== undefined) {
+    data.field = input.field ?? null;
+  }
+  if (input.startDate !== undefined) {
+    data.startDate = new Date(input.startDate);
+  }
+
+  if (input.current === true) {
+    data.current = true;
+    data.endDate = null;
+  } else {
+    if (input.current === false) {
+      data.current = false;
+    }
+    if (input.endDate !== undefined) {
+      data.endDate = input.endDate ? new Date(input.endDate) : null;
+    }
+  }
+
+  return prisma.education.update({
+    where: { id: educationId },
+    data
+  });
+}
+
+export async function deleteCandidateEducation(
+  userId: string,
+  educationId: string
+): Promise<void> {
+  await findOwnedEducationOrThrow(userId, educationId);
+  await prisma.education.delete({ where: { id: educationId } });
 }
 
 function hasMeaningfulPreferences(preferences: JobPreferences | null): boolean {
