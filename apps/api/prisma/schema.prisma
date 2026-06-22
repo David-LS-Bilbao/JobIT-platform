@@ -150,3 +150,45 @@ model JobPreferences {
   contractTypes      String[]
   profile            CandidateProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 }
+
+enum RemoteType {
+  REMOTE
+  HYBRID
+  ON_SITE
+}
+
+enum JobSeniority {
+  JUNIOR
+  MID
+  SENIOR
+  ANY
+}
+
+enum JobStatus {
+  ACTIVE
+  CLOSED
+}
+
+model Job {
+  id           String       @id @default(uuid())
+  title        String
+  company      String
+  location     String?
+  remoteType   RemoteType
+  description  String
+  requirements String[]
+  seniority    JobSeniority
+  contractType String
+  salaryMin    Int?
+  salaryMax    Int?
+  tags         String[]
+  status       JobStatus    @default(ACTIVE)
+  postedAt     DateTime     @default(now())
+  expiresAt    DateTime?
+
+  @@index([status])
+  @@index([remoteType])
+  @@index([seniority])
+  @@index([contractType])
+  @@index([postedAt])
+}

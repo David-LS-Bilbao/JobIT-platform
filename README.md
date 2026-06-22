@@ -2,7 +2,7 @@
 
 JobIT es una plataforma fullstack modular de empleo tecnologico. Su objetivo es ayudar a profesionales tech a gestionar mejor su busqueda laboral, preparar su perfil y conectar con oportunidades relevantes.
 
-El repositorio se encuentra en fase documental inicial. En esta etapa no se implementa frontend, backend, base de datos, Docker, autenticacion, CI/CD ni ninguna configuracion tecnica.
+El repositorio ha superado la fase documental inicial y tiene en marcha la implementacion del backend MVP candidate-first (API en `apps/api`). Ya estan implementados los modulos de Auth, Candidate Profile & CV y Jobs. El frontend, la infraestructura de despliegue (Docker, CI/CD) y los modulos Saved Jobs, Match y Dashboard siguen pendientes.
 
 ## Vision modular
 
@@ -57,9 +57,20 @@ Nada de este stack esta implementado todavia en el repositorio. Su adopcion requ
 
 ## Estado actual del repositorio
 
-Estado: fase documental avanzada. Las specs funcionales del MVP candidate-first han sido creadas. El siguiente paso es iniciar el desarrollo tecnico.
+Estado: backend MVP candidate-first en desarrollo activo sobre la base documental y de specs ya creada. El backend vive en `apps/api` (Node.js + TypeScript + Express + Zod, PostgreSQL + Prisma).
 
-El objetivo de esta fase ha sido crear una base clara de producto, alcance, metodologia, calidad, seguridad y trabajo con agentes IA antes de escribir codigo.
+Modulos backend implementados:
+
+- **Auth (M01)**: registro, login, logout y ruta privada del usuario autenticado, con middleware `requireAuth`.
+- **Candidate Profile & CV (M02)**: perfil del candidato y subrecursos (skills, experience, education, projects, links, preferences) bajo `/api/profile/me`, con ownership por usuario autenticado.
+- **Jobs (M03)**: exploracion de ofertas tech cargadas por seed, con filtros y paginacion.
+
+Endpoints de Jobs disponibles (rutas privadas, requieren sesion):
+
+- `GET /api/jobs` — listado de ofertas activas con filtros (`q`, `remote`, `seniority`, `contractType`, `tags`) y paginacion (`page`, `limit`).
+- `GET /api/jobs/:id` — detalle de una oferta activa; devuelve `404` si no existe, esta cerrada o ha expirado.
+
+Pendiente: frontend, Saved Jobs (M04), Match (M05), Dashboard (M06) e infraestructura de despliegue. Cada nuevo modulo se implementa con su spec previa y el flujo SDD + TDD + AI Audit.
 
 ## Estructura documental inicial
 
