@@ -22,6 +22,6 @@ export async function setup(): Promise<void> {
 
 export async function truncateTables(prisma: PrismaClient): Promise<void> {
   await prisma.$executeRawUnsafe(
-    `TRUNCATE "User", "RefreshToken" RESTART IDENTITY CASCADE`
+    `TRUNCATE "User", "RefreshToken", "CandidateProfile", "Skill", "Experience", "Education", "Project", "Link", "JobPreferences" RESTART IDENTITY CASCADE`
   );
 }
