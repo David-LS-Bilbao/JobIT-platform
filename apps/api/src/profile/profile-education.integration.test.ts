@@ -284,6 +284,18 @@ describe("PUT /api/profile/me/education/:educationId", () => {
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe("VALIDATION_ERROR");
   });
+
+  it("returns 404 when updating a non-existent education as an authenticated user", async () => {
+    const { accessToken } = await registerUser("edu-put-missing@example.com");
+
+    const res = await request(app)
+      .put("/api/profile/me/education/11111111-1111-1111-1111-111111111111")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({ institution: "Ghost University" });
+
+    expect(res.status).toBe(404);
+    expect(res.body.error.code).toBe("NOT_FOUND");
+  });
 });
 
 describe("DELETE /api/profile/me/education/:educationId", () => {
@@ -343,5 +355,16 @@ describe("DELETE /api/profile/me/education/:educationId", () => {
 
     expect(res.status).toBe(401);
     expect(res.body.error.code).toBe("UNAUTHORIZED");
+  });
+
+  it("returns 404 when deleting a non-existent education as an authenticated user", async () => {
+    const { accessToken } = await registerUser("edu-del-missing@example.com");
+
+    const res = await request(app)
+      .delete("/api/profile/me/education/11111111-1111-1111-1111-111111111111")
+      .set("Authorization", `Bearer ${accessToken}`);
+
+    expect(res.status).toBe(404);
+    expect(res.body.error.code).toBe("NOT_FOUND");
   });
 });

@@ -258,6 +258,18 @@ describe("PUT /api/profile/me/projects/:projectId", () => {
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe("VALIDATION_ERROR");
   });
+
+  it("returns 404 when updating a non-existent project as an authenticated user", async () => {
+    const { accessToken } = await registerUser("proj-put-missing@example.com");
+
+    const res = await request(app)
+      .put("/api/profile/me/projects/11111111-1111-1111-1111-111111111111")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({ name: "Ghost Project" });
+
+    expect(res.status).toBe(404);
+    expect(res.body.error.code).toBe("NOT_FOUND");
+  });
 });
 
 describe("DELETE /api/profile/me/projects/:projectId", () => {
@@ -317,5 +329,16 @@ describe("DELETE /api/profile/me/projects/:projectId", () => {
 
     expect(res.status).toBe(401);
     expect(res.body.error.code).toBe("UNAUTHORIZED");
+  });
+
+  it("returns 404 when deleting a non-existent project as an authenticated user", async () => {
+    const { accessToken } = await registerUser("proj-del-missing@example.com");
+
+    const res = await request(app)
+      .delete("/api/profile/me/projects/11111111-1111-1111-1111-111111111111")
+      .set("Authorization", `Bearer ${accessToken}`);
+
+    expect(res.status).toBe(404);
+    expect(res.body.error.code).toBe("NOT_FOUND");
   });
 });

@@ -112,8 +112,4 @@ describe("profile.service — calculateCompletionPercentage", () => {
     // Math.round((1 / 7) * 100) = 14
     expect(calculateCompletionPercentage(profile)).toBe(14);
   });
-
-  // TODO (fase 5.4): cuando getOrCreateCandidateProfile devuelva skills,
-  // añadir un test que verifique que normalizedName no se expone en el
-  // resultado serializado del servicio/endpoint. No aplica al servicio base.
 });

@@ -160,4 +160,15 @@ describe("DELETE /api/profile/me/skills/:skillId", () => {
     const stillExists = await prisma.skill.findUnique({ where: { id: skillId } });
     expect(stillExists).not.toBeNull();
   });
+
+  it("returns 404 when deleting a non-existent skill as an authenticated user", async () => {
+    const { accessToken } = await registerUser("skill-del-missing@example.com");
+
+    const res = await request(app)
+      .delete("/api/profile/me/skills/11111111-1111-1111-1111-111111111111")
+      .set("Authorization", `Bearer ${accessToken}`);
+
+    expect(res.status).toBe(404);
+    expect(res.body.error.code).toBe("NOT_FOUND");
+  });
 });
