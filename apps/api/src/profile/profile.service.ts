@@ -22,6 +22,8 @@ import type {
   CreateExperienceInput,
   CreateProjectInput,
   CreateSkillInput,
+  PutLinksInput,
+  PutPreferencesInput,
   UpdateBasicInfoInput,
   UpdateEducationInput,
   UpdateExperienceInput,
@@ -314,6 +316,49 @@ export async function deleteCandidateProject(
 ): Promise<void> {
   await findOwnedProjectOrThrow(userId, projectId);
   await prisma.project.delete({ where: { id: projectId } });
+}
+
+export async function replaceCandidateLinks(
+  userId: string,
+  input: PutLinksInput
+): Promise<Link[]> {
+  const profile = await getOrCreateCandidateProfile(userId);
+
+  return prisma.$transaction(async (tx) => {
+    await tx.link.deleteMany({ where: { profileId: profile.id } });
+    const created: Link[] = [];
+    for (const link of input.links) {
+      created.push(
+        await tx.link.create({
+          data: { profileId: profile.id, type: link.type, url: link.url.trim() }
+        })
+      );
+    }
+    return created;
+  });
+}
+
+export async function upsertCandidatePreferences(
+  userId: string,
+  input: PutPreferencesInput
+): Promise<JobPreferences> {
+  const profile = await getOrCreateCandidateProfile(userId);
+
+  const data = {
+    desiredRoles: input.desiredRoles ?? [],
+    preferredLocations: input.preferredLocations ?? [],
+    remotePreference: input.remotePreference ?? "ANY",
+    seniority: input.seniority ?? null,
+    salaryMin: input.salaryMin ?? null,
+    salaryMax: input.salaryMax ?? null,
+    contractTypes: input.contractTypes ?? []
+  };
+
+  return prisma.jobPreferences.upsert({
+    where: { profileId: profile.id },
+    create: { profileId: profile.id, ...data },
+    update: data
+  });
 }
 
 function hasMeaningfulPreferences(preferences: JobPreferences | null): boolean {

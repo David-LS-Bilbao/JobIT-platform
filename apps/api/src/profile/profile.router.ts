@@ -1,5 +1,12 @@
 import { Router, type NextFunction, type Request, type Response } from "express";
-import { type Education, type Experience, type Project, type Skill } from "@prisma/client";
+import {
+  type Education,
+  type Experience,
+  type JobPreferences,
+  type Link,
+  type Project,
+  type Skill
+} from "@prisma/client";
 import { ZodError } from "zod";
 
 import { requireAuth, type AuthenticatedRequest } from "../auth/require-auth.middleware.js";
@@ -9,6 +16,8 @@ import {
   createExperienceSchema,
   createProjectSchema,
   createSkillSchema,
+  putLinksSchema,
+  putPreferencesSchema,
   updateBasicInfoSchema,
   updateEducationSchema,
   updateExperienceSchema,
@@ -25,10 +34,12 @@ import {
   deleteCandidateProject,
   deleteCandidateSkill,
   getOrCreateCandidateProfile,
+  replaceCandidateLinks,
   updateCandidateEducation,
   updateCandidateExperience,
   updateCandidateProject,
   updateCandidateProfileBasicInfo,
+  upsertCandidatePreferences,
   type ProfileWithRelations
 } from "./profile.service.js";
 
@@ -73,6 +84,27 @@ function serializeProject(project: Project): Record<string, unknown> {
     technologies: project.technologies,
     url: project.url,
     repoUrl: project.repoUrl
+  };
+}
+
+function serializeLink(link: Link): Record<string, unknown> {
+  return {
+    id: link.id,
+    type: link.type,
+    url: link.url
+  };
+}
+
+function serializePreferences(preferences: JobPreferences): Record<string, unknown> {
+  return {
+    id: preferences.id,
+    desiredRoles: preferences.desiredRoles,
+    preferredLocations: preferences.preferredLocations,
+    remotePreference: preferences.remotePreference,
+    seniority: preferences.seniority,
+    salaryMin: preferences.salaryMin,
+    salaryMax: preferences.salaryMax,
+    contractTypes: preferences.contractTypes
   };
 }
 
@@ -378,6 +410,44 @@ profileRouter.delete(
     } catch (err) {
       if (err instanceof ProfileError) {
         sendProfileError(res, err);
+        return;
+      }
+      next(err);
+    }
+  }
+);
+
+profileRouter.put(
+  "/me/links",
+  requireAuth,
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as unknown as AuthenticatedRequest).auth;
+      const input = putLinksSchema.parse(req.body);
+      const links = await replaceCandidateLinks(userId, input);
+      res.status(200).json({ links: links.map(serializeLink) });
+    } catch (err) {
+      if (err instanceof ZodError) {
+        sendValidationError(res, err);
+        return;
+      }
+      next(err);
+    }
+  }
+);
+
+profileRouter.put(
+  "/me/preferences",
+  requireAuth,
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as unknown as AuthenticatedRequest).auth;
+      const input = putPreferencesSchema.parse(req.body);
+      const preferences = await upsertCandidatePreferences(userId, input);
+      res.status(200).json(serializePreferences(preferences));
+    } catch (err) {
+      if (err instanceof ZodError) {
+        sendValidationError(res, err);
         return;
       }
       next(err);

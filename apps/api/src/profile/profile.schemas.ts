@@ -142,3 +142,43 @@ export const updateProjectSchema = z
   .strip();
 
 export type UpdateProjectInput = z.infer<typeof updateProjectSchema>;
+
+export const putLinksSchema = z
+  .object({
+    links: z
+      .array(
+        z
+          .object({
+            type: z.enum(["GITHUB", "LINKEDIN", "PORTFOLIO", "OTHER"]),
+            url: z.string().trim().url("URL inválida")
+          })
+          .strip()
+      )
+      .min(1, "Debe indicar al menos un enlace")
+  })
+  .strip();
+
+export type PutLinksInput = z.infer<typeof putLinksSchema>;
+
+const stringArray = z.array(z.string().trim().min(1, "El valor no puede estar vacío"));
+
+export const putPreferencesSchema = z
+  .object({
+    desiredRoles: stringArray.optional(),
+    preferredLocations: stringArray.optional(),
+    remotePreference: z.enum(["REMOTE", "HYBRID", "ON_SITE", "ANY"]).optional(),
+    seniority: z.enum(["JUNIOR", "MID", "SENIOR"]).nullish(),
+    salaryMin: z.number().int().positive("salaryMin debe ser mayor que 0").nullish(),
+    salaryMax: z.number().int().positive().nullish(),
+    contractTypes: stringArray.optional()
+  })
+  .strip()
+  .refine(
+    (data) =>
+      data.salaryMin == null ||
+      data.salaryMax == null ||
+      data.salaryMax >= data.salaryMin,
+    { message: "salaryMax no puede ser menor que salaryMin", path: ["salaryMax"] }
+  );
+
+export type PutPreferencesInput = z.infer<typeof putPreferencesSchema>;
