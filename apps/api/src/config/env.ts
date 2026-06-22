@@ -12,8 +12,17 @@ const parsePort = (value: string | undefined): number => {
   return port;
 };
 
+// Opcional: normaliza string vacío o con espacios a undefined.
+const optionalString = (value: string | undefined): string | undefined => {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
+};
+
 export const env = {
   NODE_ENV: process.env.NODE_ENV ?? "development",
   PORT: parsePort(process.env.PORT),
-  CORS_ORIGIN: process.env.CORS_ORIGIN ?? "http://localhost:3000"
+  CORS_ORIGIN: process.env.CORS_ORIGIN ?? "http://localhost:3000",
+  // Opcional y solo backend: si falta no rompe dev/test. Se exigirá en Fase 4
+  // al activar el cliente real de Jooble. Nunca loguear ni exponer su valor.
+  JOOBLE_API_KEY: optionalString(process.env.JOOBLE_API_KEY)
 };
