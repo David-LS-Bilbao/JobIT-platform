@@ -155,6 +155,12 @@ enum RemoteType {
   REMOTE
   HYBRID
   ON_SITE
+  UNSPECIFIED
+}
+
+enum JobSource {
+  INTERNAL
+  JOOBLE
 }
 
 enum JobSeniority {
@@ -186,9 +192,15 @@ model Job {
   postedAt     DateTime     @default(now())
   expiresAt    DateTime?
 
+  source       JobSource    @default(INTERNAL)
+  externalId   String?
+  sourceUrl    String?
+  ingestedAt   DateTime?
+
   @@index([status])
   @@index([remoteType])
   @@index([seniority])
   @@index([contractType])
   @@index([postedAt])
+  @@index([source])
 }

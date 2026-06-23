@@ -233,7 +233,11 @@ async function main(): Promise<void> {
   // Idempotente para desarrollo: limpia solo la tabla Job antes de re-sembrar.
   // No toca User, CandidateProfile ni ninguna otra entidad.
   await prisma.job.deleteMany();
-  await prisma.job.createMany({ data: jobs });
+  // Las ofertas seed/mock son internas: se marcan explícitamente como INTERNAL
+  // (el default del modelo ya es INTERNAL; esto lo hace explícito y determinista).
+  await prisma.job.createMany({
+    data: jobs.map((job) => ({ ...job, source: "INTERNAL" as const }))
+  });
 
   const total = await prisma.job.count();
   console.log(`Seed completado: ${total} ofertas Job insertadas.`);
