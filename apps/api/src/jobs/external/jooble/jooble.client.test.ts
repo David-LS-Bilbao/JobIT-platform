@@ -74,34 +74,44 @@ describe("searchJoobleJobs", () => {
 
     expect(result.totalCount).toBe(2);
     expect(result.jobs).toHaveLength(2);
-    expect(result.jobs[0].id).toBe("-1000000001");
+    expect(result.jobs[0]?.id).toBe("-1000000001");
   });
 
   // c) No exponer la API key en errores
   it("does not leak the API key in error messages", async () => {
     const fetchFn = vi.fn(async () => mockResponse({}, { ok: false, status: 500 }));
 
-    const error = await searchJoobleJobs(
-      { keywords: "node" },
-      { apiKey: API_KEY, fetchFn, baseUrl: BASE_URL }
-    ).catch((err: Error) => err);
+    let error: unknown;
+    try {
+      await searchJoobleJobs(
+        { keywords: "node" },
+        { apiKey: API_KEY, fetchFn, baseUrl: BASE_URL }
+      );
+    } catch (err) {
+      error = err;
+    }
 
     expect(error).toBeInstanceOf(JoobleHttpError);
-    expect(error.message).not.toContain(API_KEY);
+    expect((error as Error).message).not.toContain(API_KEY);
   });
 
   // d) HTTP no-2xx
   it("rejects with JoobleHttpError including the status on non-2xx responses", async () => {
     const fetchFn = vi.fn(async () => mockResponse({}, { ok: false, status: 500 }));
 
-    const error = await searchJoobleJobs(
-      { keywords: "node" },
-      { apiKey: API_KEY, fetchFn, baseUrl: BASE_URL }
-    ).catch((err: JoobleHttpError) => err);
+    let error: unknown;
+    try {
+      await searchJoobleJobs(
+        { keywords: "node" },
+        { apiKey: API_KEY, fetchFn, baseUrl: BASE_URL }
+      );
+    } catch (err) {
+      error = err;
+    }
 
     expect(error).toBeInstanceOf(JoobleHttpError);
     expect((error as JoobleHttpError).status).toBe(500);
-    expect(error.message).not.toContain(API_KEY);
+    expect((error as Error).message).not.toContain(API_KEY);
   });
 
   // e) Timeout / AbortError
