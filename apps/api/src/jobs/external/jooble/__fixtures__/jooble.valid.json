@@ -1,0 +1,29 @@
+{
+  "totalCount": 2,
+  "jobs": [
+    {
+      "id": "-1000000001",
+      "title": "Senior Backend Engineer (Remote)",
+      "company": "Datapeak",
+      "location": "Remoto",
+      "snippet": "Puesto 100% remoto. APIs en Node.js con PostgreSQL y Prisma. Cultura de testing.",
+      "salary": "45000-60000 €",
+      "type": "Full-time",
+      "link": "https://jooble.org/jdp/1000000001",
+      "updated": "2026-06-20T09:30:00",
+      "source": "infojobs"
+    },
+    {
+      "id": "-1000000002",
+      "title": "Frontend Developer (Hybrid)",
+      "company": "Nova Labs",
+      "location": "Bilbao",
+      "snippet": "Modelo híbrido: 3 días en oficina y 2 en remoto. React y TypeScript para producto SaaS.",
+      "salary": "32000-40000 €",
+      "type": "Full-time",
+      "link": "https://jooble.org/jdp/1000000002",
+      "updated": "2026-06-19T14:00:00",
+      "source": "linkedin"
+    }
+  ]
+}
