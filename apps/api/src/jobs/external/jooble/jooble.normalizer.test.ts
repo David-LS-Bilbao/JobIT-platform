@@ -14,9 +14,12 @@ const readFixture = (name: string): unknown =>
 const validResponse = joobleSearchResponseSchema.parse(readFixture("jooble.valid.json"));
 const partialResponse = joobleSearchResponseSchema.parse(readFixture("jooble.partial.json"));
 
-const remoteJob = validResponse.jobs[0]; // Senior Backend Engineer (Remote)
-const hybridJob = validResponse.jobs[1]; // Frontend Developer (Hybrid)
-const partialJob = partialResponse.jobs[0]; // strings vacíos en location/salary/type/source
+const [remoteJob, hybridJob] = validResponse.jobs; // Remote + Hybrid
+const [partialJob] = partialResponse.jobs; // strings vacíos en location/salary/type/source
+
+if (!remoteJob || !hybridJob || !partialJob) {
+  throw new Error("Fixtures de Jooble incompletos para los tests del normalizador");
+}
 
 // Fecha de ingesta controlada para tests deterministas (clock inyectable).
 const INGESTED_AT = new Date("2026-06-22T00:00:00.000Z");
