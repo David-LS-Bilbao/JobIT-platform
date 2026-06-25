@@ -11,7 +11,9 @@ import { z } from "zod";
  * Los tipos inferidos corresponden al contrato oficial de `jooble.types.ts`.
  */
 export const joobleJobSchema = z.object({
-  id: z.string(),
+  // Jooble devuelve `id` como number; aceptamos string o number y lo entregamos
+  // siempre como string (contrato observado en Fase 5C.1).
+  id: z.union([z.string(), z.number()]).transform((value) => String(value)),
   title: z.string(),
   company: z.string(),
   location: z.string(),
