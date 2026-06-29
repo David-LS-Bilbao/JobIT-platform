@@ -38,7 +38,7 @@ Marcado de estado real; no altera el alcance funcional definido en este document
 - M05 Match básico explicable: implementado (heurístico, determinista, sin IA; endpoints `GET /api/jobs/:id/match` y `GET /api/profile/me/matches`).
 - M06 Dashboard candidato: implementado en backend (agregador de solo lectura `GET /api/dashboard/me`; compone Profile/CV, Saved Jobs y Match; sin persistencia nueva ni IA).
 
-Frontend, despliegue y CI/CD siguen pendientes.
+Frontend candidate-first (Sprint 07): primera versión implementada en `apps/web` (Next.js + TypeScript + Tailwind + App Router) — landing, login/register, dashboard privado consumiendo `GET /api/dashboard/me`, sesión `accessToken` en memoria y logout. Pendientes: smoke real contra backend (entorno por provisionar), UI completa de Jobs/Saved Jobs/Perfil-CV, y despliegue/CI/CD.
 
 ## Módulos fuera del MVP inicial
 

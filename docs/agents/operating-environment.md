@@ -10,6 +10,8 @@ El entorno principal de desarrollo y verificación de JobIT es el **clon nativo 
 
 Todas las instalaciones, tests, build y generación de Prisma deben ejecutarse desde esta ruta.
 
+> **Excepción macOS (autorizada).** Además del clon WSL, puede usarse un **clon nativo de macOS independiente** (p. ej. `/Users/david_mac/JobIT-platform`) **solo cuando el usuario lo autoriza explícitamente**. No es un sustituto general: WSL sigue siendo el entorno recomendado/mandatado para evitar conflictos de OneDrive/Windows. **Nunca** usar rutas OneDrive/Windows compartidas, y no presentar macOS como entorno por defecto si no está provisionado (base de datos, `.env`).
+
 ## Motivo
 
 No debe usarse el checkout de Windows/OneDrive para ejecutar `pnpm install`, tests, build ni Prisma. Compartir el mismo `node_modules` entre Windows/Git Bash y WSL sobre la carpeta de OneDrive provoca conflictos con dependencias nativas: los bindings compilados son específicos del sistema operativo y un `install` desde un entorno deja el otro inservible.

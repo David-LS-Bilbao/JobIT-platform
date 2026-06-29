@@ -2,7 +2,7 @@
 
 JobIT es una plataforma fullstack modular de empleo tecnologico. Su objetivo es ayudar a profesionales tech a gestionar mejor su busqueda laboral, preparar su perfil y conectar con oportunidades relevantes.
 
-El repositorio ha superado la fase documental inicial y tiene en marcha la implementacion del backend MVP candidate-first (API en `apps/api`). Ya estan implementados los modulos de Auth, Candidate Profile & CV, Jobs (incluida la integracion backend-only con Jooble y la politica de visibilidad publica de la API), Saved Jobs, Match basico explicable y Candidate Dashboard. El frontend y la infraestructura de despliegue (Docker, CI/CD) siguen pendientes.
+El repositorio ha superado la fase documental inicial y tiene en marcha la implementacion del backend MVP candidate-first (API en `apps/api`). Ya estan implementados los modulos de Auth, Candidate Profile & CV, Jobs (incluida la integracion backend-only con Jooble y la politica de visibilidad publica de la API), Saved Jobs, Match basico explicable y Candidate Dashboard. En el Sprint 07 se ha anadido una primera version del frontend candidate-first en `apps/web` (Next.js + TypeScript + Tailwind). La infraestructura de despliegue (Docker, CI/CD) sigue pendiente.
 
 ## Vision modular
 
@@ -53,7 +53,7 @@ El stack definitivo se decidira en sprints tecnicos posteriores. Como orientacio
 - Base de datos: PostgreSQL + Prisma.
 - Deploy futuro: Docker + VPS + Nginx o Nginx Proxy Manager.
 
-Nada de este stack esta implementado todavia en el repositorio. Su adopcion requiere especificaciones tecnicas aprobadas en sprints posteriores.
+Parte de este stack ya esta implementado: el backend en `apps/api` (Express + Prisma) y, desde el Sprint 07, el frontend en `apps/web` (Next.js + TypeScript + Tailwind + App Router). El stack de despliegue (Docker + VPS + Nginx) sigue pendiente de sprints posteriores.
 
 ## Estado actual del repositorio
 
@@ -88,7 +88,41 @@ Endpoint de Dashboard disponible (ruta privada, requiere sesion):
 
 - `GET /api/dashboard/me` — vista agregada del candidato autenticado. Devuelve `profile` (`firstName`, `lastName`, `headline`, `completionPercentage`), `skills`, `savedJobs` (`total` + `recent` limitado a 3 por fecha de guardado), `matches` (top 3 explicables) y `nextActions` deterministas (`complete_profile`, `explore_jobs`). El `userId` se obtiene solo del token; los jobs embebidos usan el contrato publico de Jobs (sin `externalId`/`ingestedAt`).
 
-Pendiente: frontend e infraestructura de despliegue. Cada nuevo modulo se implementa con su spec previa y el flujo SDD + TDD + AI Audit.
+### Frontend candidate-first (Sprint 07)
+
+El frontend vive en `apps/web` como workspace `@jobit/web` (Next.js + TypeScript + Tailwind + App Router). Es una primera version minima candidate-first que consume el backend real.
+
+Pantallas implementadas:
+
+- `/` — landing candidate-first (marca JobIT y accesos a login, registro y dashboard).
+- `/login` — inicio de sesion contra `POST /api/auth/login`.
+- `/register` — registro contra `POST /api/auth/register`, con confirmacion de contrasena y politica minima en cliente.
+- `/dashboard` — ruta privada que consume `GET /api/dashboard/me` y muestra perfil/completitud, skills, ofertas guardadas, mejores matches y proximos pasos, con estados de carga/error/vacio y boton de logout.
+
+Sesion y seguridad:
+
+- El `accessToken` se guarda solo en memoria de React (no se usa `localStorage` ni `sessionStorage`).
+- El cliente API tipado usa `fetch` con `credentials: "include"` y cabecera `Authorization: Bearer` solo cuando hay token; la URL base se lee de `NEXT_PUBLIC_API_BASE_URL`.
+- No existe `POST /api/auth/refresh`: al recargar la pagina o expirar el token, la sesion se pierde y el candidato vuelve a iniciar sesion. Un `401` se trata como sesion expirada (limpia la sesion y redirige a `/login`).
+- Logout: llama a `POST /api/auth/logout` y limpia la sesion local aunque la llamada al servidor falle.
+
+Ejecucion local del frontend (backend dev esperado en `:4000`, frontend en `:3000`):
+
+```bash
+# Configuracion local no versionada
+echo "NEXT_PUBLIC_API_BASE_URL=http://localhost:4000" > apps/web/.env.local
+pnpm --filter @jobit/web dev
+pnpm --filter @jobit/web typecheck
+pnpm --filter @jobit/web test
+pnpm --filter @jobit/web build
+pnpm --filter @jobit/web lint
+```
+
+Verificaciones del Sprint 07: `typecheck`, `test` (35/35), `build` y `lint` en verde; auditoria quality/security PASS_WITH_NOTES. El smoke manual contra el backend real queda **pendiente** de provisionar el entorno local (`apps/web/.env.local`, backend con base de datos migrada y puerto `:3000` libre).
+
+Pendiente del frontend: smoke real en entorno provisionado, UI completa de Jobs / Saved Jobs / Perfil-CV, navegacion segun sesion, posible `POST /api/auth/refresh` (backend) y despliegue dev/staging.
+
+Pendiente global: infraestructura de despliegue (Docker, CI/CD). Cada nuevo modulo se implementa con su spec previa y el flujo SDD + TDD + AI Audit.
 
 ## Estructura documental inicial
 
