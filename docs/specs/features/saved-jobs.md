@@ -54,19 +54,45 @@ La relación es entre el usuario y la oferta. No pertenece al perfil del candida
 
 ## Endpoints previstos
 
-| Método | Ruta | Descripción |
-|---|---|---|
-| GET | /saved-jobs | Listado de ofertas guardadas del candidato autenticado |
-| POST | /saved-jobs | Guardar una oferta |
-| DELETE | /saved-jobs/:jobId | Quitar una oferta guardada |
+Rutas documentadas **sin** el prefijo global `/api` (convención de specs según ADR-0007). En la implementación el router se monta bajo `/api/saved-jobs`, igual que `/api/jobs`.
 
-Body de POST `/saved-jobs`:
+| Método | Ruta | Descripción | Éxito |
+|---|---|---|---|
+| GET | /saved-jobs | Listado de ofertas guardadas del candidato autenticado | 200 |
+| POST | /saved-jobs/:jobId | Guardar una oferta (idempotente) | 201 (creado) / 200 (ya guardada) |
+| DELETE | /saved-jobs/:jobId | Quitar una oferta guardada | 204 |
 
-```json
-{ "jobId": "uuid" }
-```
+**Decisión de contrato (SDD Review Sprint 04):** el identificador de la oferta viaja en el **path** (`:jobId`), no en el body. Se resuelve así la discrepancia entre el briefing inicial y la versión previa de esta spec (que usaba `POST /saved-jobs` con body `{ "jobId": "uuid" }`). Justificación:
 
-Todas las rutas son privadas. Requieren sesión activa.
+- **Coherencia con ADR-0007**, que define explícitamente `/saved-jobs` y `/saved-jobs/:jobId` (kebab-case, colección en plural, DELETE = desguardado).
+- **Simetría save/unsave**: `POST` y `DELETE` operan sobre el mismo recurso `/saved-jobs/:jobId`.
+- **Reutiliza el patrón de validación de Jobs** (`:id` con forma UUID en path, como `GET /jobs/:id`), sin necesidad de un schema de body adicional.
+- **Menor superficie de entrada**: sin body, el cliente solo aporta el `jobId` por ruta; el `userId` nunca entra por el cliente.
+
+`:jobId` se valida como forma UUID en el servidor; un `jobId` con forma inválida devuelve 400, uno con forma válida pero inexistente devuelve 404.
+
+Todas las rutas son **privadas** y exigen `requireAuth`. El `userId` se extrae siempre de `req.auth.userId` (token verificado); **nunca** se acepta desde body, query ni params.
+
+## Contrato heredado de Jobs (serialización pública)
+
+Saved Jobs reutiliza el contrato público de Jobs estabilizado en Sprint 03.6:
+
+- El `Job` embebido en las respuestas se serializa con `serializeJob` / `JobPublicDto` (`apps/api/src/jobs/jobs.serializer.ts`). **No se duplica** la lógica de serialización ni se devuelve la entidad Prisma completa.
+- **Nunca** se exponen los campos internos de ingesta `externalId` ni `ingestedAt`.
+- **Sí** se exponen `source` y `sourceUrl` (atribución de procedencia; `sourceUrl = null` para ofertas internas), además de `status` y `expiresAt`, que permiten al cliente derivar el indicador de "no disponible".
+- Funciona indistintamente con ofertas `source = INTERNAL` y `source = JOOBLE` ya persistidas.
+- Saved Jobs **no realiza llamadas a Jooble** ni dispara ingesta: opera solo sobre ofertas ya presentes en la base de datos.
+
+## Formato de respuestas (conceptual)
+
+- **GET /saved-jobs** → `200` con colección de guardados del usuario autenticado, ordenados por `savedAt` descendente. Cada elemento incluye los metadatos del guardado (al menos `savedAt`) y la oferta serializada vía `JobPublicDto`. Lista vacía → `200` con colección vacía.
+- **POST /saved-jobs/:jobId** → `201` si crea el guardado; `200` si la oferta ya estaba guardada (idempotente, sin duplicar). Devuelve el guardado resultante con la oferta serializada.
+- **DELETE /saved-jobs/:jobId** → `204` sin cuerpo cuando elimina un guardado propio.
+
+## Ownership y aislamiento entre usuarios
+
+- `GET /saved-jobs` devuelve **exclusivamente** los guardados del usuario autenticado. No existe ningún parámetro para solicitar los de otro usuario: el acceso cruzado es **estructuralmente imposible**, no un caso de 403.
+- `DELETE /saved-jobs/:jobId` actúa sobre el par `(req.auth.userId, jobId)`. Intentar quitar una oferta que el usuario no tiene guardada (aunque otro usuario sí la tenga) no encuentra registro propio y devuelve `404` — nunca afecta al guardado de otro usuario.
 
 ## Pantallas previstas
 
@@ -90,16 +116,19 @@ Todas las rutas son privadas. Requieren sesión activa.
 
 | Campo | Regla |
 |---|---|
-| jobId | UUID válido, oferta existente |
+| jobId (path) | Forma UUID válida en servidor; debe corresponder a una oferta existente |
 
 ## Errores
 
 | Situación | Código | Mensaje orientativo |
 |---|---|---|
-| jobId inválido o inexistente | 404 | "Oferta no encontrada" |
-| Quitar oferta no guardada | 404 | "No tienes esta oferta guardada" |
+| jobId con forma inválida | 400 | "Identificador de oferta no válido" |
+| Guardar oferta inexistente (forma válida) | 404 | "Oferta no encontrada" |
+| Quitar oferta no guardada por el usuario | 404 | "No tienes esta oferta guardada" |
 | Sin sesión | 401 | Redirección al login |
 | Error de servidor | 500 | "No se ha podido completar la acción. Inténtalo de nuevo" |
+
+Guardar una oferta ya guardada **no** es error: es idempotente (`200`, sin duplicar). El código `409` que ADR-0007 cita como ejemplo genérico de "oferta ya guardada" **no aplica** a este recurso, porque la spec lo define explícitamente como idempotente.
 
 ## Criterios de aceptación
 
@@ -113,14 +142,18 @@ Todas las rutas son privadas. Requieren sesión activa.
 
 ## Tests mínimos
 
-- Guardar oferta activa → registro creado con userId y jobId correctos.
-- Guardar oferta ya guardada → sin error, sin duplicado.
-- Listar guardadas → devuelve solo las del candidato autenticado.
-- Listar guardadas de otro candidato → error de autorización (403).
-- Quitar oferta guardada → registro eliminado.
-- Quitar oferta no guardada → 404.
+- Guardar oferta activa → registro creado con userId y jobId correctos (`201`).
+- Guardar oferta ya guardada → sin error, sin duplicado (`200`, idempotente).
+- Guardar oferta inexistente (forma UUID válida) → `404`.
+- Guardar con jobId de forma inválida → `400`.
+- Listar guardadas → devuelve solo las del candidato autenticado, ordenadas por `savedAt` desc.
+- Aislamiento: si el usuario A guarda una oferta, el listado del usuario B no la incluye (cada listado se acota a su propio `userId`; no hay parámetro para pedir el de otro).
+- Quitar oferta guardada propia → registro eliminado (`204`).
+- Quitar oferta no guardada por el usuario → `404` (aunque otro usuario la tenga guardada, no afecta a su registro).
 - Unicidad `(userId, jobId)` → no se pueden crear dos registros iguales.
-- Sin sesión en cualquier endpoint → 401.
+- Sin sesión en cualquier endpoint → `401`.
+- Respuestas con `Job` embebido → usan `JobPublicDto`; no exponen `externalId` ni `ingestedAt`; exponen `source`/`sourceUrl`.
+- Funciona con ofertas `INTERNAL` y `JOOBLE` persistidas.
 
 ## Fuera de alcance
 
