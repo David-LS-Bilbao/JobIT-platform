@@ -27,6 +27,19 @@ Candidato tech (junior, mid o senior) que busca:
 | M05 | Match básico | Indicador de afinidad explicable sin IA avanzada |
 | M06 | Dashboard candidato | Vista resumen del estado y actividad del candidato |
 
+## Estado de implementación (backend)
+
+Marcado de estado real; no altera el alcance funcional definido en este documento.
+
+- M01 Auth: implementado.
+- M02 Candidate Profile + CV: implementado.
+- M03 Jobs: implementado, con integración backend-only de Jooble (ADR-0011) y política de visibilidad pública de la API (Sprint 03.6).
+- M04 Saved Jobs: implementado.
+- M05 Match básico: pendiente.
+- M06 Dashboard candidato: pendiente.
+
+Frontend, despliegue y CI/CD siguen pendientes.
+
 ## Módulos fuera del MVP inicial
 
 - JobIT Recruit: panel recruiter completo.
