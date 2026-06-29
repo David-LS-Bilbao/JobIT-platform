@@ -31,38 +31,68 @@ Si en el futuro se necesita caché de resultados o historial de match, se consid
 
 ### Factores de cálculo (reglas visibles)
 
-| Factor | Peso orientativo | Descripción |
-|---|---|---|
-| Skills coincidentes | Alto | Intersección entre skills del candidato y requisitos/tags de la oferta |
-| Modalidad remota | Medio | Coincidencia entre preferencia del candidato y modalidad de la oferta |
-| Seniority | Medio | Coincidencia entre nivel declarado y nivel esperado por la oferta |
-| Ubicación | Bajo | Coincidencia de ciudad o región si la modalidad no es remota total |
+Pesos fijos del MVP (suman 100). El cálculo deberá ser determinista y explicable.
 
-Los pesos son orientativos y se fijarán en la implementación. Deben documentarse de forma visible para el candidato.
+| Factor | Peso | Fuente candidato | Fuente oferta | Regla |
+|---|---:|---|---|---|
+| Skills coincidentes | 50 | `Skill.normalizedName` | `Job.tags` (fuente canónica) | Intersección normalizada; `Job.requirements` es texto libre opcional, no fuente obligatoria del MVP |
+| Modalidad | 20 | `JobPreferences.remotePreference` | `Job.remoteType` | `ANY` o coincidencia exacta → peso completo; `UNSPECIFIED`/ausente → `null` |
+| Seniority | 20 | `JobPreferences.seniority` | `Job.seniority` | `Job.seniority = ANY` o igualdad → peso completo; ausente → `null` |
+| Ubicación | 10 | `JobPreferences.preferredLocations` | `Job.location` | Coincidencia (contains, case-insensitive); oferta `REMOTE` → `null` "no aplica" |
+
+El contrato (`JobPreferences.contractTypes` / `Job.contractType`) queda **fuera** del algoritmo del MVP para no ampliar alcance, aunque exista el dato.
+
+Los pesos deben documentarse de forma visible para el candidato.
 
 ## Endpoints previstos
 
+Rutas finales (con prefijo global `/api`):
+
 | Método | Ruta | Descripción |
 |---|---|---|
-| GET | /jobs/:id/match | Calcula y devuelve el match entre el candidato autenticado y la oferta |
-| GET | /profile/me/matches | Devuelve las N mejores ofertas con match para el candidato (para dashboard) |
+| GET | /api/jobs/:id/match | Calcula y devuelve el match entre el candidato autenticado y la oferta |
+| GET | /api/profile/me/matches | Devuelve las N mejores ofertas con match para el candidato (para dashboard) |
 
-Respuesta orientativa de `/jobs/:id/match`:
+Arquitectura esperada (a implementar en fase posterior, no ahora): un módulo nuevo `apps/api/src/match/` con la lógica de scoring pura, su servicio y un router; el router deberá montarse en `app.ts` con `app.use("/api", matchRouter)` definiendo las rutas completas `/jobs/:id/match` y `/profile/me/matches`, sin modificar los routers de Jobs ni Profile.
+
+Campos del contrato de respuesta: `score` (entero 0-100), `level`, `factors` (`{ name, match, detail }`, con `match` true/false/null), `matchedSkills`, `missingSkills`, `explanation`. Nunca se exponen `externalId` ni `ingestedAt`.
+
+Respuesta esperada de `GET /api/jobs/:id/match`:
 
 ```json
 {
+  "jobId": "uuid",
   "score": 72,
   "level": "GOOD",
+  "matchedSkills": ["node.js", "typescript"],
+  "missingSkills": ["aws"],
   "factors": [
-    { "name": "Skills", "match": true, "detail": "TypeScript, Node.js coinciden" },
-    { "name": "Modalidad", "match": true, "detail": "Remoto — coincide con tu preferencia" },
-    { "name": "Seniority", "match": false, "detail": "La oferta pide Senior, tu perfil indica Mid" },
-    { "name": "Ubicación", "match": null, "detail": "No aplica (oferta remota)" }
+    { "name": "skills", "match": true, "detail": "2 de 3 skills coinciden" },
+    { "name": "remote", "match": true, "detail": "Remoto — coincide con tu preferencia" },
+    { "name": "seniority", "match": false, "detail": "La oferta pide SENIOR; tu perfil indica MID" },
+    { "name": "location", "match": null, "detail": "No aplica (oferta remota)" }
+  ],
+  "explanation": "Buena afinidad por skills y modalidad; revisa seniority."
+}
+```
+
+Respuesta esperada de `GET /api/profile/me/matches` (resumida, ordenada por `score` descendente). El `job` embebido deberá serializarse con `serializeJob` / `JobPublicDto` (sin `externalId` ni `ingestedAt`). Acepta `limit` por query (default 10, máximo 50):
+
+```json
+{
+  "data": [
+    {
+      "job": { "id": "uuid", "title": "...", "company": "...", "source": "INTERNAL", "sourceUrl": null },
+      "score": 81,
+      "level": "VERY_GOOD",
+      "matchedSkills": ["node.js", "typescript"],
+      "missingSkills": []
+    }
   ]
 }
 ```
 
-Todas las rutas son privadas. Requieren sesión activa.
+Todas las rutas son privadas. Requieren sesión activa. El `userId` se obtiene siempre de `req.auth.userId`; nunca se acepta desde body, query ni params.
 
 ## Pantallas previstas
 
@@ -79,7 +109,12 @@ Todas las rutas son privadas. Requieren sesión activa.
 - El match no reemplaza la lectura de la oferta ni la decisión del candidato.
 - Un match bajo no bloquea al candidato de guardar o explorar la oferta.
 - El cálculo se hace en tiempo de petición. No se persiste en el MVP (sin caché).
-- Los niveles de score orientativos: VERY_LOW (0-25), LOW (26-50), GOOD (51-75), VERY_GOOD (76-100).
+- Los niveles de score: VERY_LOW (0-25), LOW (26-50), GOOD (51-75), VERY_GOOD (76-100).
+- Perfil incompleto: no bloquea el cálculo. Los factores sin datos suficientes aparecen con `match: null`, contribuyen 0 al score (sin renormalizar) y la `explanation` debe indicar que completar el perfil mejora el match.
+- Distinción en `match: null`: "no aplica" (estructural, p. ej. ubicación en oferta remota) frente a "completa tu perfil" (dato del candidato ausente); ambos contribuyen 0.
+- Las respuestas que embeben una oferta deben reutilizar `serializeJob` / `JobPublicDto`; nunca exponer `externalId` ni `ingestedAt`; `source` y `sourceUrl` sí son públicos.
+- Saved Jobs queda **fuera** del algoritmo del MVP: una oferta guardada expresa intención del usuario, no afinidad perfil-oferta.
+- No requiere ADR nueva: ADR-0007 ya contempla ambas rutas y ADR-0008 cubre el modelo; al no persistir entidad, no hay decisión arquitectónica nueva.
 
 ## Validaciones
 

@@ -65,6 +65,7 @@ Modulos backend implementados:
 - **Candidate Profile & CV (M02)**: perfil del candidato y subrecursos (skills, experience, education, projects, links, preferences) bajo `/api/profile/me`, con ownership por usuario autenticado.
 - **Jobs (M03)**: exploracion de ofertas tech, con filtros y paginacion. Incluye la integracion backend-only con Jooble (ingesta manual/controlada de ofertas externas, sin red en tests) y la politica de visibilidad publica de la API (DTO publico via `serializeJob` / `JobPublicDto`, que oculta `externalId`/`ingestedAt` y expone `source`/`sourceUrl`).
 - **Saved Jobs (M04)**: guardado, listado y borrado de ofertas por candidato autenticado, con ownership estricto e idempotencia.
+- **Match basico explicable (M05)**: afinidad entre el perfil/CV del candidato autenticado y las ofertas, calculada en tiempo de peticion. Heuristico, determinista y explicable (reglas visibles con desglose por factores); **no usa IA/ML/embeddings/LLM**. El job embebido usa `serializeJob` / `JobPublicDto` (sin `externalId`/`ingestedAt`).
 
 Endpoints de Jobs disponibles (rutas privadas, requieren sesion):
 
@@ -77,7 +78,12 @@ Endpoints de Saved Jobs disponibles (rutas privadas, requieren sesion):
 - `POST /api/saved-jobs/:jobId` — guarda una oferta; idempotente (`201` si la crea, `200` si ya estaba guardada).
 - `DELETE /api/saved-jobs/:jobId` — quita una oferta guardada propia (`204`); devuelve `404` si no estaba guardada por el usuario.
 
-Pendiente: frontend, Match (M05), Dashboard (M06) e infraestructura de despliegue. Cada nuevo modulo se implementa con su spec previa y el flujo SDD + TDD + AI Audit.
+Endpoints de Match disponibles (rutas privadas, requieren sesion):
+
+- `GET /api/jobs/:id/match` — calcula la afinidad del candidato autenticado con una oferta; devuelve `score` (0-100), `level`, `matchedSkills`, `missingSkills`, `factors` y `explanation`. `400` si el id no tiene forma de UUID; `404` si la oferta no esta disponible.
+- `GET /api/profile/me/matches` — mejores ofertas para el candidato autenticado, ordenadas por `score` descendente; `limit` opcional (default 10, maximo 50); cada item incluye la oferta via `JobPublicDto`. No expone `externalId` ni `ingestedAt`.
+
+Pendiente: frontend, Dashboard candidato (M06) e infraestructura de despliegue. Cada nuevo modulo se implementa con su spec previa y el flujo SDD + TDD + AI Audit.
 
 ## Estructura documental inicial
 
