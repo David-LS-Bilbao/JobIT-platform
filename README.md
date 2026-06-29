@@ -2,7 +2,7 @@
 
 JobIT es una plataforma fullstack modular de empleo tecnologico. Su objetivo es ayudar a profesionales tech a gestionar mejor su busqueda laboral, preparar su perfil y conectar con oportunidades relevantes.
 
-El repositorio ha superado la fase documental inicial y tiene en marcha la implementacion del backend MVP candidate-first (API en `apps/api`). Ya estan implementados los modulos de Auth, Candidate Profile & CV y Jobs. El frontend, la infraestructura de despliegue (Docker, CI/CD) y los modulos Saved Jobs, Match y Dashboard siguen pendientes.
+El repositorio ha superado la fase documental inicial y tiene en marcha la implementacion del backend MVP candidate-first (API en `apps/api`). Ya estan implementados los modulos de Auth, Candidate Profile & CV, Jobs (incluida la integracion backend-only con Jooble y la politica de visibilidad publica de la API) y Saved Jobs. El frontend, la infraestructura de despliegue (Docker, CI/CD) y los modulos Match y Dashboard siguen pendientes.
 
 ## Vision modular
 
@@ -63,14 +63,21 @@ Modulos backend implementados:
 
 - **Auth (M01)**: registro, login, logout y ruta privada del usuario autenticado, con middleware `requireAuth`.
 - **Candidate Profile & CV (M02)**: perfil del candidato y subrecursos (skills, experience, education, projects, links, preferences) bajo `/api/profile/me`, con ownership por usuario autenticado.
-- **Jobs (M03)**: exploracion de ofertas tech cargadas por seed, con filtros y paginacion.
+- **Jobs (M03)**: exploracion de ofertas tech, con filtros y paginacion. Incluye la integracion backend-only con Jooble (ingesta manual/controlada de ofertas externas, sin red en tests) y la politica de visibilidad publica de la API (DTO publico via `serializeJob` / `JobPublicDto`, que oculta `externalId`/`ingestedAt` y expone `source`/`sourceUrl`).
+- **Saved Jobs (M04)**: guardado, listado y borrado de ofertas por candidato autenticado, con ownership estricto e idempotencia.
 
 Endpoints de Jobs disponibles (rutas privadas, requieren sesion):
 
-- `GET /api/jobs` — listado de ofertas activas con filtros (`q`, `remote`, `seniority`, `contractType`, `tags`) y paginacion (`page`, `limit`).
+- `GET /api/jobs` — listado de ofertas activas con filtros (`q`, `remote`, `seniority`, `contractType`, `source`, `tags`) y paginacion (`page`, `limit`).
 - `GET /api/jobs/:id` — detalle de una oferta activa; devuelve `404` si no existe, esta cerrada o ha expirado.
 
-Pendiente: frontend, Saved Jobs (M04), Match (M05), Dashboard (M06) e infraestructura de despliegue. Cada nuevo modulo se implementa con su spec previa y el flujo SDD + TDD + AI Audit.
+Endpoints de Saved Jobs disponibles (rutas privadas, requieren sesion):
+
+- `GET /api/saved-jobs` — listado de ofertas guardadas del candidato autenticado, ordenadas por fecha de guardado; el job embebido usa el contrato publico de Jobs.
+- `POST /api/saved-jobs/:jobId` — guarda una oferta; idempotente (`201` si la crea, `200` si ya estaba guardada).
+- `DELETE /api/saved-jobs/:jobId` — quita una oferta guardada propia (`204`); devuelve `404` si no estaba guardada por el usuario.
+
+Pendiente: frontend, Match (M05), Dashboard (M06) e infraestructura de despliegue. Cada nuevo modulo se implementa con su spec previa y el flujo SDD + TDD + AI Audit.
 
 ## Estructura documental inicial
 

@@ -16,6 +16,7 @@ model User {
   updatedAt     DateTime          @updatedAt
   refreshTokens RefreshToken[]
   profile       CandidateProfile?
+  savedJobs     SavedJob[]
 }
 
 model RefreshToken {
@@ -197,10 +198,27 @@ model Job {
   sourceUrl    String?
   ingestedAt   DateTime?
 
+  savedBy      SavedJob[]
+
   @@index([status])
   @@index([remoteType])
   @@index([seniority])
   @@index([contractType])
   @@index([postedAt])
   @@index([source])
+}
+
+model SavedJob {
+  id      String   @id @default(uuid())
+  userId  String
+  jobId   String
+  savedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job  Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, jobId])
+  @@index([userId])
+  @@index([jobId])
+  @@index([savedAt])
 }
