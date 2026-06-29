@@ -3,6 +3,7 @@ import { ZodError } from "zod";
 
 import { requireAuth } from "../auth/require-auth.middleware.js";
 import { jobIdParamSchema, listJobsQuerySchema } from "./jobs.schemas.js";
+import { serializeJob } from "./jobs.serializer.js";
 import { getActiveJobById, JobsError, listJobs } from "./jobs.service.js";
 
 export const jobsRouter = Router();
@@ -24,7 +25,12 @@ jobsRouter.get(
     try {
       const query = listJobsQuerySchema.parse(req.query);
       const result = await listJobs(query);
-      res.status(200).json(result);
+      res.status(200).json({
+        data: result.data.map(serializeJob),
+        total: result.total,
+        page: result.page,
+        limit: result.limit
+      });
     } catch (err) {
       if (err instanceof ZodError) {
         sendValidationError(res, err);
@@ -42,7 +48,7 @@ jobsRouter.get(
     try {
       const { id } = jobIdParamSchema.parse(req.params);
       const job = await getActiveJobById(id);
-      res.status(200).json(job);
+      res.status(200).json(serializeJob(job));
     } catch (err) {
       if (err instanceof ZodError) {
         sendValidationError(res, err);
