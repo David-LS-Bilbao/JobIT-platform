@@ -2,7 +2,7 @@
 
 JobIT es una plataforma fullstack modular de empleo tecnologico. Su objetivo es ayudar a profesionales tech a gestionar mejor su busqueda laboral, preparar su perfil y conectar con oportunidades relevantes.
 
-El repositorio ha superado la fase documental inicial y tiene en marcha la implementacion del backend MVP candidate-first (API en `apps/api`). Ya estan implementados los modulos de Auth, Candidate Profile & CV, Jobs (incluida la integracion backend-only con Jooble y la politica de visibilidad publica de la API) y Saved Jobs. El frontend, la infraestructura de despliegue (Docker, CI/CD) y los modulos Match y Dashboard siguen pendientes.
+El repositorio ha superado la fase documental inicial y tiene en marcha la implementacion del backend MVP candidate-first (API en `apps/api`). Ya estan implementados los modulos de Auth, Candidate Profile & CV, Jobs (incluida la integracion backend-only con Jooble y la politica de visibilidad publica de la API), Saved Jobs, Match basico explicable y Candidate Dashboard. El frontend y la infraestructura de despliegue (Docker, CI/CD) siguen pendientes.
 
 ## Vision modular
 
@@ -66,6 +66,7 @@ Modulos backend implementados:
 - **Jobs (M03)**: exploracion de ofertas tech, con filtros y paginacion. Incluye la integracion backend-only con Jooble (ingesta manual/controlada de ofertas externas, sin red en tests) y la politica de visibilidad publica de la API (DTO publico via `serializeJob` / `JobPublicDto`, que oculta `externalId`/`ingestedAt` y expone `source`/`sourceUrl`).
 - **Saved Jobs (M04)**: guardado, listado y borrado de ofertas por candidato autenticado, con ownership estricto e idempotencia.
 - **Match basico explicable (M05)**: afinidad entre el perfil/CV del candidato autenticado y las ofertas, calculada en tiempo de peticion. Heuristico, determinista y explicable (reglas visibles con desglose por factores); **no usa IA/ML/embeddings/LLM**. El job embebido usa `serializeJob` / `JobPublicDto` (sin `externalId`/`ingestedAt`).
+- **Candidate Dashboard (M06)**: vista agregada de solo lectura del candidato autenticado bajo `/api/dashboard/me`. Compone servicios ya existentes de Profile/CV (perfil + completitud), Saved Jobs (ultimas guardadas) y Match (mejores afinidades), reutilizando indirectamente `serializeJob` / `JobPublicDto`. Backend-first, determinista, **sin persistencia nueva, sin IA avanzada y sin llamadas externas**.
 
 Endpoints de Jobs disponibles (rutas privadas, requieren sesion):
 
@@ -83,7 +84,11 @@ Endpoints de Match disponibles (rutas privadas, requieren sesion):
 - `GET /api/jobs/:id/match` — calcula la afinidad del candidato autenticado con una oferta; devuelve `score` (0-100), `level`, `matchedSkills`, `missingSkills`, `factors` y `explanation`. `400` si el id no tiene forma de UUID; `404` si la oferta no esta disponible.
 - `GET /api/profile/me/matches` — mejores ofertas para el candidato autenticado, ordenadas por `score` descendente; `limit` opcional (default 10, maximo 50); cada item incluye la oferta via `JobPublicDto`. No expone `externalId` ni `ingestedAt`.
 
-Pendiente: frontend, Dashboard candidato (M06) e infraestructura de despliegue. Cada nuevo modulo se implementa con su spec previa y el flujo SDD + TDD + AI Audit.
+Endpoint de Dashboard disponible (ruta privada, requiere sesion):
+
+- `GET /api/dashboard/me` — vista agregada del candidato autenticado. Devuelve `profile` (`firstName`, `lastName`, `headline`, `completionPercentage`), `skills`, `savedJobs` (`total` + `recent` limitado a 3 por fecha de guardado), `matches` (top 3 explicables) y `nextActions` deterministas (`complete_profile`, `explore_jobs`). El `userId` se obtiene solo del token; los jobs embebidos usan el contrato publico de Jobs (sin `externalId`/`ingestedAt`).
+
+Pendiente: frontend e infraestructura de despliegue. Cada nuevo modulo se implementa con su spec previa y el flujo SDD + TDD + AI Audit.
 
 ## Estructura documental inicial
 
