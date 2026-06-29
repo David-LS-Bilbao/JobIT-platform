@@ -3,6 +3,7 @@ import { z } from "zod";
 const REMOTE_TYPES = ["REMOTE", "HYBRID", "ON_SITE"] as const;
 const SENIORITIES = ["JUNIOR", "MID", "SENIOR"] as const;
 const CONTRACT_TYPES = ["FULL_TIME", "PART_TIME", "CONTRACT", "FREELANCE"] as const;
+const JOB_SOURCES = ["INTERNAL", "JOOBLE"] as const;
 
 /**
  * Normaliza el parámetro `tags`: admite query repetido (`?tags=a&tags=b`,
@@ -27,6 +28,7 @@ export const listJobsQuerySchema = z
     remote: z.enum(REMOTE_TYPES).optional(),
     seniority: z.enum(SENIORITIES).optional(),
     contractType: z.enum(CONTRACT_TYPES).optional(),
+    source: z.enum(JOB_SOURCES).optional(),
     tags: tagsSchema,
     page: z.coerce.number().int().min(1).default(1),
     limit: z.coerce.number().int().min(1).max(100).default(20)

@@ -40,7 +40,7 @@ export async function getActiveJobById(id: string): Promise<Job> {
 }
 
 function buildJobsWhere(query: ListJobsQuery): Prisma.JobWhereInput {
-  const { q, remote, seniority, contractType, tags } = query;
+  const { q, remote, seniority, contractType, source, tags } = query;
 
   const where: Prisma.JobWhereInput = {
     status: "ACTIVE",
@@ -67,6 +67,9 @@ function buildJobsWhere(query: ListJobsQuery): Prisma.JobWhereInput {
   }
   if (contractType) {
     where.contractType = contractType;
+  }
+  if (source) {
+    where.source = source;
   }
   if (tags && tags.length > 0) {
     where.tags = { hasSome: tags };
