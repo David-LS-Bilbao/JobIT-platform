@@ -20,6 +20,16 @@ En la fase documental inicial el rol esta limitado a crear y ordenar documentaci
 - Separar documentacion, codigo e infraestructura en cambios distintos.
 - Usar la IA como copiloto, no como piloto automatico: la revision y validacion final son humanas.
 
+## Entorno operativo
+
+El entorno principal de desarrollo y verificacion del proyecto es el clon nativo de WSL:
+
+`/home/david/projects/JobIT-platform`
+
+Antes de ejecutar `pnpm install`, tests, Prisma, typecheck o build, consulta `docs/agents/operating-environment.md`.
+
+No uses el checkout de Windows/OneDrive (`/mnt/c/.../OneDrive`) para ejecutar tooling del proyecto: compartir `node_modules` entre Windows y WSL rompe las dependencias nativas.
+
 ## Flujo obligatorio antes de modificar
 
 Antes de tocar archivos, el agente debe:
