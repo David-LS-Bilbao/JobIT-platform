@@ -64,6 +64,13 @@ git status --short
 - Se usa para los tests de integración (provee `DATABASE_URL_TEST` / `DATABASE_URL`).
 - Si falta, los tests fallan en `globalSetup` (`prisma migrate deploy` sin URL de base de datos).
 
+Para el entorno local de desarrollo/smoke (Sprint 08):
+
+- `apps/api/.env.example` es la **plantilla versionable** del backend (placeholders, sin secretos).
+- `apps/api/.env` (backend) y `apps/web/.env.local` (frontend) son **locales e ignorados por Git**; **no** se imprimen ni versionan.
+- Variables backend (sin valores reales): `DATABASE_URL`, `JWT_ACCESS_SECRET`, `PORT` (4000), `CORS_ORIGIN` (`http://localhost:3000`), `NODE_ENV`, `JOOBLE_API_KEY` (opcional/vacía si no se usa).
+- Variable frontend: `NEXT_PUBLIC_API_BASE_URL` (`http://localhost:4000`, pública).
+
 No se documentan valores reales de variables.
 
 ## Reglas para agentes
@@ -76,6 +83,28 @@ No se documentan valores reales de variables.
 - No modificar lockfiles salvo en una tarea explícitamente autorizada.
 - Ejecutar las verificaciones siempre desde el clon nativo de WSL.
 - Ante un fallo de binding nativo (p. ej. Rolldown/Vitest), revisar primero el entorno antes de tocar código.
+
+## Arranque local backend + frontend (Sprint 08)
+
+Entorno local validado en el Sprint 08 (backend + PostgreSQL + frontend):
+
+- Backend en `:4000` (carga `apps/api/.env` con `dotenv` desde el cwd `apps/api`); healthcheck `GET /health`.
+- Frontend en `:3000` (`NEXT_PUBLIC_API_BASE_URL=http://localhost:4000`).
+- DB local dev/smoke: `jobit_dev` en el contenedor `jobit-postgres-test` (host `5434`), **separada** de `jobit_test` (que no debe tocarse).
+
+Comandos orientativos (desde la ruta nativa; sin valores reales de secretos):
+
+```bash
+# Backend
+pnpm --filter @jobit/api exec prisma generate
+pnpm --filter @jobit/api exec prisma migrate deploy
+pnpm --filter @jobit/api dev            # :4000 ; health: curl http://localhost:4000/health
+
+# Frontend
+pnpm --filter @jobit/web dev            # :3000
+```
+
+Nota: `prisma db seed` no está cableado en `package.json`; para sembrar datos de dev se puede usar `pnpm --filter @jobit/api exec tsx prisma/seed.ts` con `DATABASE_URL` cargado.
 
 ## Checklist de verificación
 
