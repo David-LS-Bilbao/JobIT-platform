@@ -38,7 +38,11 @@ Marcado de estado real; no altera el alcance funcional definido en este document
 - M05 Match básico explicable: implementado (heurístico, determinista, sin IA; endpoints `GET /api/jobs/:id/match` y `GET /api/profile/me/matches`).
 - M06 Dashboard candidato: implementado en backend (agregador de solo lectura `GET /api/dashboard/me`; compone Profile/CV, Saved Jobs y Match; sin persistencia nueva ni IA).
 
-Frontend candidate-first (Sprint 07): primera versión implementada en `apps/web` (Next.js + TypeScript + Tailwind + App Router) — landing, login/register, dashboard privado consumiendo `GET /api/dashboard/me`, sesión `accessToken` en memoria y logout. Pendientes: smoke real contra backend (entorno por provisionar), UI completa de Jobs/Saved Jobs/Perfil-CV, y despliegue/CI/CD.
+Frontend candidate-first (Sprint 07): primera versión implementada en `apps/web` (Next.js + TypeScript + Tailwind + App Router) — landing, login/register, dashboard privado consumiendo `GET /api/dashboard/me`, sesión `accessToken` en memoria y logout.
+
+Entorno y smoke (Sprint 08): entorno local real validado en WSL nativo (backend `:4000` + PostgreSQL `jobit_dev` + frontend `:3000`) y smoke HTTP del flujo `register → login → dashboard → logout` en **PASS_WITH_NOTES** (`register 201`, `login 200`, `dashboard 200`, `logout 204`, `me sin token 401`). El deploy dev/staging quedó **planificado, no ejecutado**.
+
+Pendientes: smoke visual en navegador (BLOCKED por falta de navegador/Playwright en el entorno de agente), UI completa de Jobs/Saved Jobs/Perfil-CV/Match, ajuste de cookie cross-site/HTTPS para staging, y despliegue/CI/CD.
 
 ## Módulos fuera del MVP inicial
 
