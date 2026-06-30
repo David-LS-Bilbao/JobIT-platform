@@ -6,12 +6,12 @@ import { LoginForm } from "@/features/auth/login-form";
 export default function LoginPage() {
   return (
     <AuthFormShell
-      title="Iniciar sesión"
-      subtitle="Accede a tu panel de candidato."
+      title="Inicia sesión en JobIT"
+      subtitle="Accede a tu dashboard, perfil tech, guardados y matches."
       footer={
         <>
-          ¿No tienes cuenta?{" "}
-          <Link href="/register" className="font-medium text-foreground underline">
+          ¿Aún no tienes cuenta?{" "}
+          <Link href="/register" className="font-semibold text-sky-700 hover:underline">
             Crear cuenta
           </Link>
         </>

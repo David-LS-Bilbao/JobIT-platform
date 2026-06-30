@@ -6,12 +6,12 @@ import { RegisterForm } from "@/features/auth/register-form";
 export default function RegisterPage() {
   return (
     <AuthFormShell
-      title="Crear cuenta"
-      subtitle="Crea tu perfil de candidato en JobIT."
+      title="Crea tu perfil tech en JobIT"
+      subtitle="Empieza tu CV candidate-first en minutos. Es solo el principio."
       footer={
         <>
           ¿Ya tienes cuenta?{" "}
-          <Link href="/login" className="font-medium text-foreground underline">
+          <Link href="/login" className="font-semibold text-sky-700 hover:underline">
             Iniciar sesión
           </Link>
         </>
