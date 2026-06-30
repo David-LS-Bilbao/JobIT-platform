@@ -159,10 +159,34 @@ describe("DashboardPage", () => {
       screen.getByText("Aún no hay matches. Completa tu perfil y añade skills para mejorarlos.")
     ).toBeInTheDocument();
     // CTAs honestas de próxima fase (deshabilitadas, sin enlaces rotos).
-    const completarPerfil = screen.getByRole("button", { name: /completar perfil/i });
-    expect(completarPerfil).toBeDisabled();
     expect(screen.getByRole("button", { name: /añadir skills/i })).toBeDisabled();
     expect(screen.getByRole("button", { name: /explorar ofertas/i })).toBeDisabled();
+  });
+
+  it("muestra el hub de módulos y el roadmap del MVP sin enlaces rotos", async () => {
+    vi.mocked(getCandidateDashboard).mockResolvedValueOnce(fullDto);
+    renderWithSession();
+    await screen.findByText("Hola, Ana");
+
+    // Cards de módulos MVP
+    expect(screen.getByText("JobIT CV")).toBeInTheDocument();
+    expect(screen.getByText("JobIT Jobs")).toBeInTheDocument();
+    expect(screen.getByText("Saved Jobs")).toBeInTheDocument();
+    expect(screen.getByText("JobIT Match")).toBeInTheDocument();
+
+    // Roadmap del MVP
+    expect(screen.getByText("Tu progreso en JobIT")).toBeInTheDocument();
+
+    // El módulo JobIT CV es CTA deshabilitada, NO un enlace a ruta inexistente
+    expect(screen.getByRole("button", { name: /preparar jobit cv/i })).toBeDisabled();
+    expect(screen.queryByRole("link", { name: /jobit cv/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /jobit jobs/i })).not.toBeInTheDocument();
+
+    // Nada de copy fuera de MVP
+    expect(screen.queryByText(/expertech/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/inteligencia artificial/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/pricing/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/\$\s?\d/)).not.toBeInTheDocument();
   });
 
   it("ante 401 limpia la sesión y redirige a /login", async () => {

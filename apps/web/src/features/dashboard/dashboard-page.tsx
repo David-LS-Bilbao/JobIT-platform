@@ -51,13 +51,9 @@ export function DashboardPage() {
   // Estado de carga derivado: hay sesión, sin error y aún sin datos.
   let body: ReactNode;
   if (loadError === "expired") {
-    body = (
-      <p className="text-sm text-zinc-600 dark:text-zinc-400">
-        Tu sesión ha caducado. Vuelve a iniciar sesión.
-      </p>
-    );
+    body = <p className="text-sm text-slate-600">Tu sesión ha caducado. Vuelve a iniciar sesión.</p>;
   } else if (!accessToken) {
-    body = <p className="text-sm text-zinc-600 dark:text-zinc-400">Redirigiendo al login…</p>;
+    body = <p className="text-sm text-slate-600">Redirigiendo al login…</p>;
   } else if (loadError === "generic") {
     body = (
       <p role="alert" className="text-sm text-red-600">
@@ -65,7 +61,7 @@ export function DashboardPage() {
       </p>
     );
   } else if (!dashboard) {
-    body = <p className="text-sm text-zinc-600 dark:text-zinc-400">Cargando tu panel…</p>;
+    body = <p className="text-sm text-slate-600">Cargando tu panel…</p>;
   } else {
     body = <DashboardContent dashboard={dashboard} />;
   }

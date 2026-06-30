@@ -23,8 +23,9 @@ const PRIVATE_LINKS: ReadonlyArray<{ href: string; label: string }> = [
   { href: "/dashboard", label: "Dashboard" }
 ];
 
-const linkClasses =
-  "text-zinc-600 transition-colors hover:text-foreground dark:text-zinc-400";
+// Estética forzada clara, coherente con la landing y las pantallas de auth
+// (no depende del tema del sistema): superficie slate-50 + cabecera blanca.
+const linkClasses = "font-medium text-slate-600 transition-colors hover:text-slate-900";
 
 export function SiteShell({ children }: { children: ReactNode }) {
   const { isAuthenticated, accessToken, clearSession } = useAuth();
@@ -43,11 +44,14 @@ export function SiteShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-dvh flex-col">
-      <header className="border-b border-black/10 dark:border-white/15">
-        <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-4">
-          <Link href="/" className="text-lg font-bold tracking-tight">
-            JobIT
+    <div className="flex min-h-dvh flex-col bg-slate-50 text-slate-900">
+      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/80 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-4">
+          <Link href="/" className="flex items-center gap-2 font-bold tracking-tight">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-sky-500 to-emerald-500 text-sm font-bold text-white">
+              J
+            </span>
+            <span className="text-lg">JobIT</span>
           </Link>
           <nav aria-label="Navegación principal" className="flex items-center gap-4 text-sm">
             {links.map((link) => (
@@ -59,7 +63,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
               <button
                 type="button"
                 onClick={handleLogout}
-                className="rounded-full border border-black/10 px-3 py-1.5 font-medium transition-colors hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/5"
+                className="rounded-full border border-slate-200 px-3 py-1.5 font-medium text-slate-700 transition-colors hover:bg-slate-100"
               >
                 Cerrar sesión
               </button>
@@ -67,7 +71,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
           </nav>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-10">{children}</main>
+      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10">{children}</main>
     </div>
   );
 }
