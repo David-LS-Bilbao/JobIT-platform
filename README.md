@@ -2,7 +2,7 @@
 
 JobIT es una plataforma fullstack modular de empleo tecnologico. Su objetivo es ayudar a profesionales tech a gestionar mejor su busqueda laboral, preparar su perfil y conectar con oportunidades relevantes.
 
-El repositorio ha superado la fase documental inicial y tiene en marcha la implementacion del backend MVP candidate-first (API en `apps/api`). Ya estan implementados los modulos de Auth, Candidate Profile & CV, Jobs (incluida la integracion backend-only con Jooble y la politica de visibilidad publica de la API), Saved Jobs, Match basico explicable y Candidate Dashboard. En el Sprint 07 se ha anadido una primera version del frontend candidate-first en `apps/web` (Next.js + TypeScript + Tailwind). La infraestructura de despliegue (Docker, CI/CD) sigue pendiente.
+El repositorio ha superado la fase documental inicial y tiene en marcha la implementacion del backend MVP candidate-first (API en `apps/api`). Ya estan implementados los modulos de Auth, Candidate Profile & CV, Jobs (incluida la integracion backend-only con Jooble y la politica de visibilidad publica de la API), Saved Jobs, Match basico explicable y Candidate Dashboard. En el Sprint 07 se ha anadido una primera version del frontend candidate-first en `apps/web` (Next.js + TypeScript + Tailwind): por ahora cubre el slice vertical landing -> login/registro -> dashboard privado; la UI de Jobs, Saved Jobs, Perfil/CV y Match sigue pendiente. En el Sprint 08 se valido el entorno local real y el smoke HTTP del flujo `register -> login -> dashboard -> logout` (PASS_WITH_NOTES); el smoke visual en navegador y el despliegue dev/staging quedan planificados pero no ejecutados. La infraestructura de despliegue (Docker, CI/CD) sigue pendiente.
 
 ## Vision modular
 
