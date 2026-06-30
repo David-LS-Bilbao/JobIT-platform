@@ -155,7 +155,14 @@ describe("DashboardPage", () => {
     expect(await screen.findByText("Hola, candidato tech")).toBeInTheDocument();
     expect(screen.getByText("Aún no has añadido skills.")).toBeInTheDocument();
     expect(screen.getByText("Todavía no has guardado ofertas.")).toBeInTheDocument();
-    expect(screen.getByText("Aún no hay matches. Completa tu perfil para mejorarlos.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Aún no hay matches. Completa tu perfil y añade skills para mejorarlos.")
+    ).toBeInTheDocument();
+    // CTAs honestas de próxima fase (deshabilitadas, sin enlaces rotos).
+    const completarPerfil = screen.getByRole("button", { name: /completar perfil/i });
+    expect(completarPerfil).toBeDisabled();
+    expect(screen.getByRole("button", { name: /añadir skills/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /explorar ofertas/i })).toBeDisabled();
   });
 
   it("ante 401 limpia la sesión y redirige a /login", async () => {
