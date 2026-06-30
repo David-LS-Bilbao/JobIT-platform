@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { SiteShell } from "@/components/layout/site-shell";
-import { logoutCandidate } from "@/features/auth/auth-api";
 import { useAuth } from "@/features/auth/auth-context";
 import { getCandidateDashboard } from "@/features/dashboard/dashboard-api";
 import { DashboardContent } from "@/features/dashboard/dashboard-content";
@@ -49,17 +48,6 @@ export function DashboardPage() {
     };
   }, [accessToken, clearSession, router]);
 
-  async function handleLogout() {
-    try {
-      await logoutCandidate(accessToken);
-    } catch {
-      // Aunque el logout del servidor falle, limpiamos la sesión local igualmente.
-    } finally {
-      clearSession();
-      router.push("/login");
-    }
-  }
-
   // Estado de carga derivado: hay sesión, sin error y aún sin datos.
   let body: ReactNode;
   if (loadError === "expired") {
@@ -79,7 +67,7 @@ export function DashboardPage() {
   } else if (!dashboard) {
     body = <p className="text-sm text-zinc-600 dark:text-zinc-400">Cargando tu panel…</p>;
   } else {
-    body = <DashboardContent dashboard={dashboard} onLogout={handleLogout} />;
+    body = <DashboardContent dashboard={dashboard} />;
   }
 
   return <SiteShell>{body}</SiteShell>;

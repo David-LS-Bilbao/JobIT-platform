@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import type { CandidateDashboardDto } from "@/types/api";
 
 import { DashboardCard } from "./dashboard-card";
@@ -6,37 +8,47 @@ import { DashboardSection } from "./dashboard-section";
 
 interface DashboardContentProps {
   dashboard: CandidateDashboardDto;
-  onLogout: () => void;
+}
+
+/**
+ * CTA honesta para funciones aún no implementadas en UI. No navega (la pantalla
+ * llega en una fase posterior): botón deshabilitado y marcado como "próxima fase"
+ * para evitar enlaces rotos.
+ */
+function ComingSoonCta({ children }: { children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      disabled
+      aria-disabled="true"
+      title="Disponible en una próxima fase"
+      className="inline-flex cursor-not-allowed items-center gap-2 rounded-full border border-black/10 px-3 py-1.5 text-xs font-medium text-zinc-500 opacity-70 dark:border-white/15"
+    >
+      {children}
+      <span className="text-[10px] uppercase tracking-wide text-zinc-400">próxima fase</span>
+    </button>
+  );
 }
 
 /** Presentación pura del dashboard candidate-first (recibe el DTO por props). */
-export function DashboardContent({ dashboard, onLogout }: DashboardContentProps) {
+export function DashboardContent({ dashboard }: DashboardContentProps) {
   const { profile, skills, savedJobs, matches, nextActions } = dashboard;
   const greetingName = profile.firstName?.trim() ? profile.firstName : "candidato tech";
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Hola, {greetingName}</h1>
-          {profile.headline ? (
-            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{profile.headline}</p>
-          ) : null}
-          <p className="mt-1 text-sm text-zinc-500">
-            Perfil completado al {profile.completionPercentage}%.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onLogout}
-          className="rounded-full border border-black/10 px-4 py-2 text-sm font-medium transition-colors hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/5"
-        >
-          Cerrar sesión
-        </button>
+      <header>
+        <h1 className="text-2xl font-bold tracking-tight">Hola, {greetingName}</h1>
+        {profile.headline ? (
+          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{profile.headline}</p>
+        ) : null}
+        <p className="mt-1 text-sm text-zinc-500">
+          Perfil completado al {profile.completionPercentage}%.
+        </p>
       </header>
 
       <DashboardSection title="Tu perfil">
-        <div className="space-y-2">
+        <div className="space-y-3">
           <div
             className="h-2 w-full overflow-hidden rounded-full bg-black/10 dark:bg-white/15"
             role="progressbar"
@@ -50,7 +62,12 @@ export function DashboardContent({ dashboard, onLogout }: DashboardContentProps)
             />
           </div>
           {profile.completionPercentage < 100 ? (
-            <DashboardEmptyState>Completa tu perfil para mejorar tus matches.</DashboardEmptyState>
+            <div className="space-y-2">
+              <DashboardEmptyState>
+                Completa tu perfil para mejorar tus matches.
+              </DashboardEmptyState>
+              <ComingSoonCta>Completar perfil</ComingSoonCta>
+            </div>
           ) : (
             <p className="text-sm text-green-600 dark:text-green-400">Tu perfil está completo.</p>
           )}
@@ -67,7 +84,10 @@ export function DashboardContent({ dashboard, onLogout }: DashboardContentProps)
             ))}
           </ul>
         ) : (
-          <DashboardEmptyState>Aún no has añadido skills.</DashboardEmptyState>
+          <div className="space-y-2">
+            <DashboardEmptyState>Aún no has añadido skills.</DashboardEmptyState>
+            <ComingSoonCta>Añadir skills</ComingSoonCta>
+          </div>
         )}
       </DashboardSection>
 
@@ -83,7 +103,10 @@ export function DashboardContent({ dashboard, onLogout }: DashboardContentProps)
             ))}
           </ul>
         ) : (
-          <DashboardEmptyState>Todavía no has guardado ofertas.</DashboardEmptyState>
+          <div className="space-y-2">
+            <DashboardEmptyState>Todavía no has guardado ofertas.</DashboardEmptyState>
+            <ComingSoonCta>Explorar ofertas</ComingSoonCta>
+          </div>
         )}
       </DashboardSection>
 
@@ -110,19 +133,21 @@ export function DashboardContent({ dashboard, onLogout }: DashboardContentProps)
             ))}
           </ul>
         ) : (
-          <DashboardEmptyState>Aún no hay matches. Completa tu perfil para mejorarlos.</DashboardEmptyState>
+          <DashboardEmptyState>
+            Aún no hay matches. Completa tu perfil y añade skills para mejorarlos.
+          </DashboardEmptyState>
         )}
       </DashboardSection>
 
       <DashboardSection title="Próximos pasos">
         {nextActions.length > 0 ? (
-          <ul className="space-y-1">
+          <ol className="space-y-1">
             {nextActions.map((action) => (
               <li key={action.action} className="text-sm">
                 • {action.label}
               </li>
             ))}
-          </ul>
+          </ol>
         ) : (
           <DashboardEmptyState>¡Todo al día! No hay acciones pendientes.</DashboardEmptyState>
         )}
