@@ -30,14 +30,17 @@ import type {
   UpdateProjectInput
 } from "./profile.schemas.js";
 
+// Orden estable de las relaciones para el read model de `GET /api/profile/me`.
+// Nota: los subrecursos no tienen timestamps en el schema; se ordena por campos
+// existentes (name/type) y por relevancia (current desc, startDate desc).
 const PROFILE_RELATIONS = {
-  skills: true,
-  experiences: true,
-  education: true,
-  projects: true,
-  links: true,
+  skills: { orderBy: { name: "asc" } },
+  experiences: { orderBy: [{ current: "desc" }, { startDate: "desc" }] },
+  education: { orderBy: [{ current: "desc" }, { startDate: "desc" }] },
+  projects: { orderBy: { name: "asc" } },
+  links: { orderBy: { type: "asc" } },
   preferences: true
-} as const;
+} satisfies Prisma.CandidateProfileInclude;
 
 export type ProfileWithRelations = CandidateProfile & {
   skills: Skill[];

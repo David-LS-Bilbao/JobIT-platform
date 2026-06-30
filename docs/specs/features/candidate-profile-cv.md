@@ -137,6 +137,52 @@ Candidato tech autenticado que quiere representar su perfil profesional de forma
 
 Todas las rutas son privadas. Requieren sesión activa de auth.
 
+## Read model de `GET /api/profile/me` (Sprint 13.5)
+
+### Objetivo
+Devolver el **perfil/CV completo** del candidato autenticado en una sola petición, para que JobIT CV MVP UI pueda pintar el editor y permitir editar/borrar subrecursos por `id` tras recargar. Desbloquea el Sprint 13 (UI).
+
+### Usuario afectado
+Candidato tech autenticado que consulta/edita su perfil en `/profile` (producto "JobIT CV").
+
+### Endpoint afectado
+`GET /api/profile/me` (sin cambios de ruta/método). Se **amplía** la respuesta: los campos básicos previos se mantienen y se **añaden** las relaciones.
+
+### Modelo de respuesta
+Campos básicos existentes (`id`, `userId`, `firstName`, `lastName`, `headline`, `summary`, `location`, `locationRemote`, `availabilityStatus`, `avatarUrl`, `createdAt`, `updatedAt`, `completionPercentage`) **más**:
+- `skills`: `[{ id, name, level|null, category|null }]`.
+- `experiences`: `[{ id, company, role, startDate, endDate|null, current, description|null, location|null }]`.
+- `education`: `[{ id, institution, title, field|null, startDate|null, endDate|null, current }]`.
+- `projects`: `[{ id, name, description|null, technologies[], url|null, repoUrl|null }]`.
+- `links`: `[{ id, type, url }]`.
+- `preferences`: `{ id, desiredRoles[], preferredLocations[], remotePreference, seniority|null, salaryMin|null, salaryMax|null, contractTypes[] }` o `null`.
+
+Nota: los subrecursos **no** tienen `createdAt`/`updatedAt` en el modelo de datos; el read model solo expone los campos reales. No se expone `normalizedName` de skill ni datos sensibles.
+
+### Reglas de negocio
+- El read model solo incluye datos del usuario autenticado (`userId` del token).
+- Listas vacías → `[]`; `preferences` ausente → `null`.
+- Orden estable: skills por `name` asc; experiencias y educación por `current` desc y `startDate` desc; proyectos por `name` asc; enlaces por `type` asc.
+- `completionPercentage` se mantiene (7 secciones); su lógica no cambia.
+
+### Criterios de aceptación
+- [ ] `GET /api/profile/me` mantiene los campos básicos previos (compatibilidad).
+- [ ] Devuelve `skills/experiences/education/projects/links` con sus `id`.
+- [ ] Devuelve `preferences` o `null`.
+- [ ] Listas vacías como `[]`.
+- [ ] Aísla por usuario; `401` sin sesión.
+- [ ] No expone campos sensibles ni `normalizedName`.
+
+### Tests mínimos
+- Perfil vacío → básicos + listas `[]` + `preferences` null.
+- Tras crear skill/experiencia/educación/proyecto/enlace/preferencias → aparecen con sus `id` y campos.
+- Aislamiento entre usuarios. `401` sin auth. `completionPercentage` numérico.
+
+### Fuera de alcance
+- No se modifican los endpoints de escritura ni el schema Prisma.
+- No se añaden timestamps a subrecursos.
+- No se implementa frontend en este sprint.
+
 ## Pantallas previstas
 
 - **Perfil completo**: vista de solo lectura del perfil del candidato.

@@ -135,7 +135,16 @@ function serializeProfile(profile: ProfileWithRelations): Record<string, unknown
     avatarUrl: profile.avatarUrl,
     createdAt: profile.createdAt,
     updatedAt: profile.updatedAt,
-    completionPercentage: calculateCompletionPercentage(profile)
+    completionPercentage: calculateCompletionPercentage(profile),
+    // Read model completo para JobIT CV (Sprint 13.5): relaciones serializadas
+    // con sus ids (necesarios para update/delete desde el frontend). Listas
+    // vacías → []; preferences → null si no existe.
+    skills: profile.skills.map(serializeSkill),
+    experiences: profile.experiences.map(serializeExperience),
+    education: profile.education.map(serializeEducation),
+    projects: profile.projects.map(serializeProject),
+    links: profile.links.map(serializeLink),
+    preferences: profile.preferences ? serializePreferences(profile.preferences) : null
   };
 }
 
