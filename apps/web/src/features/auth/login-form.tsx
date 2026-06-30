@@ -10,7 +10,10 @@ import { validateLoginForm, hasFieldErrors, type FieldErrors } from "@/features/
 import { ApiClientError } from "@/lib/api-client";
 
 const inputClasses =
-  "w-full rounded-md border border-black/15 bg-transparent px-3 py-2 text-sm outline-none focus:border-foreground dark:border-white/20";
+  "w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition-colors focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20";
+const labelClasses = "block text-sm font-medium text-slate-700";
+const submitClasses =
+  "w-full rounded-full bg-gradient-to-r from-sky-600 to-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:opacity-95 disabled:opacity-60";
 
 export function LoginForm() {
   const router = useRouter();
@@ -52,7 +55,7 @@ export function LoginForm() {
       <AuthError message={formError} />
 
       <div className="space-y-1">
-        <label htmlFor="login-email" className="block text-sm font-medium">
+        <label htmlFor="login-email" className={labelClasses}>
           Email
         </label>
         <input
@@ -70,7 +73,7 @@ export function LoginForm() {
       </div>
 
       <div className="space-y-1">
-        <label htmlFor="login-password" className="block text-sm font-medium">
+        <label htmlFor="login-password" className={labelClasses}>
           Contraseña
         </label>
         <input
@@ -87,11 +90,7 @@ export function LoginForm() {
         {fieldErrors.password ? <p className="text-xs text-red-600">{fieldErrors.password}</p> : null}
       </div>
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full rounded-full bg-foreground px-5 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:opacity-60"
-      >
+      <button type="submit" disabled={loading} className={submitClasses}>
         {loading ? "Entrando…" : "Iniciar sesión"}
       </button>
     </form>
