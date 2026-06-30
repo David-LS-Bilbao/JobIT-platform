@@ -118,6 +118,23 @@ pnpm --filter @jobit/web build
 pnpm --filter @jobit/web lint
 ```
 
+### Entorno local y smoke (Sprint 08)
+
+El Sprint 08 valido el entorno local real (backend + PostgreSQL + frontend) en el clon nativo de WSL y dejo el deploy dev/staging **planificado, no ejecutado**.
+
+- Entorno operativo obligatorio: clon nativo de WSL `/home/david/projects/JobIT-platform` (ver `docs/agents/operating-environment.md`). No usar la carpeta de OneDrive/Windows para tooling.
+- Base de datos local de dev/smoke: `jobit_dev` en el contenedor `jobit-postgres-test` (host `5434`), separada de la base de test `jobit_test`.
+- Plantilla de entorno del backend: `apps/api/.env.example` (placeholders, sin secretos). Los `.env` reales (`apps/api/.env`, `apps/web/.env.local`) son locales e ignorados por Git.
+- Variables (sin valores reales): backend `DATABASE_URL`, `JWT_ACCESS_SECRET`, `PORT` (4000), `CORS_ORIGIN` (`http://localhost:3000`), `NODE_ENV`, `JOOBLE_API_KEY` (opcional/vacia); frontend `NEXT_PUBLIC_API_BASE_URL` (`http://localhost:4000`).
+
+Resultado del smoke local (PASS_WITH_NOTES):
+
+- Smoke HTTP backend real: PASS — `register 201 -> login 200 -> GET /api/dashboard/me 200 -> logout 204 -> GET /api/auth/me sin token 401`. Ademas `GET /health` 200 y landing `/` 200.
+- Smoke visual en navegador: pendiente/BLOCKED por ausencia de navegador/Playwright en el entorno de agente (no es defecto de codigo).
+- Verificaciones: backend `278/278`, frontend `35/35`, typecheck/build/lint en verde.
+
+Pendiente: smoke visual con navegador; deploy dev/staging (requiere target y autorizacion); dominio/subdominio, DB staging y reverse proxy/SSL por decidir; ajuste de cookie cross-site/HTTPS para staging. Detalle en `docs/sprints/sprint-08-*`.
+
 Verificaciones del Sprint 07: `typecheck`, `test` (35/35), `build` y `lint` en verde; auditoria quality/security PASS_WITH_NOTES. El smoke manual contra el backend real queda **pendiente** de provisionar el entorno local (`apps/web/.env.local`, backend con base de datos migrada y puerto `:3000` libre).
 
 Pendiente del frontend: smoke real en entorno provisionado, UI completa de Jobs / Saved Jobs / Perfil-CV, navegacion segun sesion, posible `POST /api/auth/refresh` (backend) y despliegue dev/staging.
