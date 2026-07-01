@@ -288,3 +288,19 @@ export interface CreateProfileExperienceInput {
 
 /** Cuerpo de `PUT /api/profile/me/experience/:id`. Todos los campos opcionales. */
 export type UpdateProfileExperienceInput = Partial<CreateProfileExperienceInput>;
+
+/**
+ * Cuerpo de `POST /api/profile/me/education`. institution/title/startDate obligatorios.
+ * `current: true` ⇒ el backend fuerza `endDate: null`.
+ */
+export interface CreateProfileEducationInput {
+  institution: string;
+  title: string;
+  field?: string;
+  startDate: string;
+  endDate?: string | null;
+  current?: boolean;
+}
+
+/** Cuerpo de `PUT /api/profile/me/education/:id`. Todos los campos opcionales. */
+export type UpdateProfileEducationInput = Partial<CreateProfileEducationInput>;

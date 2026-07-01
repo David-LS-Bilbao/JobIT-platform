@@ -11,11 +11,14 @@
 import { apiRequest } from "@/lib/api-client";
 import type {
   CandidateProfileDto,
+  CreateProfileEducationInput,
   CreateProfileExperienceInput,
   CreateProfileSkillInput,
+  ProfileEducationDto,
   ProfileExperienceDto,
   ProfileSkillDto,
   UpdateProfileBasicInfoInput,
+  UpdateProfileEducationInput,
   UpdateProfileExperienceInput
 } from "@/types/api";
 
@@ -96,6 +99,34 @@ export function updateProfileExperience(
 /** `DELETE /api/profile/me/experience/:id` → 204 sin cuerpo. */
 export function deleteProfileExperience(token: string, experienceId: string): Promise<void> {
   return apiRequest<void>(`/api/profile/me/experience/${encodeURIComponent(experienceId)}`, {
+    method: "DELETE",
+    token
+  });
+}
+
+/** `POST /api/profile/me/education` → formación creada (201). */
+export function addProfileEducation(
+  token: string,
+  input: CreateProfileEducationInput
+): Promise<ProfileEducationDto> {
+  return apiRequest<ProfileEducationDto>("/api/profile/me/education", { method: "POST", token, body: input });
+}
+
+/** `PUT /api/profile/me/education/:id` → formación actualizada. */
+export function updateProfileEducation(
+  token: string,
+  educationId: string,
+  input: UpdateProfileEducationInput
+): Promise<ProfileEducationDto> {
+  return apiRequest<ProfileEducationDto>(
+    `/api/profile/me/education/${encodeURIComponent(educationId)}`,
+    { method: "PUT", token, body: input }
+  );
+}
+
+/** `DELETE /api/profile/me/education/:id` → 204 sin cuerpo. */
+export function deleteProfileEducation(token: string, educationId: string): Promise<void> {
+  return apiRequest<void>(`/api/profile/me/education/${encodeURIComponent(educationId)}`, {
     method: "DELETE",
     token
   });
