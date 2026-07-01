@@ -7,14 +7,17 @@ import { AuthProvider, useAuth } from "@/features/auth/auth-context";
 import {
   addProfileEducation,
   addProfileExperience,
+  addProfileProject,
   addProfileSkill,
   deleteProfileEducation,
   deleteProfileExperience,
+  deleteProfileProject,
   deleteProfileSkill,
   getMyProfile,
   updateMyProfile,
   updateProfileEducation,
-  updateProfileExperience
+  updateProfileExperience,
+  updateProfileProject
 } from "@/features/profile/profile-api";
 import { ProfilePage } from "@/features/profile/profile-page";
 import { ApiClientError } from "@/lib/api-client";
@@ -42,7 +45,10 @@ vi.mock("@/features/profile/profile-api", () => ({
   deleteProfileExperience: vi.fn(),
   addProfileEducation: vi.fn(),
   updateProfileEducation: vi.fn(),
-  deleteProfileEducation: vi.fn()
+  deleteProfileEducation: vi.fn(),
+  addProfileProject: vi.fn(),
+  updateProfileProject: vi.fn(),
+  deleteProfileProject: vi.fn()
 }));
 vi.mock("@/features/auth/auth-api", () => ({ logoutCandidate: vi.fn() }));
 
@@ -345,8 +351,8 @@ describe("ProfilePage (/profile · JobIT CV)", () => {
 
     expect(screen.queryByText("Añadir skill · próxima fase")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Añadir skill" })).toBeInTheDocument();
-    // Proyectos, Enlaces y Preferencias siguen como próxima fase (Skills/Experiencia/Educación ya funcionan).
-    expect(screen.getAllByText("Próxima fase").length).toBeGreaterThanOrEqual(3);
+    // Enlaces y Preferencias siguen como próxima fase (Skills/Experiencia/Educación/Proyectos ya funcionan).
+    expect(screen.getAllByText("Próxima fase").length).toBe(2);
   });
 
   it("añadir experiencia llama a POST /api/profile/me/experience y refresca", async () => {
@@ -637,7 +643,7 @@ describe("ProfilePage (/profile · JobIT CV)", () => {
     await waitFor(() => expect(getMyProfile).toHaveBeenCalledTimes(2));
   });
 
-  it("Educación es funcional (sin 'Próxima fase') y Proyectos/Enlaces/Preferencias siguen pendientes", async () => {
+  it("Educación es funcional (sin 'Próxima fase') y Enlaces/Preferencias siguen pendientes", async () => {
     vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
     renderWithSession();
     await screen.findByText("Tu perfil tech vivo");
@@ -645,7 +651,7 @@ describe("ProfilePage (/profile · JobIT CV)", () => {
     const edu = sectionByHeading("Educación");
     expect(edu.queryByText("Próxima fase")).not.toBeInTheDocument();
     expect(edu.getByRole("button", { name: "Añadir formación" })).toBeInTheDocument();
-    expect(screen.getAllByText("Próxima fase").length).toBeGreaterThanOrEqual(3);
+    expect(screen.getAllByText("Próxima fase").length).toBe(2);
   });
 
   it("muestra botón de editar por formación y precarga los datos al abrir el editor", async () => {
@@ -748,5 +754,395 @@ describe("ProfilePage (/profile · JobIT CV)", () => {
     await waitFor(() =>
       expect(updateProfileEducation).toHaveBeenCalledWith("tok-cv", "ed1", expect.objectContaining({ field: "" }))
     );
+  });
+
+  // --- Proyectos (Sprint 13F-01) --------------------------------------------
+
+  it("muestra empty state de proyectos cuando no hay registros", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(emptyProfile);
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+    expect(screen.getByText("Aún no has añadido proyectos.")).toBeInTheDocument();
+  });
+
+  it("Proyectos es funcional (sin 'Próxima fase'); solo Enlaces y Preferencias siguen pendientes", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    const proj = sectionByHeading("Proyectos");
+    expect(proj.queryByText("Próxima fase")).not.toBeInTheDocument();
+    expect(proj.getByRole("button", { name: "Añadir proyecto" })).toBeInTheDocument();
+    expect(screen.getAllByText("Próxima fase").length).toBe(2);
+  });
+
+  it("añadir un proyecto llama a POST /api/profile/me/projects y refresca", async () => {
+    const newProject = { id: "pr2", name: "cli-tool", description: null, technologies: ["Go"], url: null, repoUrl: null };
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    vi.mocked(addProfileProject).mockResolvedValueOnce(newProject);
+    vi.mocked(getMyProfile).mockResolvedValueOnce({ ...fullProfile, projects: [...fullProfile.projects, newProject] });
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    const proj = sectionByHeading("Proyectos");
+    await user.type(proj.getByLabelText("Nombre del proyecto"), "cli-tool");
+    await user.type(proj.getByLabelText("Tecnologías (separadas por comas)"), "Go");
+    await user.click(proj.getByRole("button", { name: "Añadir proyecto" }));
+
+    await waitFor(() =>
+      expect(addProfileProject).toHaveBeenCalledWith(
+        "tok-cv",
+        expect.objectContaining({ name: "cli-tool", technologies: ["Go"] })
+      )
+    );
+    expect((await screen.findAllByText("cli-tool")).length).toBeGreaterThan(0);
+  });
+
+  it("envía las tecnologías separadas por comas como array limpio (sin vacíos ni duplicados)", async () => {
+    const newProject = {
+      id: "pr3",
+      name: "webapp",
+      description: null,
+      technologies: ["React", "Node.js", "PostgreSQL"],
+      url: null,
+      repoUrl: null
+    };
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    vi.mocked(addProfileProject).mockResolvedValueOnce(newProject);
+    vi.mocked(getMyProfile).mockResolvedValueOnce({ ...fullProfile, projects: [...fullProfile.projects, newProject] });
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    const proj = sectionByHeading("Proyectos");
+    await user.type(proj.getByLabelText("Nombre del proyecto"), "webapp");
+    await user.type(
+      proj.getByLabelText("Tecnologías (separadas por comas)"),
+      "React , Node.js ,, React, PostgreSQL,"
+    );
+    await user.click(proj.getByRole("button", { name: "Añadir proyecto" }));
+
+    await waitFor(() =>
+      expect(addProfileProject).toHaveBeenCalledWith(
+        "tok-cv",
+        expect.objectContaining({ technologies: ["React", "Node.js", "PostgreSQL"] })
+      )
+    );
+  });
+
+  it("no envía proyecto si falta el nombre", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    const proj = sectionByHeading("Proyectos");
+    await user.type(proj.getByLabelText("Tecnologías (separadas por comas)"), "React");
+    await user.click(proj.getByRole("button", { name: "Añadir proyecto" }));
+
+    expect(await proj.findByText("Indica el nombre del proyecto.")).toBeInTheDocument();
+    expect(addProfileProject).not.toHaveBeenCalled();
+  });
+
+  it("no envía proyecto si no hay tecnologías", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    const proj = sectionByHeading("Proyectos");
+    await user.type(proj.getByLabelText("Nombre del proyecto"), "cli-tool");
+    await user.click(proj.getByRole("button", { name: "Añadir proyecto" }));
+
+    expect(await proj.findByText("Añade al menos una tecnología.")).toBeInTheDocument();
+    expect(addProfileProject).not.toHaveBeenCalled();
+  });
+
+  it("no envía proyecto si la URL de demo es inválida", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    const proj = sectionByHeading("Proyectos");
+    await user.type(proj.getByLabelText("Nombre del proyecto"), "cli-tool");
+    await user.type(proj.getByLabelText("Tecnologías (separadas por comas)"), "Go");
+    await user.type(proj.getByLabelText("URL demo (opcional)"), "no-es-una-url");
+    await user.click(proj.getByRole("button", { name: "Añadir proyecto" }));
+
+    expect(await proj.findByText("La URL de demo no es válida.")).toBeInTheDocument();
+    expect(addProfileProject).not.toHaveBeenCalled();
+  });
+
+  it("no envía proyecto si la URL del repositorio es inválida", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    const proj = sectionByHeading("Proyectos");
+    await user.type(proj.getByLabelText("Nombre del proyecto"), "cli-tool");
+    await user.type(proj.getByLabelText("Tecnologías (separadas por comas)"), "Go");
+    await user.type(proj.getByLabelText("URL repositorio (opcional)"), "tampoco-es-url");
+    await user.click(proj.getByRole("button", { name: "Añadir proyecto" }));
+
+    expect(await proj.findByText("La URL del repositorio no es válida.")).toBeInTheDocument();
+    expect(addProfileProject).not.toHaveBeenCalled();
+  });
+
+  it("muestra error si el POST de proyecto falla", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    vi.mocked(addProfileProject).mockRejectedValueOnce(new ApiClientError(400, "VALIDATION_ERROR", "bad"));
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    const proj = sectionByHeading("Proyectos");
+    await user.type(proj.getByLabelText("Nombre del proyecto"), "cli-tool");
+    await user.type(proj.getByLabelText("Tecnologías (separadas por comas)"), "Go");
+    await user.click(proj.getByRole("button", { name: "Añadir proyecto" }));
+
+    expect(await proj.findByText("Revisa los datos del proyecto.")).toBeInTheDocument();
+  });
+
+  it("eliminar un proyecto llama a DELETE /api/profile/me/projects/:id y refresca", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    vi.mocked(deleteProfileProject).mockResolvedValueOnce(undefined);
+    vi.mocked(getMyProfile).mockResolvedValueOnce({ ...fullProfile, projects: [] });
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    await user.click(screen.getByRole("button", { name: "Eliminar proyecto design-system" }));
+    await waitFor(() => expect(deleteProfileProject).toHaveBeenCalledWith("tok-cv", "pr1"));
+    await waitFor(() => expect(getMyProfile).toHaveBeenCalledTimes(2));
+  });
+
+  // --- Proyectos · edición inline (Sprint 13F-02) ---------------------------
+
+  it("muestra botón de editar por proyecto y precarga los datos al abrir el editor", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    await user.click(screen.getByRole("button", { name: "Editar proyecto design-system" }));
+    const editor = within(screen.getByRole("group", { name: "Editar proyecto design-system" }));
+    expect(editor.getByLabelText("Nombre del proyecto")).toHaveValue("design-system");
+    expect(editor.getByLabelText("Tecnologías (separadas por comas)")).toHaveValue("React, TypeScript");
+    expect(editor.getByLabelText("Descripción (opcional)")).toHaveValue("DS interno");
+  });
+
+  it("guardar edición llama a updateProfileProject con token, id e input, sin url/repoUrl vacíos, y refresca", async () => {
+    const edited = {
+      id: "pr1",
+      name: "design-system-2",
+      description: "DS interno",
+      technologies: ["React", "TypeScript"],
+      url: null,
+      repoUrl: null
+    };
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    vi.mocked(updateProfileProject).mockResolvedValueOnce(edited);
+    vi.mocked(getMyProfile).mockResolvedValueOnce({ ...fullProfile, projects: [edited] });
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    await user.click(screen.getByRole("button", { name: "Editar proyecto design-system" }));
+    const editor = within(screen.getByRole("group", { name: "Editar proyecto design-system" }));
+    await user.clear(editor.getByLabelText("Nombre del proyecto"));
+    await user.type(editor.getByLabelText("Nombre del proyecto"), "design-system-2");
+    await user.click(editor.getByRole("button", { name: "Guardar" }));
+
+    await waitFor(() =>
+      expect(updateProfileProject).toHaveBeenCalledWith(
+        "tok-cv",
+        "pr1",
+        expect.objectContaining({ name: "design-system-2", technologies: ["React", "TypeScript"], description: "DS interno" })
+      )
+    );
+    const payload = vi.mocked(updateProfileProject).mock.calls[0][2];
+    expect(payload).not.toHaveProperty("url");
+    expect(payload).not.toHaveProperty("repoUrl");
+    await waitFor(() => expect(getMyProfile).toHaveBeenCalledTimes(2));
+  });
+
+  it("cancelar edición de proyecto cierra el editor y no llama a updateProfileProject", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    await user.click(screen.getByRole("button", { name: "Editar proyecto design-system" }));
+    const editor = within(screen.getByRole("group", { name: "Editar proyecto design-system" }));
+    await user.click(editor.getByRole("button", { name: "Cancelar" }));
+
+    expect(screen.queryByRole("group", { name: "Editar proyecto design-system" })).not.toBeInTheDocument();
+    expect(updateProfileProject).not.toHaveBeenCalled();
+  });
+
+  it("no envía la edición si falta el nombre", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    await user.click(screen.getByRole("button", { name: "Editar proyecto design-system" }));
+    const editor = within(screen.getByRole("group", { name: "Editar proyecto design-system" }));
+    await user.clear(editor.getByLabelText("Nombre del proyecto"));
+    await user.click(editor.getByRole("button", { name: "Guardar" }));
+
+    expect(editor.getByText("Indica el nombre del proyecto.")).toBeInTheDocument();
+    expect(updateProfileProject).not.toHaveBeenCalled();
+  });
+
+  it("no envía la edición si no hay tecnologías", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    await user.click(screen.getByRole("button", { name: "Editar proyecto design-system" }));
+    const editor = within(screen.getByRole("group", { name: "Editar proyecto design-system" }));
+    await user.clear(editor.getByLabelText("Tecnologías (separadas por comas)"));
+    await user.click(editor.getByRole("button", { name: "Guardar" }));
+
+    expect(editor.getByText("Añade al menos una tecnología.")).toBeInTheDocument();
+    expect(updateProfileProject).not.toHaveBeenCalled();
+  });
+
+  it("edita las tecnologías y las envía como array limpio y deduplicado", async () => {
+    const edited = {
+      id: "pr1",
+      name: "design-system",
+      description: "DS interno",
+      technologies: ["React", "Vue", "Svelte"],
+      url: null,
+      repoUrl: null
+    };
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    vi.mocked(updateProfileProject).mockResolvedValueOnce(edited);
+    vi.mocked(getMyProfile).mockResolvedValueOnce({ ...fullProfile, projects: [edited] });
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    await user.click(screen.getByRole("button", { name: "Editar proyecto design-system" }));
+    const editor = within(screen.getByRole("group", { name: "Editar proyecto design-system" }));
+    await user.clear(editor.getByLabelText("Tecnologías (separadas por comas)"));
+    await user.type(editor.getByLabelText("Tecnologías (separadas por comas)"), "React , Vue ,, React, Svelte,");
+    await user.click(editor.getByRole("button", { name: "Guardar" }));
+
+    await waitFor(() =>
+      expect(updateProfileProject).toHaveBeenCalledWith(
+        "tok-cv",
+        "pr1",
+        expect.objectContaining({ technologies: ["React", "Vue", "Svelte"] })
+      )
+    );
+  });
+
+  it("no envía la edición si la URL de demo es inválida", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    await user.click(screen.getByRole("button", { name: "Editar proyecto design-system" }));
+    const editor = within(screen.getByRole("group", { name: "Editar proyecto design-system" }));
+    await user.type(editor.getByLabelText("URL demo (opcional)"), "no-es-url");
+    await user.click(editor.getByRole("button", { name: "Guardar" }));
+
+    expect(editor.getByText("La URL de demo no es válida.")).toBeInTheDocument();
+    expect(updateProfileProject).not.toHaveBeenCalled();
+  });
+
+  it("no envía la edición si la URL del repositorio es inválida", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    await user.click(screen.getByRole("button", { name: "Editar proyecto design-system" }));
+    const editor = within(screen.getByRole("group", { name: "Editar proyecto design-system" }));
+    await user.type(editor.getByLabelText("URL repositorio (opcional)"), "tampoco-es-url");
+    await user.click(editor.getByRole("button", { name: "Guardar" }));
+
+    expect(editor.getByText("La URL del repositorio no es válida.")).toBeInTheDocument();
+    expect(updateProfileProject).not.toHaveBeenCalled();
+  });
+
+  it("editar vaciando la descripción la persiste como cadena vacía", async () => {
+    const cleared = {
+      id: "pr1",
+      name: "design-system",
+      description: null,
+      technologies: ["React", "TypeScript"],
+      url: null,
+      repoUrl: null
+    };
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    vi.mocked(updateProfileProject).mockResolvedValueOnce(cleared);
+    vi.mocked(getMyProfile).mockResolvedValueOnce({ ...fullProfile, projects: [cleared] });
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    await user.click(screen.getByRole("button", { name: "Editar proyecto design-system" }));
+    const editor = within(screen.getByRole("group", { name: "Editar proyecto design-system" }));
+    await user.clear(editor.getByLabelText("Descripción (opcional)"));
+    await user.click(editor.getByRole("button", { name: "Guardar" }));
+
+    await waitFor(() =>
+      expect(updateProfileProject).toHaveBeenCalledWith("tok-cv", "pr1", expect.objectContaining({ description: "" }))
+    );
+  });
+
+  it("bloquea el guardado si se intenta vaciar una URL de demo existente", async () => {
+    const withUrl = {
+      id: "pr1",
+      name: "design-system",
+      description: "DS interno",
+      technologies: ["React"],
+      url: "https://demo.old",
+      repoUrl: null
+    };
+    vi.mocked(getMyProfile).mockResolvedValueOnce({ ...fullProfile, projects: [withUrl] });
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    await user.click(screen.getByRole("button", { name: "Editar proyecto design-system" }));
+    const editor = within(screen.getByRole("group", { name: "Editar proyecto design-system" }));
+    await user.clear(editor.getByLabelText("URL demo (opcional)"));
+    await user.click(editor.getByRole("button", { name: "Guardar" }));
+
+    expect(editor.getByText(/Para quitar una URL existente hace falta soporte backend/)).toBeInTheDocument();
+    expect(updateProfileProject).not.toHaveBeenCalled();
+  });
+
+  it("bloquea el guardado si se intenta vaciar una URL de repositorio existente", async () => {
+    const withRepo = {
+      id: "pr1",
+      name: "design-system",
+      description: "DS interno",
+      technologies: ["React"],
+      url: null,
+      repoUrl: "https://github.com/old"
+    };
+    vi.mocked(getMyProfile).mockResolvedValueOnce({ ...fullProfile, projects: [withRepo] });
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    await user.click(screen.getByRole("button", { name: "Editar proyecto design-system" }));
+    const editor = within(screen.getByRole("group", { name: "Editar proyecto design-system" }));
+    await user.clear(editor.getByLabelText("URL repositorio (opcional)"));
+    await user.click(editor.getByRole("button", { name: "Guardar" }));
+
+    expect(editor.getByText(/Para quitar una URL existente hace falta soporte backend/)).toBeInTheDocument();
+    expect(updateProfileProject).not.toHaveBeenCalled();
   });
 });

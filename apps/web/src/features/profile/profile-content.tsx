@@ -12,6 +12,7 @@ import { LINK_TYPE_LABELS, REMOTE_PREFERENCE_LABELS, SENIORITY_LABELS } from "./
 import { ProfilePreview } from "./profile-preview";
 import { ProfileEducationSection } from "./profile-education-section";
 import { ProfileExperienceSection } from "./profile-experience-section";
+import { ProfileProjectsSection } from "./profile-projects-section";
 import { NextPhaseBadge, ProfileSectionCard } from "./profile-section-card";
 import { ProfileSkillsSection } from "./profile-skills-section";
 
@@ -131,7 +132,7 @@ export function ProfileContent({ profile: initialProfile, token }: { profile: Ca
               className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100"
               role="progressbar"
               aria-label="Completitud del perfil"
-              aria-valuenow={pct}
+              aria-valuenow={pct as unknown as number}
               aria-valuemin={0}
               aria-valuemax={100}
             >
@@ -271,33 +272,8 @@ export function ProfileContent({ profile: initialProfile, token }: { profile: Ca
             <ProfileEducationSection education={profile.education} token={token} onChanged={refreshProfile} />
           </ProfileSectionCard>
 
-          <ProfileSectionCard title="Proyectos" action={<NextPhaseBadge />}>
-            {profile.projects.length > 0 ? (
-              <ul className="space-y-4">
-                {profile.projects.map((project) => (
-                  <li key={project.id} className="rounded-lg border border-slate-100 p-4">
-                    <p className="font-semibold text-slate-900">{project.name}</p>
-                    {project.description?.trim() ? (
-                      <p className="mt-0.5 text-sm text-slate-600">{project.description}</p>
-                    ) : null}
-                    {project.technologies.length > 0 ? (
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {project.technologies.map((tech) => (
-                          <span key={tech} className="rounded bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
-                            {tech}
-                          </span>
-                        ))}
-                      </div>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <ProfileEmptyState
-                title="Proyectos"
-                description="Muestra los proyectos técnicos de los que te sientas orgulloso."
-              />
-            )}
+          <ProfileSectionCard title="Proyectos">
+            <ProfileProjectsSection projects={profile.projects} token={token} onChanged={refreshProfile} />
           </ProfileSectionCard>
 
           <ProfileSectionCard title="Enlaces" action={<NextPhaseBadge />}>
