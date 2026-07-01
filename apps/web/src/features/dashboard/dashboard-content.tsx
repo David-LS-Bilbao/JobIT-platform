@@ -10,406 +10,416 @@ interface DashboardContentProps {
 /*  Iconos inline (sin fuentes/CDN externas, MVP-safe)                        */
 /* -------------------------------------------------------------------------- */
 
-function IconChart() {
+function IconPerson() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-      <path d="M5 21V10M12 21V4M19 21v-7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" aria-hidden="true">
+      <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M4 20a8 8 0 0116 0" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
     </svg>
   );
 }
-function IconSpark() {
+function IconBolt() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" aria-hidden="true">
+      <path d="M13 3L5 13h6l-1 8 8-10h-6z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function IconBookmark({ className = "h-6 w-6" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path d="M6 4h12v16l-6-4-6 4z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function IconStar() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" aria-hidden="true">
       <path
-        d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"
+        d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9 6.8 19.2l1-5.8L3.5 9.2l5.9-.9z"
         stroke="currentColor"
-        strokeWidth="1.6"
+        strokeWidth="1.5"
         strokeLinejoin="round"
       />
     </svg>
   );
 }
-function IconBookmark() {
+function IconEdit() {
   return (
     <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-      <path d="M6 4h12v16l-6-4-6 4z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+      <path d="M4 20h4L18 10l-4-4L4 16v4z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+      <path d="M13.5 6.5l4 4" stroke="currentColor" strokeWidth="1.7" />
     </svg>
   );
 }
-function IconTarget() {
+function IconPlus() {
   return (
     <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-      <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.8" />
-      <circle cx="12" cy="12" r="3.5" stroke="currentColor" strokeWidth="1.8" />
-    </svg>
-  );
-}
-function IconDoc() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-      <path
-        d="M7 3h7l4 4v14H7zM14 3v5h4M9.5 12h6M9.5 16h6"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M12 8v8M8 12h8" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
     </svg>
   );
 }
 function IconSearch() {
   return (
     <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-      <circle cx="11" cy="11" r="6" stroke="currentColor" strokeWidth="1.8" />
-      <path d="M20 20l-3.5-3.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <circle cx="11" cy="11" r="6" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M20 20l-3.5-3.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+function IconTarget({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.7" />
+      <circle cx="12" cy="12" r="3.5" stroke="currentColor" strokeWidth="1.7" />
+    </svg>
+  );
+}
+function IconDoc({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path
+        d="M7 3h7l4 4v14H7zM14 3v5h4M9.5 12h6M9.5 16h6"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+function IconWork() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+      <rect x="3" y="7" width="18" height="13" rx="2" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2" stroke="currentColor" strokeWidth="1.7" />
+    </svg>
+  );
+}
+function IconArrowRight() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
+      <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function IconCheckCircle() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4 text-[#006c49]" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M8.5 12.5l2.5 2.5 4.5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function IconCircle() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4 text-slate-300" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.7" />
+    </svg>
+  );
+}
+function IconFolder() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-[18px] w-[18px]" aria-hidden="true">
+      <path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
     </svg>
   );
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Primitivos visuales (claros, alineados con landing/login)                 */
+/*  Primitivos visuales (Nexus Professional: claro, teal/green)               */
 /* -------------------------------------------------------------------------- */
 
-const STATUS_STYLES: Record<string, string> = {
-  Disponible: "bg-emerald-100 text-emerald-700",
-  "En curso": "bg-sky-100 text-sky-700",
-  Siguiente: "bg-violet-100 text-violet-700",
-  Pendiente: "bg-slate-100 text-slate-500"
-};
-
-function StatusBadge({ status }: { status: string }) {
+/** Métrica de resumen. */
+function Metric({ icon, value, label }: { icon: ReactNode; value: ReactNode; label: string }) {
   return (
-    <span
-      className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-        STATUS_STYLES[status] ?? "bg-slate-100 text-slate-500"
-      }`}
-    >
-      {status}
-    </span>
+    <div className="flex flex-col items-center justify-center rounded-xl border border-slate-200 bg-white p-4 text-center shadow-sm transition-shadow hover:shadow-md">
+      <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#eff4ff] text-[#006591]">
+        {icon}
+      </span>
+      <span className="text-2xl font-bold text-slate-900">{value}</span>
+      <span className="mt-1 text-xs font-medium text-slate-500">{label}</span>
+    </div>
   );
 }
 
 /**
- * CTA honesta para funciones aún no implementadas en UI. No navega (la pantalla
- * llega en una fase posterior): botón deshabilitado, sin enlace roto.
+ * Acción rápida. No navega (las vistas llegan en fases posteriores): botón
+ * deshabilitado con badge de estado honesto, sin enlaces rotos.
  */
-function ComingSoonCta({ children, full = false }: { children: ReactNode; full?: boolean }) {
+function QuickAction({ icon, label, tone }: { icon: ReactNode; label: string; tone: "next" | "pending" }) {
+  const next = tone === "next";
   return (
     <button
       type="button"
       disabled
       aria-disabled="true"
       title="Disponible en una próxima fase"
-      className={`inline-flex cursor-not-allowed items-center justify-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-400 ${
-        full ? "w-full" : ""
+      className={`relative flex cursor-not-allowed flex-col items-start gap-2 rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm ${
+        next ? "" : "opacity-70"
       }`}
     >
-      {children}
-      <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-300">Próxima fase</span>
+      <span
+        className={`absolute right-2 top-2 rounded px-2 py-0.5 text-[10px] font-bold ${
+          next ? "bg-[#eff4ff] text-[#006591]" : "bg-slate-100 text-slate-500"
+        }`}
+      >
+        {next ? "Siguiente" : "Pendiente"}
+      </span>
+      <span className={next ? "text-[#006591]" : "text-slate-500"}>{icon}</span>
+      <span className="text-sm font-semibold text-slate-700">{label}</span>
     </button>
   );
 }
 
-/** Tarjeta de sección clara con título. */
-function Section({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h2 className="mb-4 text-xs font-semibold uppercase tracking-wide text-slate-500">{title}</h2>
-      {children}
-    </section>
-  );
-}
-
-function EmptyState({ children }: { children: ReactNode }) {
-  return <p className="text-sm text-slate-500">{children}</p>;
-}
-
-/** KPI de resumen (bento). */
-function StatCard({
+/** Card de módulo del MVP. El destacado (JobIT CV) usa acento teal. */
+function ModuleCard({
   icon,
-  accent,
-  label,
-  value,
-  children
+  name,
+  description,
+  highlighted = false
 }: {
   icon: ReactNode;
-  accent: string;
-  label: string;
-  value: ReactNode;
-  children?: ReactNode;
+  name: string;
+  description: string;
+  highlighted?: boolean;
 }) {
   return (
-    <article className="flex flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <span className={`flex h-10 w-10 items-center justify-center rounded-xl ring-1 ${accent}`}>{icon}</span>
-      <p className="mt-4 text-sm text-slate-500">{label}</p>
-      <p className="mt-1 text-2xl font-bold text-slate-900">{value}</p>
-      {children}
-    </article>
+    <div
+      className={`relative overflow-hidden rounded-xl bg-white p-6 shadow-sm ${
+        highlighted ? "border-2 border-[#006591]" : "border border-slate-200 opacity-80"
+      }`}
+    >
+      <span
+        className={`absolute right-4 top-4 rounded px-2 py-1 text-xs font-bold ${
+          highlighted ? "bg-[#eff4ff] text-[#006591]" : "bg-slate-100 text-slate-500"
+        }`}
+      >
+        {highlighted ? "Siguiente" : "Pendiente"}
+      </span>
+      <div className="mb-4 flex items-center gap-3">
+        <span
+          className={`flex h-10 w-10 items-center justify-center rounded-lg ${
+            highlighted ? "bg-[#eff4ff] text-[#006591]" : "border border-slate-100 bg-slate-50 text-slate-500"
+          }`}
+        >
+          {icon}
+        </span>
+        <h4 className={`text-lg font-semibold ${highlighted ? "text-slate-900" : "text-slate-700"}`}>{name}</h4>
+      </div>
+      <p className={`text-sm ${highlighted ? "text-slate-600" : "text-slate-500"}`}>{description}</p>
+    </div>
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/*  Datos de navegación (estado honesto, sin rutas inexistentes)              */
-/* -------------------------------------------------------------------------- */
+/** CTA principal "Preparar JobIT CV". Deshabilitada hasta que exista /profile. */
+function PrepareCvButton() {
+  return (
+    <button
+      type="button"
+      disabled
+      aria-disabled="true"
+      title="Disponible en una próxima fase"
+      className="inline-flex w-fit cursor-not-allowed items-center gap-2 rounded-lg bg-[#006591] px-6 py-3 text-sm font-semibold text-white opacity-60"
+    >
+      Preparar JobIT CV
+      <IconArrowRight />
+    </button>
+  );
+}
 
-// Módulos MVP candidate-first. Ninguno enlaza a rutas inexistentes: CTA
-// deshabilitada con badge de estado hasta que su vista exista.
-const MODULES: ReadonlyArray<{
-  name: string;
-  state: "Siguiente" | "Pendiente";
-  description: string;
-  cta: string;
-  icon: ReactNode;
-  accent: string;
-}> = [
-  {
-    name: "JobIT CV",
-    state: "Siguiente",
-    description: "Completa tu perfil tech: skills, experiencia, educación, proyectos y enlaces.",
-    cta: "Preparar JobIT CV",
-    icon: <IconDoc />,
-    accent: "text-violet-700 bg-violet-50 ring-violet-100"
-  },
-  {
-    name: "JobIT Jobs",
-    state: "Pendiente",
-    description: "Explora ofertas tech con filtros básicos.",
-    cta: "Próximamente",
-    icon: <IconSearch />,
-    accent: "text-emerald-700 bg-emerald-50 ring-emerald-100"
-  },
-  {
-    name: "Saved Jobs",
-    state: "Pendiente",
-    description: "Guarda oportunidades para revisarlas después.",
-    cta: "Próximamente",
-    icon: <IconBookmark />,
-    accent: "text-sky-700 bg-sky-50 ring-sky-100"
-  },
-  {
-    name: "JobIT Match",
-    state: "Pendiente",
-    description: "Entiende por qué una oferta encaja con tu perfil.",
-    cta: "Próximamente",
-    icon: <IconTarget />,
-    accent: "text-amber-700 bg-amber-50 ring-amber-100"
-  }
-];
+function ChecklistItem({ done, children }: { done: boolean; children: ReactNode }) {
+  return (
+    <li className="flex items-center gap-2 text-sm text-slate-600">
+      {done ? <IconCheckCircle /> : <IconCircle />}
+      {children}
+    </li>
+  );
+}
 
-// Roadmap interno del MVP (estado de navegación, no funcionalidades activas).
-const ROADMAP: ReadonlyArray<{ label: string; status: "Disponible" | "En curso" | "Siguiente" | "Pendiente" }> = [
-  { label: "Autenticación", status: "Disponible" },
-  { label: "Landing", status: "Disponible" },
-  { label: "Dashboard", status: "En curso" },
-  { label: "Perfil/CV", status: "Siguiente" },
-  { label: "Buscador de empleo", status: "Pendiente" },
-  { label: "Guardadas", status: "Pendiente" },
-  { label: "Encaje", status: "Pendiente" }
-];
-
-const MATCH_LEVEL_LABELS: Record<string, string> = {
-  VERY_GOOD: "Muy bueno",
-  GOOD: "Bueno",
-  LOW: "Bajo",
-  VERY_LOW: "Muy bajo"
-};
+function initialsFrom(name: string): string {
+  const parts = name.trim().split(/\s+/).slice(0, 2);
+  const letters = parts.map((p) => p.charAt(0).toUpperCase()).join("");
+  return letters || "CT";
+}
 
 /* -------------------------------------------------------------------------- */
 /*  Hub                                                                        */
 /* -------------------------------------------------------------------------- */
 
-/** Hub privado del candidato: resumen, módulos, roadmap y datos reales. */
+/** Canvas privado del candidato (bento): resumen, acciones y preview de CV. */
 export function DashboardContent({ dashboard }: DashboardContentProps) {
-  const { profile, skills, savedJobs, matches, nextActions } = dashboard;
+  const { profile, skills, savedJobs, matches } = dashboard;
+
   const greetingName = profile.firstName?.trim() ? profile.firstName : "candidato tech";
   const pct = profile.completionPercentage;
+  const skillsCount = skills.length;
+  const savedCount = savedJobs.total;
+  const matchesCount = matches.length;
+
+  const fullName = [profile.firstName, profile.lastName].filter(Boolean).join(" ").trim();
+  const displayName = fullName || "Candidato tech";
+  const initials = initialsFrom(displayName);
+  const hasBasics = Boolean(profile.firstName?.trim());
+  const hasSkills = skillsCount > 0;
 
   return (
-    <div className="space-y-8">
-      {/* Saludo */}
-      <header>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Hola, {greetingName}</h1>
-        <p className="mt-1 text-sm text-slate-600">
-          {profile.headline?.trim() ? profile.headline : "Bienvenido de nuevo a tu panel de candidato."}
-        </p>
-      </header>
-
-      {/* Resumen bento (datos reales) */}
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          icon={<IconChart />}
-          accent="text-sky-700 bg-sky-50 ring-sky-100"
-          label="Perfil completado"
-          value={`${pct}%`}
-        >
-          <div
-            className="mt-3 h-2 w-full overflow-hidden rounded-full bg-slate-100"
-            role="progressbar"
-            aria-label="Perfil completado"
-            aria-valuenow={pct}
-            aria-valuemin={0}
-            aria-valuemax={100}
-          >
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-sky-500 to-emerald-500"
-              style={{ width: `${pct}%` }}
-            />
+    <div className="grid grid-cols-12 gap-6">
+      {/* Hero */}
+      <section className="relative col-span-12 overflow-hidden rounded-xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-8 lg:p-8">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-[#006591]/5 blur-3xl"
+        />
+        <div className="relative flex h-full flex-col justify-between gap-6">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Hola, {greetingName}</h2>
+            <p className="mt-2 max-w-2xl text-slate-600">
+              Este es tu panel privado para construir tu JobIT CV, revisar oportunidades y preparar tu encaje.
+            </p>
           </div>
-        </StatCard>
-        <StatCard
-          icon={<IconSpark />}
-          accent="text-violet-700 bg-violet-50 ring-violet-100"
-          label="Skills"
-          value={skills.length}
+          <div>
+            <div className="mb-2 flex items-end justify-between">
+              <span className="text-sm font-semibold text-slate-700">Completitud del perfil</span>
+              <span className="text-xl font-bold text-[#006591]">{pct}%</span>
+            </div>
+            <div
+              className="mb-6 h-3 w-full overflow-hidden rounded-full bg-slate-100"
+              role="progressbar"
+              aria-label="Completitud del perfil"
+              aria-valuenow={pct}
+              aria-valuemin={0}
+              aria-valuemax={100}
+            >
+              <div className="h-3 rounded-full bg-[#006591] transition-all" style={{ width: `${pct}%` }} />
+            </div>
+            <PrepareCvButton />
+          </div>
+        </div>
+      </section>
+
+      {/* Métricas (datos reales) */}
+      <section className="col-span-12 grid grid-cols-2 gap-4 lg:col-span-4">
+        <Metric icon={<IconPerson />} value={`${pct}%`} label="Perfil" />
+        <Metric icon={<IconBolt />} value={skillsCount} label="Skills" />
+        <Metric icon={<IconBookmark />} value={savedCount} label="Guardadas" />
+        <Metric icon={<IconStar />} value={matchesCount} label="Matches" />
+      </section>
+
+      {/* Acciones rápidas */}
+      <section className="col-span-12">
+        <h3 className="mb-4 text-xl font-semibold text-slate-900">Acciones rápidas</h3>
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          <QuickAction icon={<IconEdit />} label="Preparar JobIT CV" tone="next" />
+          <QuickAction icon={<IconPlus />} label="Añadir skills" tone="next" />
+          <QuickAction icon={<IconSearch />} label="Explorar ofertas" tone="pending" />
+          <QuickAction icon={<IconTarget />} label="Revisar matches" tone="pending" />
+        </div>
+      </section>
+
+      {/* Tu próximo paso */}
+      <section className="col-span-12">
+        <h3 className="mb-4 text-xl font-semibold text-slate-900">Tu próximo paso</h3>
+        <div className="relative rounded-xl border border-slate-200 border-t-4 border-t-[#006591] bg-white p-6 shadow-sm">
+          <span className="absolute right-4 top-4 rounded bg-[#eff4ff] px-2 py-1 text-xs font-bold text-[#006591]">
+            Siguiente
+          </span>
+          <div className="flex flex-col gap-6 md:flex-row md:items-center">
+            <div className="md:w-1/2">
+              <p className="mb-4 text-slate-600">
+                Completa tu JobIT CV para mejorar tu perfil, destacar tus skills y preparar mejores oportunidades.
+              </p>
+              <PrepareCvButton />
+            </div>
+            <div className="rounded-lg border border-slate-100 bg-slate-50 p-4 md:w-1/2">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-sm font-bold text-slate-600">Progreso</span>
+                <span className="text-sm font-bold text-[#006591]">{pct}%</span>
+              </div>
+              <div className="mb-4 h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+                <div className="h-1.5 rounded-full bg-[#006591]" style={{ width: `${pct}%` }} />
+              </div>
+              <ul className="space-y-2">
+                <ChecklistItem done={hasBasics}>Datos profesionales</ChecklistItem>
+                <ChecklistItem done={hasSkills}>Skills</ChecklistItem>
+                <ChecklistItem done={false}>Experiencia</ChecklistItem>
+                <ChecklistItem done={false}>Proyectos</ChecklistItem>
+                <ChecklistItem done={false}>Enlaces</ChecklistItem>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Vista previa de JobIT CV (read-only) */}
+      <section className="col-span-12">
+        <h3 className="mb-4 text-xl font-semibold text-slate-900">Vista previa de JobIT CV</h3>
+        <div className="rounded-xl border border-[#c8e6ff] border-t-4 border-t-[#006591] bg-white p-6 shadow-sm md:p-8">
+          <div className="flex flex-col gap-6 md:flex-row md:gap-8">
+            <span className="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl bg-[#dce9ff] text-3xl font-bold text-[#004c6e]">
+              {initials}
+            </span>
+            <div className="flex-1 space-y-4">
+              <div>
+                <h4 className="text-2xl font-bold text-slate-900">{displayName}</h4>
+                <p className="mt-1 text-lg font-medium text-slate-600">
+                  {profile.headline?.trim() ? profile.headline : "Añade tu titular profesional (rol y stack)."}
+                </p>
+              </div>
+              <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
+                Añade un resumen profesional destacando tu experiencia y objetivos.
+              </div>
+              {hasSkills ? (
+                <div className="flex flex-wrap gap-2">
+                  {skills.map((skill) => (
+                    <span
+                      key={skill}
+                      className="rounded-md bg-[#eff4ff] px-3 py-1.5 text-sm font-medium text-[#006591]"
+                    >
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-500">Añade tus skills para mostrarlas aquí.</p>
+              )}
+              <div className="flex items-center gap-2 border-t border-slate-100 pt-4 text-sm text-slate-600">
+                <IconFolder />
+                Añade tu primer proyecto destacado
+              </div>
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pt-2 text-sm font-medium text-slate-400">
+                <span>GitHub</span>
+                <span aria-hidden="true">·</span>
+                <span>LinkedIn</span>
+                <span aria-hidden="true">·</span>
+                <span>Portfolio</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Módulos del MVP */}
+      <section className="col-span-12 grid grid-cols-1 gap-6 md:grid-cols-2">
+        <ModuleCard
+          highlighted
+          icon={<IconDoc />}
+          name="JobIT CV"
+          description="Perfil vivo con datos profesionales, skills, experiencia, educación, proyectos y enlaces."
         />
-        <StatCard
-          icon={<IconBookmark />}
-          accent="text-emerald-700 bg-emerald-50 ring-emerald-100"
-          label="Ofertas guardadas"
-          value={savedJobs.total}
+        <ModuleCard icon={<IconWork />} name="JobIT Jobs" description="Buscador de ofertas tech con filtros básicos." />
+        <ModuleCard
+          icon={<IconBookmark className="h-5 w-5" />}
+          name="Guardadas"
+          description="Guarda oportunidades para revisarlas después."
         />
-        <StatCard
+        <ModuleCard
           icon={<IconTarget />}
-          accent="text-amber-700 bg-amber-50 ring-amber-100"
-          label="Matches"
-          value={matches.length}
+          name="JobIT Match"
+          description="Entiende por qué una oferta encaja con tu perfil."
         />
       </section>
-
-      {/* Módulos MVP (navegación futura, sin enlaces rotos) */}
-      <section>
-        <div className="mb-4 flex items-baseline justify-between">
-          <h2 className="text-lg font-bold tracking-tight text-slate-900">Módulos</h2>
-          <span className="text-xs text-slate-400">Se activan a medida que se publican</span>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {MODULES.map((m) => (
-            <article
-              key={m.name}
-              className="flex flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
-            >
-              <div className="flex items-center justify-between">
-                <span className={`flex h-11 w-11 items-center justify-center rounded-2xl ring-1 ${m.accent}`}>
-                  {m.icon}
-                </span>
-                <StatusBadge status={m.state} />
-              </div>
-              <h3 className="mt-4 text-base font-bold text-slate-900">{m.name}</h3>
-              <p className="mt-1 flex-1 text-sm text-slate-600">{m.description}</p>
-              <div className="mt-4">
-                <ComingSoonCta full>{m.cta}</ComingSoonCta>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      {/* Roadmap del MVP */}
-      <Section title="Tu progreso en JobIT">
-        <ul className="flex flex-wrap gap-2">
-          {ROADMAP.map((item) => (
-            <li
-              key={item.label}
-              className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs"
-            >
-              <span className="font-medium text-slate-700">{item.label}</span>
-              <StatusBadge status={item.status} />
-            </li>
-          ))}
-        </ul>
-      </Section>
-
-      {/* Datos reales: split principal + lateral */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
-          {/* Skills */}
-          <Section title="Tus skills">
-            {skills.length > 0 ? (
-              <ul className="flex flex-wrap gap-2">
-                {skills.map((skill) => (
-                  <li key={skill} className="rounded-full bg-sky-50 px-3 py-1 text-xs font-medium text-sky-700">
-                    {skill}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="space-y-3">
-                <EmptyState>Aún no has añadido skills.</EmptyState>
-                <ComingSoonCta>Añadir skills</ComingSoonCta>
-              </div>
-            )}
-          </Section>
-
-          {/* Ofertas guardadas */}
-          <Section title={`Ofertas guardadas (${savedJobs.total})`}>
-            {savedJobs.recent.length > 0 ? (
-              <ul className="space-y-3">
-                {savedJobs.recent.map((saved) => (
-                  <li key={saved.job.id} className="rounded-xl border border-slate-200 px-4 py-3">
-                    <p className="text-sm font-semibold text-slate-900">{saved.job.title}</p>
-                    <p className="text-xs text-slate-500">
-                      {saved.job.company}
-                      {saved.job.location ? ` · ${saved.job.location}` : ""}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="space-y-3">
-                <EmptyState>Todavía no has guardado ofertas.</EmptyState>
-                <ComingSoonCta>Explorar ofertas</ComingSoonCta>
-              </div>
-            )}
-          </Section>
-        </div>
-
-        <aside className="space-y-6">
-          {/* Matches */}
-          <Section title="Mejores matches">
-            {matches.length > 0 ? (
-              <ul className="space-y-3">
-                {matches.map((match) => (
-                  <li key={match.job.id} className="rounded-xl border border-slate-200 px-4 py-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm font-semibold text-slate-900">{match.job.title}</p>
-                      <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-xs font-bold text-white">
-                        {match.score}
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-500">
-                      {match.job.company} · {MATCH_LEVEL_LABELS[match.level] ?? match.level}
-                    </p>
-                    {match.matchedSkills.length > 0 ? (
-                      <p className="mt-1 text-xs text-emerald-700">Coincides: {match.matchedSkills.join(", ")}</p>
-                    ) : null}
-                    {match.missingSkills.length > 0 ? (
-                      <p className="text-xs text-slate-500">Te falta: {match.missingSkills.join(", ")}</p>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <EmptyState>Aún no hay matches. Completa tu perfil y añade skills para mejorarlos.</EmptyState>
-            )}
-          </Section>
-
-          {/* Siguiente paso */}
-          <Section title="Siguiente paso">
-            {nextActions.length > 0 ? (
-              <ol className="space-y-2">
-                {nextActions.map((action) => (
-                  <li key={action.action} className="flex items-start gap-2 text-sm text-slate-700">
-                    <span aria-hidden="true" className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-sky-500" />
-                    {action.label}
-                  </li>
-                ))}
-              </ol>
-            ) : (
-              <EmptyState>¡Todo al día! No hay acciones pendientes.</EmptyState>
-            )}
-          </Section>
-        </aside>
-      </div>
     </div>
   );
 }

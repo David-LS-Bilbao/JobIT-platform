@@ -138,55 +138,73 @@ describe("DashboardPage", () => {
     await waitFor(() => expect(screen.queryByText("Cargando tu panel…")).not.toBeInTheDocument());
   });
 
-  it("con sesión pide el dashboard con el token y renderiza las secciones", async () => {
+  it("con sesión pide el dashboard con el token y renderiza el hub", async () => {
     vi.mocked(getCandidateDashboard).mockResolvedValueOnce(fullDto);
     renderWithSession();
     expect(await screen.findByText("Hola, Ana")).toBeInTheDocument();
     expect(getCandidateDashboard).toHaveBeenCalledWith("tok-dash");
+    // App shell privado
+    expect(screen.getByText("Perfil tech vivo")).toBeInTheDocument();
+    expect(screen.getByText("MVP candidate-first")).toBeInTheDocument();
+    expect(screen.getAllByText("Dashboard").length).toBeGreaterThan(0);
+    // Secciones del hub
+    expect(screen.getByText("Acciones rápidas")).toBeInTheDocument();
+    expect(screen.getByText("Tu próximo paso")).toBeInTheDocument();
+    expect(screen.getByText("Vista previa de JobIT CV")).toBeInTheDocument();
+    // Métricas reales y skill real en la preview de CV
+    expect(screen.getByText("Matches")).toBeInTheDocument();
+    expect(screen.getAllByText("Skills").length).toBeGreaterThan(0);
     expect(screen.getByText("TypeScript")).toBeInTheDocument();
-    expect(screen.getByText(/Frontend Developer/)).toBeInTheDocument();
-    expect(screen.getByText(/React Engineer/)).toBeInTheDocument();
-    expect(screen.getByText(/Completa tu perfil profesional/)).toBeInTheDocument();
   });
 
-  it("muestra empty states con un dashboard vacío", async () => {
+  it("con un dashboard vacío muestra placeholders honestos y CTAs deshabilitadas", async () => {
     vi.mocked(getCandidateDashboard).mockResolvedValueOnce(emptyDto);
     renderWithSession();
     expect(await screen.findByText("Hola, candidato tech")).toBeInTheDocument();
-    expect(screen.getByText("Aún no has añadido skills.")).toBeInTheDocument();
-    expect(screen.getByText("Todavía no has guardado ofertas.")).toBeInTheDocument();
-    expect(
-      screen.getByText("Aún no hay matches. Completa tu perfil y añade skills para mejorarlos.")
-    ).toBeInTheDocument();
-    // CTAs honestas de próxima fase (deshabilitadas, sin enlaces rotos).
+    // Placeholder de skills en la preview de CV
+    expect(screen.getByText("Añade tus skills para mostrarlas aquí.")).toBeInTheDocument();
+    // Acciones rápidas deshabilitadas (sin rutas rotas)
     expect(screen.getByRole("button", { name: /añadir skills/i })).toBeDisabled();
     expect(screen.getByRole("button", { name: /explorar ofertas/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /revisar matches/i })).toBeDisabled();
+    // "Preparar JobIT CV" siempre es botón deshabilitado, nunca enlace
+    const prepare = screen.getAllByRole("button", { name: /preparar jobit cv/i });
+    expect(prepare.length).toBeGreaterThan(0);
+    prepare.forEach((btn) => expect(btn).toBeDisabled());
+    expect(screen.queryByRole("link", { name: /preparar jobit cv/i })).not.toBeInTheDocument();
   });
 
-  it("muestra el hub de módulos y el roadmap del MVP sin enlaces rotos", async () => {
+  it("muestra los módulos del MVP sin copy de dev ni enlaces rotos", async () => {
     vi.mocked(getCandidateDashboard).mockResolvedValueOnce(fullDto);
     renderWithSession();
     await screen.findByText("Hola, Ana");
 
-    // Cards de módulos MVP
-    expect(screen.getByText("JobIT CV")).toBeInTheDocument();
-    expect(screen.getByText("JobIT Jobs")).toBeInTheDocument();
-    expect(screen.getByText("Saved Jobs")).toBeInTheDocument();
-    expect(screen.getByText("JobIT Match")).toBeInTheDocument();
+    // Módulos MVP (algunos también en la sidebar → pueden duplicarse)
+    expect(screen.getAllByText("JobIT CV").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("JobIT Jobs").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Guardadas").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("JobIT Match").length).toBeGreaterThan(0);
 
-    // Roadmap del MVP
-    expect(screen.getByText("Tu progreso en JobIT")).toBeInTheDocument();
+    // Sin roadmap interno de desarrollo
+    expect(screen.queryByText("Estado del MVP")).not.toBeInTheDocument();
+    expect(screen.queryByText(/autenticación/i)).not.toBeInTheDocument();
+    expect(screen.queryByText("Landing")).not.toBeInTheDocument();
 
-    // El módulo JobIT CV es CTA deshabilitada, NO un enlace a ruta inexistente
-    expect(screen.getByRole("button", { name: /preparar jobit cv/i })).toBeDisabled();
-    expect(screen.queryByRole("link", { name: /jobit cv/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /jobit jobs/i })).not.toBeInTheDocument();
-
-    // Nada de copy fuera de MVP
+    // Nada fuera de MVP
     expect(screen.queryByText(/expertech/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/pro plan/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/upgrade/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/export pdf/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/github sync/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/ai reviews/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/inteligencia artificial/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/pricing/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/\$\s?\d/)).not.toBeInTheDocument();
+
+    // Sin enlaces activos a rutas no implementadas
+    const links = screen.getAllByRole("link");
+    for (const href of ["/profile", "/jobs", "/saved-jobs", "/match"]) {
+      expect(links.some((l) => l.getAttribute("href") === href)).toBe(false);
+    }
   });
 
   it("ante 401 limpia la sesión y redirige a /login", async () => {
