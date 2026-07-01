@@ -271,3 +271,20 @@ export interface CreateProfileSkillInput {
   level?: SkillLevel;
   category?: string;
 }
+
+/**
+ * Cuerpo de `POST /api/profile/me/experience`. company/role/startDate obligatorios.
+ * `current: true` ⇒ el backend fuerza `endDate: null` (no hace falta enviarla).
+ */
+export interface CreateProfileExperienceInput {
+  company: string;
+  role: string;
+  startDate: string;
+  endDate?: string | null;
+  current?: boolean;
+  description?: string;
+  location?: string;
+}
+
+/** Cuerpo de `PUT /api/profile/me/experience/:id`. Todos los campos opcionales. */
+export type UpdateProfileExperienceInput = Partial<CreateProfileExperienceInput>;
