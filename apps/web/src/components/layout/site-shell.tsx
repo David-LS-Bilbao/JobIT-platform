@@ -119,7 +119,7 @@ interface PrivateNavItem {
 // con badge para no crear rutas rotas (aún no existen esas vistas).
 const PRIVATE_NAV: ReadonlyArray<PrivateNavItem> = [
   { label: "Dashboard", href: "/dashboard", status: "available", icon: <IconDashboard /> },
-  { label: "JobIT CV", href: "/profile", status: "next", icon: <IconDoc /> },
+  { label: "JobIT CV", href: "/profile", status: "available", icon: <IconDoc /> },
   { label: "JobIT Jobs", href: "/jobs", status: "pending", icon: <IconWork /> },
   { label: "Guardadas", href: "/saved-jobs", status: "pending", icon: <IconBookmark /> },
   { label: "JobIT Match", href: "/match", status: "pending", icon: <IconTarget /> }
@@ -202,16 +202,13 @@ function SidebarBrand() {
 function SidebarBottom() {
   return (
     <div className="mt-auto space-y-1 border-t border-slate-200 pt-4">
-      {/* CTA deshabilitada mientras /profile no exista (sin ruta rota) */}
-      <button
-        type="button"
-        disabled
-        aria-disabled="true"
-        title="Disponible en una próxima fase"
-        className="mb-3 w-full cursor-not-allowed rounded-lg bg-[#006591] px-4 py-2.5 text-sm font-semibold text-white opacity-60"
+      {/* CTA hacia JobIT CV (ya disponible) */}
+      <Link
+        href="/profile"
+        className="mb-3 flex w-full items-center justify-center rounded-lg bg-[#006591] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#004c6e]"
       >
         Preparar JobIT CV
-      </button>
+      </Link>
       <div className="flex items-center gap-3 rounded-lg px-3 py-2 text-slate-500 opacity-70">
         <IconSettings />
         <span className="text-sm">Ajustes (futuro)</span>

@@ -110,14 +110,16 @@ describe("SiteShell navegación auth-aware", () => {
     expect(dashboard).toHaveAttribute("aria-current", "page");
   });
 
-  it("los módulos futuros aparecen con estado pero NO enlazan a rutas inexistentes", () => {
+  it("JobIT CV enlaza a /profile; Jobs/Guardadas/Match siguen sin enlace activo", () => {
     renderPrivate();
-    expect(screen.getByText("JobIT CV")).toBeInTheDocument();
+    // JobIT CV ya es una ruta real.
+    expect(screen.getByRole("link", { name: "JobIT CV" })).toHaveAttribute("href", "/profile");
+    // Los módulos aún no implementados siguen visibles pero sin enlace.
     expect(screen.getByText("JobIT Jobs")).toBeInTheDocument();
     expect(screen.getByText("Guardadas")).toBeInTheDocument();
     expect(screen.getByText("JobIT Match")).toBeInTheDocument();
     const links = screen.getAllByRole("link");
-    for (const href of ["/profile", "/jobs", "/saved-jobs", "/match"]) {
+    for (const href of ["/jobs", "/saved-jobs", "/match"]) {
       expect(links.some((l) => l.getAttribute("href") === href)).toBe(false);
     }
   });

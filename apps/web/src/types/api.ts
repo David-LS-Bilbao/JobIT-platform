@@ -162,3 +162,105 @@ export interface PaginatedJobsResponseDto {
   page: number;
   limit: number;
 }
+
+// --- Profile / JobIT CV ------------------------------------------------------
+// Read model completo de `GET /api/profile/me` (Sprint 13.5). Espejo exacto de
+// los serializadores del backend: subrecursos SIN createdAt/updatedAt,
+// `preferences` puede ser null y las listas pueden ser []. Fechas: string ISO.
+
+export type AvailabilityStatus = "ACTIVE" | "OPEN" | "NOT_LOOKING";
+export type SkillLevel = "BASIC" | "INTERMEDIATE" | "ADVANCED";
+export type ProfileLinkType = "GITHUB" | "LINKEDIN" | "PORTFOLIO" | "OTHER";
+export type RemotePreference = "REMOTE" | "HYBRID" | "ON_SITE" | "ANY";
+export type PreferenceSeniority = "JUNIOR" | "MID" | "SENIOR";
+
+export interface ProfileSkillDto {
+  id: string;
+  name: string;
+  level: SkillLevel | null;
+  category: string | null;
+}
+
+export interface ProfileExperienceDto {
+  id: string;
+  company: string;
+  role: string;
+  startDate: string;
+  endDate: string | null;
+  current: boolean;
+  description: string | null;
+  location: string | null;
+}
+
+export interface ProfileEducationDto {
+  id: string;
+  institution: string;
+  title: string;
+  field: string | null;
+  startDate: string;
+  endDate: string | null;
+  current: boolean;
+}
+
+export interface ProfileProjectDto {
+  id: string;
+  name: string;
+  description: string | null;
+  technologies: string[];
+  url: string | null;
+  repoUrl: string | null;
+}
+
+export interface ProfileLinkDto {
+  id: string;
+  type: ProfileLinkType;
+  url: string;
+}
+
+export interface ProfilePreferencesDto {
+  id: string;
+  desiredRoles: string[];
+  preferredLocations: string[];
+  remotePreference: RemotePreference;
+  seniority: PreferenceSeniority | null;
+  salaryMin: number | null;
+  salaryMax: number | null;
+  contractTypes: string[];
+}
+
+export interface CandidateProfileDto {
+  id: string;
+  userId: string;
+  firstName: string | null;
+  lastName: string | null;
+  headline: string | null;
+  summary: string | null;
+  location: string | null;
+  locationRemote: boolean;
+  availabilityStatus: AvailabilityStatus;
+  avatarUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+  completionPercentage: number; // 0..100
+  skills: ProfileSkillDto[];
+  experiences: ProfileExperienceDto[];
+  education: ProfileEducationDto[];
+  projects: ProfileProjectDto[];
+  links: ProfileLinkDto[];
+  preferences: ProfilePreferencesDto | null;
+}
+
+/**
+ * Cuerpo de `PUT /api/profile/me` (datos básicos). firstName y lastName son
+ * obligatorios (mín. 2 en backend); el resto es opcional. No incluye subrecursos.
+ */
+export interface UpdateProfileBasicInfoInput {
+  firstName: string;
+  lastName: string;
+  headline?: string;
+  summary?: string;
+  location?: string;
+  locationRemote?: boolean;
+  availabilityStatus?: AvailabilityStatus;
+  avatarUrl?: string;
+}

@@ -157,21 +157,20 @@ describe("DashboardPage", () => {
     expect(screen.getByText("TypeScript")).toBeInTheDocument();
   });
 
-  it("con un dashboard vacío muestra placeholders honestos y CTAs deshabilitadas", async () => {
+  it("con un dashboard vacío muestra placeholders y navegación honesta a /profile", async () => {
     vi.mocked(getCandidateDashboard).mockResolvedValueOnce(emptyDto);
     renderWithSession();
     expect(await screen.findByText("Hola, candidato tech")).toBeInTheDocument();
     // Placeholder de skills en la preview de CV
     expect(screen.getByText("Añade tus skills para mostrarlas aquí.")).toBeInTheDocument();
-    // Acciones rápidas deshabilitadas (sin rutas rotas)
-    expect(screen.getByRole("button", { name: /añadir skills/i })).toBeDisabled();
+    // JobIT CV disponible: sus CTAs enlazan a /profile
+    const prepare = screen.getAllByRole("link", { name: /preparar jobit cv/i });
+    expect(prepare.length).toBeGreaterThan(0);
+    prepare.forEach((link) => expect(link).toHaveAttribute("href", "/profile"));
+    expect(screen.getByRole("link", { name: /añadir skills/i })).toHaveAttribute("href", "/profile#skills");
+    // Módulos aún no disponibles: siguen deshabilitados (sin rutas rotas)
     expect(screen.getByRole("button", { name: /explorar ofertas/i })).toBeDisabled();
     expect(screen.getByRole("button", { name: /revisar matches/i })).toBeDisabled();
-    // "Preparar JobIT CV" siempre es botón deshabilitado, nunca enlace
-    const prepare = screen.getAllByRole("button", { name: /preparar jobit cv/i });
-    expect(prepare.length).toBeGreaterThan(0);
-    prepare.forEach((btn) => expect(btn).toBeDisabled());
-    expect(screen.queryByRole("link", { name: /preparar jobit cv/i })).not.toBeInTheDocument();
   });
 
   it("muestra los módulos del MVP sin copy de dev ni enlaces rotos", async () => {
@@ -200,9 +199,11 @@ describe("DashboardPage", () => {
     expect(screen.queryByText(/inteligencia artificial/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/pricing/i)).not.toBeInTheDocument();
 
-    // Sin enlaces activos a rutas no implementadas
+    // JobIT CV (/profile) ya es enlace activo desde el dashboard/sidebar…
     const links = screen.getAllByRole("link");
-    for (const href of ["/profile", "/jobs", "/saved-jobs", "/match"]) {
+    expect(links.some((l) => l.getAttribute("href")?.startsWith("/profile"))).toBe(true);
+    // …pero Jobs/Guardadas/Match siguen sin enlace.
+    for (const href of ["/jobs", "/saved-jobs", "/match"]) {
       expect(links.some((l) => l.getAttribute("href") === href)).toBe(false);
     }
   });
