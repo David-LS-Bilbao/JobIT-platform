@@ -304,3 +304,18 @@ export interface CreateProfileEducationInput {
 
 /** Cuerpo de `PUT /api/profile/me/education/:id`. Todos los campos opcionales. */
 export type UpdateProfileEducationInput = Partial<CreateProfileEducationInput>;
+
+/**
+ * Cuerpo de `POST /api/profile/me/projects`. `name` y `technologies` (mín. 1)
+ * son obligatorios; `url`/`repoUrl` opcionales pero deben ser URL válidas.
+ */
+export interface CreateProfileProjectInput {
+  name: string;
+  description?: string;
+  technologies: string[];
+  url?: string;
+  repoUrl?: string;
+}
+
+/** Cuerpo de `PUT /api/profile/me/projects/:id`. Todos los campos opcionales. */
+export type UpdateProfileProjectInput = Partial<CreateProfileProjectInput>;

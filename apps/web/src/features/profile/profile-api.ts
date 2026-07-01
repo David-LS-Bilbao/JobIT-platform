@@ -13,13 +13,16 @@ import type {
   CandidateProfileDto,
   CreateProfileEducationInput,
   CreateProfileExperienceInput,
+  CreateProfileProjectInput,
   CreateProfileSkillInput,
   ProfileEducationDto,
   ProfileExperienceDto,
+  ProfileProjectDto,
   ProfileSkillDto,
   UpdateProfileBasicInfoInput,
   UpdateProfileEducationInput,
-  UpdateProfileExperienceInput
+  UpdateProfileExperienceInput,
+  UpdateProfileProjectInput
 } from "@/types/api";
 
 function normalizeProfile(raw: Partial<CandidateProfileDto>): CandidateProfileDto {
@@ -127,6 +130,34 @@ export function updateProfileEducation(
 /** `DELETE /api/profile/me/education/:id` → 204 sin cuerpo. */
 export function deleteProfileEducation(token: string, educationId: string): Promise<void> {
   return apiRequest<void>(`/api/profile/me/education/${encodeURIComponent(educationId)}`, {
+    method: "DELETE",
+    token
+  });
+}
+
+/** `POST /api/profile/me/projects` → proyecto creado (201). */
+export function addProfileProject(
+  token: string,
+  input: CreateProfileProjectInput
+): Promise<ProfileProjectDto> {
+  return apiRequest<ProfileProjectDto>("/api/profile/me/projects", { method: "POST", token, body: input });
+}
+
+/** `PUT /api/profile/me/projects/:id` → proyecto actualizado. (Preparado para 13F-02.) */
+export function updateProfileProject(
+  token: string,
+  projectId: string,
+  input: UpdateProfileProjectInput
+): Promise<ProfileProjectDto> {
+  return apiRequest<ProfileProjectDto>(
+    `/api/profile/me/projects/${encodeURIComponent(projectId)}`,
+    { method: "PUT", token, body: input }
+  );
+}
+
+/** `DELETE /api/profile/me/projects/:id` → 204 sin cuerpo. */
+export function deleteProfileProject(token: string, projectId: string): Promise<void> {
+  return apiRequest<void>(`/api/profile/me/projects/${encodeURIComponent(projectId)}`, {
     method: "DELETE",
     token
   });
