@@ -1,14 +1,17 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { AuthProvider, useAuth } from "@/features/auth/auth-context";
 import {
+  addProfileExperience,
   addProfileSkill,
+  deleteProfileExperience,
   deleteProfileSkill,
   getMyProfile,
-  updateMyProfile
+  updateMyProfile,
+  updateProfileExperience
 } from "@/features/profile/profile-api";
 import { ProfilePage } from "@/features/profile/profile-page";
 import { ApiClientError } from "@/lib/api-client";
@@ -30,7 +33,10 @@ vi.mock("@/features/profile/profile-api", () => ({
   getMyProfile: vi.fn(),
   updateMyProfile: vi.fn(),
   addProfileSkill: vi.fn(),
-  deleteProfileSkill: vi.fn()
+  deleteProfileSkill: vi.fn(),
+  addProfileExperience: vi.fn(),
+  updateProfileExperience: vi.fn(),
+  deleteProfileExperience: vi.fn()
 }));
 vi.mock("@/features/auth/auth-api", () => ({ logoutCandidate: vi.fn() }));
 
@@ -207,9 +213,7 @@ describe("ProfilePage (/profile · JobIT CV)", () => {
     renderWithSession();
     await screen.findByText("Tu perfil tech vivo");
 
-    expect(
-      screen.getByText("Añade tu primera experiencia profesional para destacar tu trayectoria.")
-    ).toBeInTheDocument();
+    expect(screen.getByText("Aún no has añadido experiencia profesional.")).toBeInTheDocument();
     expect(screen.getByText("Añade tu formación académica.")).toBeInTheDocument();
     expect(screen.getByText("Define qué buscas en tu próxima oportunidad.")).toBeInTheDocument();
     expect(screen.getAllByText("Candidato tech").length).toBeGreaterThan(0);
@@ -331,5 +335,202 @@ describe("ProfilePage (/profile · JobIT CV)", () => {
     expect(screen.getByRole("button", { name: "Añadir skill" })).toBeInTheDocument();
     // Experiencia, Educación, Proyectos, Enlaces y Preferencias siguen como próxima fase.
     expect(screen.getAllByText("Próxima fase").length).toBeGreaterThanOrEqual(4);
+  });
+
+  it("añadir experiencia llama a POST /api/profile/me/experience y refresca", async () => {
+    const newExp = {
+      id: "e2",
+      company: "Globex",
+      role: "Backend Developer",
+      startDate: "2020-01-01T00:00:00.000Z",
+      endDate: null,
+      current: false,
+      description: null,
+      location: null
+    };
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    vi.mocked(addProfileExperience).mockResolvedValueOnce(newExp);
+    vi.mocked(getMyProfile).mockResolvedValueOnce({
+      ...fullProfile,
+      experiences: [...fullProfile.experiences, newExp]
+    });
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    await user.type(screen.getByLabelText("Empresa"), "Globex");
+    await user.type(screen.getByLabelText("Puesto"), "Backend Developer");
+    fireEvent.change(screen.getByLabelText("Fecha de inicio"), { target: { value: "2020-01-01" } });
+    await user.click(screen.getByRole("button", { name: "Añadir experiencia" }));
+
+    await waitFor(() =>
+      expect(addProfileExperience).toHaveBeenCalledWith(
+        "tok-cv",
+        expect.objectContaining({ company: "Globex", role: "Backend Developer", startDate: "2020-01-01" })
+      )
+    );
+    expect(await screen.findByText("Backend Developer")).toBeInTheDocument();
+  });
+
+  it("no envía experiencia si faltan campos obligatorios", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    await user.click(screen.getByRole("button", { name: "Añadir experiencia" }));
+    expect(await screen.findByText("Empresa, puesto y fecha de inicio son obligatorios.")).toBeInTheDocument();
+    expect(addProfileExperience).not.toHaveBeenCalled();
+  });
+
+  it("'Actualmente trabajo aquí' deshabilita la fecha de fin", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    const endInput = screen.getByLabelText("Fecha de fin");
+    expect(endInput).not.toBeDisabled();
+    await user.click(screen.getByLabelText("Actualmente trabajo aquí"));
+    expect(screen.getByLabelText("Fecha de fin")).toBeDisabled();
+  });
+
+  it("muestra error si el POST de experiencia falla", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    vi.mocked(addProfileExperience).mockRejectedValueOnce(new ApiClientError(400, "VALIDATION_ERROR", "bad"));
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    await user.type(screen.getByLabelText("Empresa"), "Globex");
+    await user.type(screen.getByLabelText("Puesto"), "Backend Developer");
+    fireEvent.change(screen.getByLabelText("Fecha de inicio"), { target: { value: "2020-01-01" } });
+    await user.click(screen.getByRole("button", { name: "Añadir experiencia" }));
+
+    expect(await screen.findByText("Revisa los datos de la experiencia.")).toBeInTheDocument();
+  });
+
+  it("elimina una experiencia con DELETE y refresca", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    vi.mocked(deleteProfileExperience).mockResolvedValueOnce(undefined);
+    vi.mocked(getMyProfile).mockResolvedValueOnce({ ...fullProfile, experiences: [] });
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    await user.click(screen.getByRole("button", { name: "Eliminar experiencia en ACME" }));
+    await waitFor(() => expect(deleteProfileExperience).toHaveBeenCalledWith("tok-cv", "e1"));
+    await waitFor(() => expect(getMyProfile).toHaveBeenCalledTimes(2));
+  });
+
+  it("muestra botón de editar por experiencia y precarga los datos al abrir el editor", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    await user.click(screen.getByRole("button", { name: "Editar Frontend Developer en ACME" }));
+    const editor = within(screen.getByRole("group", { name: "Editar experiencia en ACME" }));
+    expect(editor.getByLabelText("Empresa")).toHaveValue("ACME");
+    expect(editor.getByLabelText("Puesto")).toHaveValue("Frontend Developer");
+    // e1 es "actual" → la fecha de fin queda deshabilitada.
+    expect(editor.getByLabelText("Fecha de fin")).toBeDisabled();
+  });
+
+  it("guardar edición llama a updateProfileExperience con token, id e input, y refresca", async () => {
+    const editedExp = {
+      id: "e1",
+      company: "ACME Corp",
+      role: "Frontend Developer",
+      startDate: "2021-01-01T00:00:00.000Z",
+      endDate: null,
+      current: true,
+      description: "Construyendo interfaces.",
+      location: "Remoto"
+    };
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    vi.mocked(updateProfileExperience).mockResolvedValueOnce(editedExp);
+    vi.mocked(getMyProfile).mockResolvedValueOnce({ ...fullProfile, experiences: [editedExp] });
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    await user.click(screen.getByRole("button", { name: "Editar Frontend Developer en ACME" }));
+    const editor = within(screen.getByRole("group", { name: "Editar experiencia en ACME" }));
+    await user.clear(editor.getByLabelText("Empresa"));
+    await user.type(editor.getByLabelText("Empresa"), "ACME Corp");
+    await user.click(editor.getByRole("button", { name: "Guardar" }));
+
+    await waitFor(() =>
+      expect(updateProfileExperience).toHaveBeenCalledWith(
+        "tok-cv",
+        "e1",
+        expect.objectContaining({ company: "ACME Corp", role: "Frontend Developer", startDate: "2021-01-01", current: true })
+      )
+    );
+    await waitFor(() => expect(getMyProfile).toHaveBeenCalledTimes(2));
+  });
+
+  it("cancelar edición cierra el editor y no llama a updateProfileExperience", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    await user.click(screen.getByRole("button", { name: "Editar Frontend Developer en ACME" }));
+    const editor = within(screen.getByRole("group", { name: "Editar experiencia en ACME" }));
+    await user.click(editor.getByRole("button", { name: "Cancelar" }));
+
+    expect(screen.queryByRole("group", { name: "Editar experiencia en ACME" })).not.toBeInTheDocument();
+    expect(updateProfileExperience).not.toHaveBeenCalled();
+  });
+
+  it("no envía la edición si falta un campo obligatorio", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    await user.click(screen.getByRole("button", { name: "Editar Frontend Developer en ACME" }));
+    const editor = within(screen.getByRole("group", { name: "Editar experiencia en ACME" }));
+    await user.clear(editor.getByLabelText("Empresa"));
+    await user.click(editor.getByRole("button", { name: "Guardar" }));
+
+    expect(editor.getByText("Empresa, puesto y fecha de inicio son obligatorios.")).toBeInTheDocument();
+    expect(updateProfileExperience).not.toHaveBeenCalled();
+  });
+
+  it("editar vaciando descripción y ubicación las persiste como cadena vacía", async () => {
+    const cleared = {
+      id: "e1",
+      company: "ACME",
+      role: "Frontend Developer",
+      startDate: "2021-01-01T00:00:00.000Z",
+      endDate: null,
+      current: true,
+      description: null,
+      location: null
+    };
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    vi.mocked(updateProfileExperience).mockResolvedValueOnce(cleared);
+    vi.mocked(getMyProfile).mockResolvedValueOnce({ ...fullProfile, experiences: [cleared] });
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    await user.click(screen.getByRole("button", { name: "Editar Frontend Developer en ACME" }));
+    const editor = within(screen.getByRole("group", { name: "Editar experiencia en ACME" }));
+    await user.clear(editor.getByLabelText("Descripción (opcional)"));
+    await user.clear(editor.getByLabelText("Ubicación (opcional)"));
+    await user.click(editor.getByRole("button", { name: "Guardar" }));
+
+    await waitFor(() =>
+      expect(updateProfileExperience).toHaveBeenCalledWith(
+        "tok-cv",
+        "e1",
+        expect.objectContaining({ description: "", location: "" })
+      )
+    );
+    await waitFor(() => expect(getMyProfile).toHaveBeenCalledTimes(2));
   });
 });

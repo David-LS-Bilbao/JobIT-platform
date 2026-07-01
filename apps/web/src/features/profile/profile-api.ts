@@ -11,9 +11,12 @@
 import { apiRequest } from "@/lib/api-client";
 import type {
   CandidateProfileDto,
+  CreateProfileExperienceInput,
   CreateProfileSkillInput,
+  ProfileExperienceDto,
   ProfileSkillDto,
-  UpdateProfileBasicInfoInput
+  UpdateProfileBasicInfoInput,
+  UpdateProfileExperienceInput
 } from "@/types/api";
 
 function normalizeProfile(raw: Partial<CandidateProfileDto>): CandidateProfileDto {
@@ -65,6 +68,34 @@ export function addProfileSkill(token: string, input: CreateProfileSkillInput): 
 /** `DELETE /api/profile/me/skills/:skillId` → 204 sin cuerpo. */
 export function deleteProfileSkill(token: string, skillId: string): Promise<void> {
   return apiRequest<void>(`/api/profile/me/skills/${encodeURIComponent(skillId)}`, {
+    method: "DELETE",
+    token
+  });
+}
+
+/** `POST /api/profile/me/experience` → experiencia creada (201). */
+export function addProfileExperience(
+  token: string,
+  input: CreateProfileExperienceInput
+): Promise<ProfileExperienceDto> {
+  return apiRequest<ProfileExperienceDto>("/api/profile/me/experience", { method: "POST", token, body: input });
+}
+
+/** `PUT /api/profile/me/experience/:id` → experiencia actualizada. */
+export function updateProfileExperience(
+  token: string,
+  experienceId: string,
+  input: UpdateProfileExperienceInput
+): Promise<ProfileExperienceDto> {
+  return apiRequest<ProfileExperienceDto>(
+    `/api/profile/me/experience/${encodeURIComponent(experienceId)}`,
+    { method: "PUT", token, body: input }
+  );
+}
+
+/** `DELETE /api/profile/me/experience/:id` → 204 sin cuerpo. */
+export function deleteProfileExperience(token: string, experienceId: string): Promise<void> {
+  return apiRequest<void>(`/api/profile/me/experience/${encodeURIComponent(experienceId)}`, {
     method: "DELETE",
     token
   });

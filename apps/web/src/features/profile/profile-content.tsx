@@ -10,6 +10,7 @@ import { ProfileCompletionCard } from "./profile-completion-card";
 import { ProfileEmptyState } from "./profile-empty-state";
 import { LINK_TYPE_LABELS, REMOTE_PREFERENCE_LABELS, SENIORITY_LABELS, formatDateRange } from "./profile-format";
 import { ProfilePreview } from "./profile-preview";
+import { ProfileExperienceSection } from "./profile-experience-section";
 import { NextPhaseBadge, ProfileSectionCard } from "./profile-section-card";
 import { ProfileSkillsSection } from "./profile-skills-section";
 
@@ -261,27 +262,8 @@ export function ProfileContent({ profile: initialProfile, token }: { profile: Ca
             <ProfileSkillsSection skills={profile.skills} token={token} onChanged={refreshProfile} />
           </ProfileSectionCard>
 
-          <ProfileSectionCard title="Experiencia profesional" action={<NextPhaseBadge />}>
-            {profile.experiences.length > 0 ? (
-              <ul className="space-y-4">
-                {profile.experiences.map((exp) => (
-                  <li key={exp.id} className="border-l-2 border-slate-100 pl-4">
-                    <p className="font-semibold text-slate-900">{exp.role}</p>
-                    <p className="text-sm text-slate-600">
-                      {exp.company}
-                      {exp.location?.trim() ? ` · ${exp.location}` : ""}
-                    </p>
-                    <p className="text-xs text-slate-400">{formatDateRange(exp.startDate, exp.endDate, exp.current)}</p>
-                    {exp.description?.trim() ? <p className="mt-1 text-sm text-slate-600">{exp.description}</p> : null}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <ProfileEmptyState
-                title="Experiencia profesional"
-                description="Añade tu primera experiencia profesional para destacar tu trayectoria."
-              />
-            )}
+          <ProfileSectionCard title="Experiencia profesional">
+            <ProfileExperienceSection experiences={profile.experiences} token={token} onChanged={refreshProfile} />
           </ProfileSectionCard>
 
           <ProfileSectionCard title="Educación" action={<NextPhaseBadge />}>
