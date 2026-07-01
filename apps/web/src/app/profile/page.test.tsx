@@ -1,0 +1,259 @@
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import type { ReactNode } from "react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { AuthProvider, useAuth } from "@/features/auth/auth-context";
+import { getMyProfile, updateMyProfile } from "@/features/profile/profile-api";
+import { ProfilePage } from "@/features/profile/profile-page";
+import { ApiClientError } from "@/lib/api-client";
+import type { CandidateProfileDto, UserDto } from "@/types/api";
+
+const { pushMock, routerMock } = vi.hoisted(() => {
+  const push = vi.fn();
+  return { pushMock: push, routerMock: { push } };
+});
+vi.mock("next/navigation", () => ({ useRouter: () => routerMock, usePathname: () => "/profile" }));
+vi.mock("next/link", () => ({
+  default: ({ href, children, ...rest }: { href: string; children: ReactNode }) => (
+    <a href={href} {...rest}>
+      {children}
+    </a>
+  )
+}));
+vi.mock("@/features/profile/profile-api", () => ({ getMyProfile: vi.fn(), updateMyProfile: vi.fn() }));
+vi.mock("@/features/auth/auth-api", () => ({ logoutCandidate: vi.fn() }));
+
+const sessionUser: UserDto = {
+  id: "u1",
+  email: "ana@jobit.dev",
+  role: "CANDIDATE",
+  createdAt: "2026-01-01T00:00:00.000Z"
+};
+
+const fullProfile: CandidateProfileDto = {
+  id: "p1",
+  userId: "u1",
+  firstName: "Ana",
+  lastName: "Pérez",
+  headline: "Frontend Developer",
+  summary: "Desarrolladora frontend centrada en React.",
+  location: "Bilbao",
+  locationRemote: true,
+  availabilityStatus: "OPEN",
+  avatarUrl: null,
+  createdAt: "2026-01-01T00:00:00.000Z",
+  updatedAt: "2026-01-02T00:00:00.000Z",
+  completionPercentage: 85,
+  skills: [
+    { id: "s1", name: "React", level: "ADVANCED", category: "Frontend" },
+    { id: "s2", name: "TypeScript", level: "INTERMEDIATE", category: null }
+  ],
+  experiences: [
+    {
+      id: "e1",
+      company: "ACME",
+      role: "Frontend Developer",
+      startDate: "2021-01-01T00:00:00.000Z",
+      endDate: null,
+      current: true,
+      description: "Construyendo interfaces.",
+      location: "Remoto"
+    }
+  ],
+  education: [
+    {
+      id: "ed1",
+      institution: "UPV/EHU",
+      title: "Grado en Informática",
+      field: "Software",
+      startDate: "2015-09-01T00:00:00.000Z",
+      endDate: "2019-06-01T00:00:00.000Z",
+      current: false
+    }
+  ],
+  projects: [
+    { id: "pr1", name: "design-system", description: "DS interno", technologies: ["React", "TypeScript"], url: null, repoUrl: null }
+  ],
+  links: [{ id: "l1", type: "GITHUB", url: "https://github.com/ana" }],
+  preferences: {
+    id: "pf1",
+    desiredRoles: ["Frontend"],
+    preferredLocations: ["Bilbao"],
+    remotePreference: "REMOTE",
+    seniority: "MID",
+    salaryMin: 35000,
+    salaryMax: 50000,
+    contractTypes: ["FULL_TIME"]
+  }
+};
+
+const emptyProfile: CandidateProfileDto = {
+  id: "p0",
+  userId: "u0",
+  firstName: null,
+  lastName: null,
+  headline: null,
+  summary: null,
+  location: null,
+  locationRemote: false,
+  availabilityStatus: "ACTIVE",
+  avatarUrl: null,
+  createdAt: "2026-01-01T00:00:00.000Z",
+  updatedAt: "2026-01-01T00:00:00.000Z",
+  completionPercentage: 0,
+  skills: [],
+  experiences: [],
+  education: [],
+  projects: [],
+  links: [],
+  preferences: null
+};
+
+function SeedSessionButton() {
+  const { setSession } = useAuth();
+  return (
+    <button type="button" onClick={() => setSession({ accessToken: "tok-cv", user: sessionUser })}>
+      seed-session
+    </button>
+  );
+}
+
+function renderWithSession() {
+  const utils = render(
+    <AuthProvider>
+      <SeedSessionButton />
+    </AuthProvider>
+  );
+  fireEvent.click(screen.getByText("seed-session"));
+  utils.rerender(
+    <AuthProvider>
+      <ProfilePage />
+    </AuthProvider>
+  );
+  return utils;
+}
+
+afterEach(() => {
+  vi.clearAllMocks();
+});
+
+describe("ProfilePage (/profile · JobIT CV)", () => {
+  it("sin sesión redirige a /login y no pide el perfil", async () => {
+    render(
+      <AuthProvider>
+        <ProfilePage />
+      </AuthProvider>
+    );
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/login"));
+    expect(getMyProfile).not.toHaveBeenCalled();
+  });
+
+  it("muestra el estado de carga mientras pide el perfil", async () => {
+    let resolve: (dto: CandidateProfileDto) => void = () => {};
+    vi.mocked(getMyProfile).mockReturnValueOnce(
+      new Promise<CandidateProfileDto>((r) => {
+        resolve = r;
+      })
+    );
+    renderWithSession();
+    expect(await screen.findByText("Cargando tu JobIT CV…")).toBeInTheDocument();
+    resolve(emptyProfile);
+    await waitFor(() => expect(screen.queryByText("Cargando tu JobIT CV…")).not.toBeInTheDocument());
+  });
+
+  it("con perfil completo renderiza cabecera, secciones, preview y datos reales", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    renderWithSession();
+
+    expect(await screen.findByText("Tu perfil tech vivo")).toBeInTheDocument();
+    expect(getMyProfile).toHaveBeenCalledWith("tok-cv");
+    expect(screen.getAllByText("JobIT CV").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("85%").length).toBeGreaterThan(0);
+
+    // Secciones
+    expect(screen.getAllByText("Datos profesionales").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Skills principales").length).toBeGreaterThan(0);
+    expect(screen.getByText("Experiencia profesional")).toBeInTheDocument();
+    expect(screen.getAllByText("Educación").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Proyectos").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Enlaces").length).toBeGreaterThan(0);
+    expect(screen.getByText("Preferencias")).toBeInTheDocument();
+    expect(screen.getByText("Vista previa")).toBeInTheDocument();
+
+    // Datos reales
+    expect(screen.getAllByText("React").length).toBeGreaterThan(0);
+    expect(screen.getByText(/ACME/)).toBeInTheDocument();
+    expect(screen.getByText(/UPV\/EHU/)).toBeInTheDocument();
+    expect(screen.getAllByText("design-system").length).toBeGreaterThan(0);
+
+    // Form precargado con datos básicos
+    expect(screen.getByLabelText("Nombre")).toHaveValue("Ana");
+    expect(screen.getByLabelText("Apellidos")).toHaveValue("Pérez");
+  });
+
+  it("con perfil vacío muestra empty states y preview con placeholder", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(emptyProfile);
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    expect(
+      screen.getByText("Añade tu primera experiencia profesional para destacar tu trayectoria.")
+    ).toBeInTheDocument();
+    expect(screen.getByText("Añade tu formación académica.")).toBeInTheDocument();
+    expect(screen.getByText("Define qué buscas en tu próxima oportunidad.")).toBeInTheDocument();
+    expect(screen.getAllByText("Candidato tech").length).toBeGreaterThan(0);
+  });
+
+  it("guardar datos profesionales llama a PUT /api/profile/me con el token", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    vi.mocked(updateMyProfile).mockResolvedValueOnce({ ...fullProfile, headline: "Senior FE" });
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    await user.click(screen.getByRole("button", { name: /guardar cambios/i }));
+    await waitFor(() =>
+      expect(updateMyProfile).toHaveBeenCalledWith(
+        "tok-cv",
+        expect.objectContaining({ firstName: "Ana", lastName: "Pérez" })
+      )
+    );
+    expect(await screen.findByText("Cambios guardados")).toBeInTheDocument();
+  });
+
+  it("muestra un error si el guardado (PUT) falla", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    vi.mocked(updateMyProfile).mockRejectedValueOnce(new ApiClientError(500, "INTERNAL_ERROR", "Fallo al guardar"));
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    await user.click(screen.getByRole("button", { name: /guardar cambios/i }));
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+  });
+
+  it("marca JobIT CV como activo y no expone rutas no implementadas ni copy fuera de MVP", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    // JobIT CV activo en /profile
+    expect(screen.getByRole("link", { name: "JobIT CV" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "Dashboard" })).toHaveAttribute("href", "/dashboard");
+
+    // Sin rutas no implementadas
+    const links = screen.getAllByRole("link");
+    for (const href of ["/jobs", "/saved-jobs", "/match"]) {
+      expect(links.some((l) => l.getAttribute("href") === href)).toBe(false);
+    }
+
+    // Nada fuera de MVP
+    expect(screen.queryByText(/expertech/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/export pdf/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/github sync/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/ai reviews/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/pro plan/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/pricing/i)).not.toBeInTheDocument();
+  });
+});

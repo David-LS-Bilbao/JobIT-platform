@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
 
 import type { CandidateDashboardDto } from "@/types/api";
@@ -145,87 +146,102 @@ function Metric({ icon, value, label }: { icon: ReactNode; value: ReactNode; lab
 }
 
 /**
- * Acción rápida. No navega (las vistas llegan en fases posteriores): botón
- * deshabilitado con badge de estado honesto, sin enlaces rotos.
+ * Acción rápida. Si tiene `href` es un enlace real (disponible); si no, es un
+ * botón deshabilitado con badge "Pendiente" (sin enlaces rotos).
  */
-function QuickAction({ icon, label, tone }: { icon: ReactNode; label: string; tone: "next" | "pending" }) {
-  const next = tone === "next";
+function QuickAction({ icon, label, href }: { icon: ReactNode; label: string; href?: string }) {
+  const enabled = Boolean(href);
+  const base =
+    "relative flex flex-col items-start gap-2 rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm";
+  const inner = (
+    <>
+      <span
+        className={`absolute right-2 top-2 rounded px-2 py-0.5 text-[10px] font-bold ${
+          enabled ? "bg-[#eff4ff] text-[#006591]" : "bg-slate-100 text-slate-500"
+        }`}
+      >
+        {enabled ? "Siguiente" : "Pendiente"}
+      </span>
+      <span className={enabled ? "text-[#006591]" : "text-slate-500"}>{icon}</span>
+      <span className="text-sm font-semibold text-slate-700">{label}</span>
+    </>
+  );
+  if (href) {
+    return (
+      <Link href={href} className={`${base} transition-colors hover:border-[#006591]`}>
+        {inner}
+      </Link>
+    );
+  }
   return (
     <button
       type="button"
       disabled
       aria-disabled="true"
       title="Disponible en una próxima fase"
-      className={`relative flex cursor-not-allowed flex-col items-start gap-2 rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm ${
-        next ? "" : "opacity-70"
-      }`}
+      className={`${base} cursor-not-allowed opacity-70`}
     >
-      <span
-        className={`absolute right-2 top-2 rounded px-2 py-0.5 text-[10px] font-bold ${
-          next ? "bg-[#eff4ff] text-[#006591]" : "bg-slate-100 text-slate-500"
-        }`}
-      >
-        {next ? "Siguiente" : "Pendiente"}
-      </span>
-      <span className={next ? "text-[#006591]" : "text-slate-500"}>{icon}</span>
-      <span className="text-sm font-semibold text-slate-700">{label}</span>
+      {inner}
     </button>
   );
 }
 
-/** Card de módulo del MVP. El destacado (JobIT CV) usa acento teal. */
+/** Card de módulo del MVP. Con `href` es enlace disponible (acento teal); si no, pendiente. */
 function ModuleCard({
   icon,
   name,
   description,
-  highlighted = false
+  href
 }: {
   icon: ReactNode;
   name: string;
   description: string;
-  highlighted?: boolean;
+  href?: string;
 }) {
-  return (
-    <div
-      className={`relative overflow-hidden rounded-xl bg-white p-6 shadow-sm ${
-        highlighted ? "border-2 border-[#006591]" : "border border-slate-200 opacity-80"
-      }`}
-    >
+  const available = Boolean(href);
+  const content = (
+    <>
       <span
         className={`absolute right-4 top-4 rounded px-2 py-1 text-xs font-bold ${
-          highlighted ? "bg-[#eff4ff] text-[#006591]" : "bg-slate-100 text-slate-500"
+          available ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"
         }`}
       >
-        {highlighted ? "Siguiente" : "Pendiente"}
+        {available ? "Disponible" : "Pendiente"}
       </span>
       <div className="mb-4 flex items-center gap-3">
         <span
           className={`flex h-10 w-10 items-center justify-center rounded-lg ${
-            highlighted ? "bg-[#eff4ff] text-[#006591]" : "border border-slate-100 bg-slate-50 text-slate-500"
+            available ? "bg-[#eff4ff] text-[#006591]" : "border border-slate-100 bg-slate-50 text-slate-500"
           }`}
         >
           {icon}
         </span>
-        <h4 className={`text-lg font-semibold ${highlighted ? "text-slate-900" : "text-slate-700"}`}>{name}</h4>
+        <h4 className={`text-lg font-semibold ${available ? "text-slate-900" : "text-slate-700"}`}>{name}</h4>
       </div>
-      <p className={`text-sm ${highlighted ? "text-slate-600" : "text-slate-500"}`}>{description}</p>
-    </div>
+      <p className={`text-sm ${available ? "text-slate-600" : "text-slate-500"}`}>{description}</p>
+    </>
   );
+  const base = "relative block overflow-hidden rounded-xl bg-white p-6 shadow-sm";
+  if (href) {
+    return (
+      <Link href={href} className={`${base} border-2 border-[#006591] transition-shadow hover:shadow-md`}>
+        {content}
+      </Link>
+    );
+  }
+  return <div className={`${base} border border-slate-200 opacity-80`}>{content}</div>;
 }
 
-/** CTA principal "Preparar JobIT CV". Deshabilitada hasta que exista /profile. */
+/** CTA principal "Preparar JobIT CV" → /profile (JobIT CV ya disponible). */
 function PrepareCvButton() {
   return (
-    <button
-      type="button"
-      disabled
-      aria-disabled="true"
-      title="Disponible en una próxima fase"
-      className="inline-flex w-fit cursor-not-allowed items-center gap-2 rounded-lg bg-[#006591] px-6 py-3 text-sm font-semibold text-white opacity-60"
+    <Link
+      href="/profile"
+      className="inline-flex w-fit items-center gap-2 rounded-lg bg-[#006591] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#004c6e]"
     >
       Preparar JobIT CV
       <IconArrowRight />
-    </button>
+    </Link>
   );
 }
 
@@ -311,10 +327,10 @@ export function DashboardContent({ dashboard }: DashboardContentProps) {
       <section className="col-span-12">
         <h3 className="mb-4 text-xl font-semibold text-slate-900">Acciones rápidas</h3>
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <QuickAction icon={<IconEdit />} label="Preparar JobIT CV" tone="next" />
-          <QuickAction icon={<IconPlus />} label="Añadir skills" tone="next" />
-          <QuickAction icon={<IconSearch />} label="Explorar ofertas" tone="pending" />
-          <QuickAction icon={<IconTarget />} label="Revisar matches" tone="pending" />
+          <QuickAction icon={<IconEdit />} label="Preparar JobIT CV" href="/profile" />
+          <QuickAction icon={<IconPlus />} label="Añadir skills" href="/profile#skills" />
+          <QuickAction icon={<IconSearch />} label="Explorar ofertas" />
+          <QuickAction icon={<IconTarget />} label="Revisar matches" />
         </div>
       </section>
 
@@ -403,7 +419,7 @@ export function DashboardContent({ dashboard }: DashboardContentProps) {
       {/* Módulos del MVP */}
       <section className="col-span-12 grid grid-cols-1 gap-6 md:grid-cols-2">
         <ModuleCard
-          highlighted
+          href="/profile"
           icon={<IconDoc />}
           name="JobIT CV"
           description="Perfil vivo con datos profesionales, skills, experiencia, educación, proyectos y enlaces."
