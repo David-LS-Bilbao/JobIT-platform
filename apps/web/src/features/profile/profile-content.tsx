@@ -8,8 +8,9 @@ import type { AvailabilityStatus, CandidateProfileDto, UpdateProfileBasicInfoInp
 import { getMyProfile, updateMyProfile } from "./profile-api";
 import { ProfileCompletionCard } from "./profile-completion-card";
 import { ProfileEmptyState } from "./profile-empty-state";
-import { LINK_TYPE_LABELS, REMOTE_PREFERENCE_LABELS, SENIORITY_LABELS, formatDateRange } from "./profile-format";
+import { LINK_TYPE_LABELS, REMOTE_PREFERENCE_LABELS, SENIORITY_LABELS } from "./profile-format";
 import { ProfilePreview } from "./profile-preview";
+import { ProfileEducationSection } from "./profile-education-section";
 import { ProfileExperienceSection } from "./profile-experience-section";
 import { NextPhaseBadge, ProfileSectionCard } from "./profile-section-card";
 import { ProfileSkillsSection } from "./profile-skills-section";
@@ -266,23 +267,8 @@ export function ProfileContent({ profile: initialProfile, token }: { profile: Ca
             <ProfileExperienceSection experiences={profile.experiences} token={token} onChanged={refreshProfile} />
           </ProfileSectionCard>
 
-          <ProfileSectionCard title="Educación" action={<NextPhaseBadge />}>
-            {profile.education.length > 0 ? (
-              <ul className="space-y-4">
-                {profile.education.map((edu) => (
-                  <li key={edu.id} className="border-l-2 border-slate-100 pl-4">
-                    <p className="font-semibold text-slate-900">{edu.title}</p>
-                    <p className="text-sm text-slate-600">
-                      {edu.institution}
-                      {edu.field?.trim() ? ` · ${edu.field}` : ""}
-                    </p>
-                    <p className="text-xs text-slate-400">{formatDateRange(edu.startDate, edu.endDate, edu.current)}</p>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <ProfileEmptyState title="Educación" description="Añade tu formación académica." />
-            )}
+          <ProfileSectionCard title="Educación">
+            <ProfileEducationSection education={profile.education} token={token} onChanged={refreshProfile} />
           </ProfileSectionCard>
 
           <ProfileSectionCard title="Proyectos" action={<NextPhaseBadge />}>

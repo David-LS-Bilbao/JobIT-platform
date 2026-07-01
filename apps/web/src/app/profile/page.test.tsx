@@ -5,12 +5,15 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { AuthProvider, useAuth } from "@/features/auth/auth-context";
 import {
+  addProfileEducation,
   addProfileExperience,
   addProfileSkill,
+  deleteProfileEducation,
   deleteProfileExperience,
   deleteProfileSkill,
   getMyProfile,
   updateMyProfile,
+  updateProfileEducation,
   updateProfileExperience
 } from "@/features/profile/profile-api";
 import { ProfilePage } from "@/features/profile/profile-page";
@@ -36,7 +39,10 @@ vi.mock("@/features/profile/profile-api", () => ({
   deleteProfileSkill: vi.fn(),
   addProfileExperience: vi.fn(),
   updateProfileExperience: vi.fn(),
-  deleteProfileExperience: vi.fn()
+  deleteProfileExperience: vi.fn(),
+  addProfileEducation: vi.fn(),
+  updateProfileEducation: vi.fn(),
+  deleteProfileEducation: vi.fn()
 }));
 vi.mock("@/features/auth/auth-api", () => ({ logoutCandidate: vi.fn() }));
 
@@ -150,6 +156,12 @@ function renderWithSession() {
   return utils;
 }
 
+// Acota las consultas a una sección concreta del CV (por su encabezado), para
+// desambiguar labels repetidos entre secciones (p. ej. "Fecha de inicio").
+function sectionByHeading(name: string) {
+  return within(screen.getByRole("heading", { name }).closest("section") as HTMLElement);
+}
+
 afterEach(() => {
   vi.clearAllMocks();
 });
@@ -214,7 +226,7 @@ describe("ProfilePage (/profile · JobIT CV)", () => {
     await screen.findByText("Tu perfil tech vivo");
 
     expect(screen.getByText("Aún no has añadido experiencia profesional.")).toBeInTheDocument();
-    expect(screen.getByText("Añade tu formación académica.")).toBeInTheDocument();
+    expect(screen.getByText("Aún no has añadido formación.")).toBeInTheDocument();
     expect(screen.getByText("Define qué buscas en tu próxima oportunidad.")).toBeInTheDocument();
     expect(screen.getAllByText("Candidato tech").length).toBeGreaterThan(0);
   });
@@ -333,8 +345,8 @@ describe("ProfilePage (/profile · JobIT CV)", () => {
 
     expect(screen.queryByText("Añadir skill · próxima fase")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Añadir skill" })).toBeInTheDocument();
-    // Experiencia, Educación, Proyectos, Enlaces y Preferencias siguen como próxima fase.
-    expect(screen.getAllByText("Próxima fase").length).toBeGreaterThanOrEqual(4);
+    // Proyectos, Enlaces y Preferencias siguen como próxima fase (Skills/Experiencia/Educación ya funcionan).
+    expect(screen.getAllByText("Próxima fase").length).toBeGreaterThanOrEqual(3);
   });
 
   it("añadir experiencia llama a POST /api/profile/me/experience y refresca", async () => {
@@ -360,7 +372,9 @@ describe("ProfilePage (/profile · JobIT CV)", () => {
 
     await user.type(screen.getByLabelText("Empresa"), "Globex");
     await user.type(screen.getByLabelText("Puesto"), "Backend Developer");
-    fireEvent.change(screen.getByLabelText("Fecha de inicio"), { target: { value: "2020-01-01" } });
+    fireEvent.change(sectionByHeading("Experiencia profesional").getByLabelText("Fecha de inicio"), {
+      target: { value: "2020-01-01" }
+    });
     await user.click(screen.getByRole("button", { name: "Añadir experiencia" }));
 
     await waitFor(() =>
@@ -389,10 +403,10 @@ describe("ProfilePage (/profile · JobIT CV)", () => {
     renderWithSession();
     await screen.findByText("Tu perfil tech vivo");
 
-    const endInput = screen.getByLabelText("Fecha de fin");
-    expect(endInput).not.toBeDisabled();
-    await user.click(screen.getByLabelText("Actualmente trabajo aquí"));
-    expect(screen.getByLabelText("Fecha de fin")).toBeDisabled();
+    const exp = sectionByHeading("Experiencia profesional");
+    expect(exp.getByLabelText("Fecha de fin")).not.toBeDisabled();
+    await user.click(exp.getByLabelText("Actualmente trabajo aquí"));
+    expect(exp.getByLabelText("Fecha de fin")).toBeDisabled();
   });
 
   it("muestra error si el POST de experiencia falla", async () => {
@@ -404,7 +418,9 @@ describe("ProfilePage (/profile · JobIT CV)", () => {
 
     await user.type(screen.getByLabelText("Empresa"), "Globex");
     await user.type(screen.getByLabelText("Puesto"), "Backend Developer");
-    fireEvent.change(screen.getByLabelText("Fecha de inicio"), { target: { value: "2020-01-01" } });
+    fireEvent.change(sectionByHeading("Experiencia profesional").getByLabelText("Fecha de inicio"), {
+      target: { value: "2020-01-01" }
+    });
     await user.click(screen.getByRole("button", { name: "Añadir experiencia" }));
 
     expect(await screen.findByText("Revisa los datos de la experiencia.")).toBeInTheDocument();
@@ -532,5 +548,205 @@ describe("ProfilePage (/profile · JobIT CV)", () => {
       )
     );
     await waitFor(() => expect(getMyProfile).toHaveBeenCalledTimes(2));
+  });
+
+  // --- Educación (Sprint 13E-01) --------------------------------------------
+
+  it("añadir formación llama a POST /api/profile/me/education y refresca", async () => {
+    const newEdu = {
+      id: "ed2",
+      institution: "UOC",
+      title: "Máster en Datos",
+      field: null,
+      startDate: "2022-09-01T00:00:00.000Z",
+      endDate: null,
+      current: false
+    };
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    vi.mocked(addProfileEducation).mockResolvedValueOnce(newEdu);
+    vi.mocked(getMyProfile).mockResolvedValueOnce({ ...fullProfile, education: [...fullProfile.education, newEdu] });
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    const edu = sectionByHeading("Educación");
+    await user.type(edu.getByLabelText("Institución"), "UOC");
+    await user.type(edu.getByLabelText("Título"), "Máster en Datos");
+    fireEvent.change(edu.getByLabelText("Fecha de inicio"), { target: { value: "2022-09-01" } });
+    await user.click(edu.getByRole("button", { name: "Añadir formación" }));
+
+    await waitFor(() =>
+      expect(addProfileEducation).toHaveBeenCalledWith(
+        "tok-cv",
+        expect.objectContaining({ institution: "UOC", title: "Máster en Datos", startDate: "2022-09-01" })
+      )
+    );
+    expect(await screen.findByText("Máster en Datos")).toBeInTheDocument();
+  });
+
+  it("no envía formación si faltan campos obligatorios", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    const edu = sectionByHeading("Educación");
+    await user.click(edu.getByRole("button", { name: "Añadir formación" }));
+    expect(await edu.findByText("Institución, título y fecha de inicio son obligatorios.")).toBeInTheDocument();
+    expect(addProfileEducation).not.toHaveBeenCalled();
+  });
+
+  it("'Formación en curso' deshabilita la fecha de fin", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    const edu = sectionByHeading("Educación");
+    expect(edu.getByLabelText("Fecha de fin")).not.toBeDisabled();
+    await user.click(edu.getByLabelText("Formación en curso"));
+    expect(edu.getByLabelText("Fecha de fin")).toBeDisabled();
+  });
+
+  it("muestra error si el POST de formación falla", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    vi.mocked(addProfileEducation).mockRejectedValueOnce(new ApiClientError(400, "VALIDATION_ERROR", "bad"));
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    const edu = sectionByHeading("Educación");
+    await user.type(edu.getByLabelText("Institución"), "UOC");
+    await user.type(edu.getByLabelText("Título"), "Máster en Datos");
+    fireEvent.change(edu.getByLabelText("Fecha de inicio"), { target: { value: "2022-09-01" } });
+    await user.click(edu.getByRole("button", { name: "Añadir formación" }));
+
+    expect(await edu.findByText("Revisa los datos de la formación.")).toBeInTheDocument();
+  });
+
+  it("eliminar formación llama a DELETE /api/profile/me/education/:id y refresca", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    vi.mocked(deleteProfileEducation).mockResolvedValueOnce(undefined);
+    vi.mocked(getMyProfile).mockResolvedValueOnce({ ...fullProfile, education: [] });
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    await user.click(screen.getByRole("button", { name: "Eliminar formación en UPV/EHU" }));
+    await waitFor(() => expect(deleteProfileEducation).toHaveBeenCalledWith("tok-cv", "ed1"));
+    await waitFor(() => expect(getMyProfile).toHaveBeenCalledTimes(2));
+  });
+
+  it("Educación es funcional (sin 'Próxima fase') y Proyectos/Enlaces/Preferencias siguen pendientes", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    const edu = sectionByHeading("Educación");
+    expect(edu.queryByText("Próxima fase")).not.toBeInTheDocument();
+    expect(edu.getByRole("button", { name: "Añadir formación" })).toBeInTheDocument();
+    expect(screen.getAllByText("Próxima fase").length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("muestra botón de editar por formación y precarga los datos al abrir el editor", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    await user.click(screen.getByRole("button", { name: "Editar Grado en Informática en UPV/EHU" }));
+    const editor = within(screen.getByRole("group", { name: "Editar formación en UPV/EHU" }));
+    expect(editor.getByLabelText("Institución")).toHaveValue("UPV/EHU");
+    expect(editor.getByLabelText("Título")).toHaveValue("Grado en Informática");
+    expect(editor.getByLabelText("Área / campo (opcional)")).toHaveValue("Software");
+  });
+
+  it("guardar edición llama a updateProfileEducation con token, id e input, y refresca", async () => {
+    const editedEdu = {
+      id: "ed1",
+      institution: "UPV",
+      title: "Grado en Informática",
+      field: "Software",
+      startDate: "2015-09-01T00:00:00.000Z",
+      endDate: "2019-06-01T00:00:00.000Z",
+      current: false
+    };
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    vi.mocked(updateProfileEducation).mockResolvedValueOnce(editedEdu);
+    vi.mocked(getMyProfile).mockResolvedValueOnce({ ...fullProfile, education: [editedEdu] });
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    await user.click(screen.getByRole("button", { name: "Editar Grado en Informática en UPV/EHU" }));
+    const editor = within(screen.getByRole("group", { name: "Editar formación en UPV/EHU" }));
+    await user.clear(editor.getByLabelText("Institución"));
+    await user.type(editor.getByLabelText("Institución"), "UPV");
+    await user.click(editor.getByRole("button", { name: "Guardar" }));
+
+    await waitFor(() =>
+      expect(updateProfileEducation).toHaveBeenCalledWith(
+        "tok-cv",
+        "ed1",
+        expect.objectContaining({ institution: "UPV", title: "Grado en Informática", startDate: "2015-09-01", current: false })
+      )
+    );
+    await waitFor(() => expect(getMyProfile).toHaveBeenCalledTimes(2));
+  });
+
+  it("cancelar edición de formación cierra el editor y no llama a updateProfileEducation", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    await user.click(screen.getByRole("button", { name: "Editar Grado en Informática en UPV/EHU" }));
+    const editor = within(screen.getByRole("group", { name: "Editar formación en UPV/EHU" }));
+    await user.click(editor.getByRole("button", { name: "Cancelar" }));
+
+    expect(screen.queryByRole("group", { name: "Editar formación en UPV/EHU" })).not.toBeInTheDocument();
+    expect(updateProfileEducation).not.toHaveBeenCalled();
+  });
+
+  it("no envía la edición de formación si falta un campo obligatorio", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    await user.click(screen.getByRole("button", { name: "Editar Grado en Informática en UPV/EHU" }));
+    const editor = within(screen.getByRole("group", { name: "Editar formación en UPV/EHU" }));
+    await user.clear(editor.getByLabelText("Institución"));
+    await user.click(editor.getByRole("button", { name: "Guardar" }));
+
+    expect(editor.getByText("Institución, título y fecha de inicio son obligatorios.")).toBeInTheDocument();
+    expect(updateProfileEducation).not.toHaveBeenCalled();
+  });
+
+  it("editar vaciando el área/campo lo persiste como cadena vacía", async () => {
+    const cleared = {
+      id: "ed1",
+      institution: "UPV/EHU",
+      title: "Grado en Informática",
+      field: null,
+      startDate: "2015-09-01T00:00:00.000Z",
+      endDate: "2019-06-01T00:00:00.000Z",
+      current: false
+    };
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    vi.mocked(updateProfileEducation).mockResolvedValueOnce(cleared);
+    vi.mocked(getMyProfile).mockResolvedValueOnce({ ...fullProfile, education: [cleared] });
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    await user.click(screen.getByRole("button", { name: "Editar Grado en Informática en UPV/EHU" }));
+    const editor = within(screen.getByRole("group", { name: "Editar formación en UPV/EHU" }));
+    await user.clear(editor.getByLabelText("Área / campo (opcional)"));
+    await user.click(editor.getByRole("button", { name: "Guardar" }));
+
+    await waitFor(() =>
+      expect(updateProfileEducation).toHaveBeenCalledWith("tok-cv", "ed1", expect.objectContaining({ field: "" }))
+    );
   });
 });
