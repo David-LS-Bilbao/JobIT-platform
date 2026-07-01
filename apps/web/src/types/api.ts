@@ -264,3 +264,10 @@ export interface UpdateProfileBasicInfoInput {
   availabilityStatus?: AvailabilityStatus;
   avatarUrl?: string;
 }
+
+/** Cuerpo de `POST /api/profile/me/skills`. Solo `name` es obligatorio. */
+export interface CreateProfileSkillInput {
+  name: string;
+  level?: SkillLevel;
+  category?: string;
+}

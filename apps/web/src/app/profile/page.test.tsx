@@ -4,7 +4,12 @@ import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { AuthProvider, useAuth } from "@/features/auth/auth-context";
-import { getMyProfile, updateMyProfile } from "@/features/profile/profile-api";
+import {
+  addProfileSkill,
+  deleteProfileSkill,
+  getMyProfile,
+  updateMyProfile
+} from "@/features/profile/profile-api";
 import { ProfilePage } from "@/features/profile/profile-page";
 import { ApiClientError } from "@/lib/api-client";
 import type { CandidateProfileDto, UserDto } from "@/types/api";
@@ -21,7 +26,12 @@ vi.mock("next/link", () => ({
     </a>
   )
 }));
-vi.mock("@/features/profile/profile-api", () => ({ getMyProfile: vi.fn(), updateMyProfile: vi.fn() }));
+vi.mock("@/features/profile/profile-api", () => ({
+  getMyProfile: vi.fn(),
+  updateMyProfile: vi.fn(),
+  addProfileSkill: vi.fn(),
+  deleteProfileSkill: vi.fn()
+}));
 vi.mock("@/features/auth/auth-api", () => ({ logoutCandidate: vi.fn() }));
 
 const sessionUser: UserDto = {
@@ -255,5 +265,71 @@ describe("ProfilePage (/profile · JobIT CV)", () => {
     expect(screen.queryByText(/ai reviews/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/pro plan/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/pricing/i)).not.toBeInTheDocument();
+  });
+
+  it("muestra empty state de skills cuando no hay skills", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(emptyProfile);
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+    expect(screen.getByText("Aún no has añadido skills.")).toBeInTheDocument();
+  });
+
+  it("añadir una skill llama a POST /api/profile/me/skills y refresca el perfil", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    vi.mocked(addProfileSkill).mockResolvedValueOnce({ id: "s3", name: "GraphQL", level: null, category: null });
+    vi.mocked(getMyProfile).mockResolvedValueOnce({
+      ...fullProfile,
+      skills: [...fullProfile.skills, { id: "s3", name: "GraphQL", level: null, category: null }]
+    });
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    await user.type(screen.getByLabelText("Nombre de la skill"), "GraphQL");
+    await user.click(screen.getByRole("button", { name: "Añadir skill" }));
+
+    await waitFor(() =>
+      expect(addProfileSkill).toHaveBeenCalledWith("tok-cv", expect.objectContaining({ name: "GraphQL" }))
+    );
+    expect((await screen.findAllByText("GraphQL")).length).toBeGreaterThan(0);
+  });
+
+  it("muestra error si el POST de skill falla (p. ej. duplicada)", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    vi.mocked(addProfileSkill).mockRejectedValueOnce(new ApiClientError(409, "CONFLICT", "dup"));
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    await user.type(screen.getByLabelText("Nombre de la skill"), "React");
+    await user.click(screen.getByRole("button", { name: "Añadir skill" }));
+    expect(await screen.findByText("Ya has añadido esa skill.")).toBeInTheDocument();
+  });
+
+  it("eliminar una skill llama a DELETE /api/profile/me/skills/:id y refresca", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    vi.mocked(deleteProfileSkill).mockResolvedValueOnce(undefined);
+    vi.mocked(getMyProfile).mockResolvedValueOnce({
+      ...fullProfile,
+      skills: [{ id: "s2", name: "TypeScript", level: "INTERMEDIATE", category: null }]
+    });
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    await user.click(screen.getByRole("button", { name: "Eliminar React" }));
+    await waitFor(() => expect(deleteProfileSkill).toHaveBeenCalledWith("tok-cv", "s1"));
+    await waitFor(() => expect(getMyProfile).toHaveBeenCalledTimes(2));
+  });
+
+  it("Skills es funcional (sin 'próxima fase') y el resto de secciones sigue pendiente", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    expect(screen.queryByText("Añadir skill · próxima fase")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Añadir skill" })).toBeInTheDocument();
+    // Experiencia, Educación, Proyectos, Enlaces y Preferencias siguen como próxima fase.
+    expect(screen.getAllByText("Próxima fase").length).toBeGreaterThanOrEqual(4);
   });
 });

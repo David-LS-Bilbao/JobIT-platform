@@ -5,18 +5,13 @@ import { useState, type FormEvent, type ReactNode } from "react";
 import { ApiClientError } from "@/lib/api-client";
 import type { AvailabilityStatus, CandidateProfileDto, UpdateProfileBasicInfoInput } from "@/types/api";
 
-import { updateMyProfile } from "./profile-api";
+import { getMyProfile, updateMyProfile } from "./profile-api";
 import { ProfileCompletionCard } from "./profile-completion-card";
 import { ProfileEmptyState } from "./profile-empty-state";
-import {
-  LINK_TYPE_LABELS,
-  REMOTE_PREFERENCE_LABELS,
-  SENIORITY_LABELS,
-  SKILL_LEVEL_LABELS,
-  formatDateRange
-} from "./profile-format";
+import { LINK_TYPE_LABELS, REMOTE_PREFERENCE_LABELS, SENIORITY_LABELS, formatDateRange } from "./profile-format";
 import { ProfilePreview } from "./profile-preview";
 import { NextPhaseBadge, ProfileSectionCard } from "./profile-section-card";
+import { ProfileSkillsSection } from "./profile-skills-section";
 
 const AVAILABILITY_OPTIONS: ReadonlyArray<{ value: AvailabilityStatus; label: string }> = [
   { value: "ACTIVE", label: "Disponible" },
@@ -76,6 +71,17 @@ export function ProfileContent({ profile: initialProfile, token }: { profile: Ca
     availabilityStatus,
     summary: summary.trim() || null
   };
+
+  // Re-obtiene el perfil tras mutar subrecursos (skills): refresca listas,
+  // preview y completitud (calculada en backend). Si falla, mantiene el estado.
+  async function refreshProfile() {
+    try {
+      const fresh = await getMyProfile(token);
+      setProfile(fresh);
+    } catch {
+      // La sección que mutó muestra su propio error; no bloqueamos la vista.
+    }
+  }
 
   async function handleSave(event: FormEvent) {
     event.preventDefault();
@@ -154,7 +160,7 @@ export function ProfileContent({ profile: initialProfile, token }: { profile: Ca
       {/* Dos columnas */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         {/* Editor + secciones read-only */}
-        <div className="space-y-6 lg:col-span-8">
+        <div className="min-w-0 space-y-6 lg:col-span-8">
           <ProfileSectionCard title="Datos profesionales">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="space-y-1">
@@ -251,30 +257,8 @@ export function ProfileContent({ profile: initialProfile, token }: { profile: Ca
             </div>
           </ProfileSectionCard>
 
-          <ProfileSectionCard
-            id="skills"
-            title="Skills principales"
-            action={<NextPhaseBadge>Añadir skill · próxima fase</NextPhaseBadge>}
-          >
-            {profile.skills.length > 0 ? (
-              <ul className="flex flex-wrap gap-2">
-                {profile.skills.map((skill) => (
-                  <li
-                    key={skill.id}
-                    className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-100 px-3 py-1.5 text-sm text-slate-700"
-                  >
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#006591]" />
-                    {skill.name}
-                    {skill.level ? <span className="text-xs text-slate-500">· {SKILL_LEVEL_LABELS[skill.level]}</span> : null}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <ProfileEmptyState
-                title="Sin skills todavía"
-                description="Añade tus tecnologías principales para destacar tu perfil."
-              />
-            )}
+          <ProfileSectionCard id="skills" title="Skills principales">
+            <ProfileSkillsSection skills={profile.skills} token={token} onChanged={refreshProfile} />
           </ProfileSectionCard>
 
           <ProfileSectionCard title="Experiencia profesional" action={<NextPhaseBadge />}>
