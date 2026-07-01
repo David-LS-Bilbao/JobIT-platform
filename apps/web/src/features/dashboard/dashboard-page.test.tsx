@@ -17,7 +17,7 @@ const { pushMock, routerMock } = vi.hoisted(() => {
   const push = vi.fn();
   return { pushMock: push, routerMock: { push } };
 });
-vi.mock("next/navigation", () => ({ useRouter: () => routerMock }));
+vi.mock("next/navigation", () => ({ useRouter: () => routerMock, usePathname: () => "/dashboard" }));
 vi.mock("next/link", () => ({
   default: ({ href, children }: { href: string; children: ReactNode }) => <a href={href}>{children}</a>
 }));

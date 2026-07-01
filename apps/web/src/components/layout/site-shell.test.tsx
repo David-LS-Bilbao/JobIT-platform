@@ -14,9 +14,16 @@ const { pushMock, routerMock } = vi.hoisted(() => {
   const push = vi.fn();
   return { pushMock: push, routerMock: { push } };
 });
-vi.mock("next/navigation", () => ({ useRouter: () => routerMock }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => routerMock,
+  usePathname: () => "/dashboard"
+}));
 vi.mock("next/link", () => ({
-  default: ({ href, children }: { href: string; children: ReactNode }) => <a href={href}>{children}</a>
+  default: ({ href, children, ...rest }: { href: string; children: ReactNode }) => (
+    <a href={href} {...rest}>
+      {children}
+    </a>
+  )
 }));
 vi.mock("@/features/auth/auth-api", () => ({ logoutCandidate: vi.fn() }));
 
@@ -37,6 +44,16 @@ function SeedSessionButton() {
   );
 }
 
+function renderPrivate() {
+  render(
+    <AuthProvider>
+      <SeedSessionButton />
+      <SiteShell>contenido</SiteShell>
+    </AuthProvider>
+  );
+  fireEvent.click(screen.getByText("seed-session"));
+}
+
 afterEach(() => {
   vi.clearAllMocks();
 });
@@ -55,13 +72,7 @@ describe("SiteShell navegación auth-aware", () => {
   });
 
   it("con sesión muestra Dashboard y Cerrar sesión y oculta Login/Registro", () => {
-    render(
-      <AuthProvider>
-        <SeedSessionButton />
-        <SiteShell>contenido</SiteShell>
-      </AuthProvider>
-    );
-    fireEvent.click(screen.getByText("seed-session"));
+    renderPrivate();
     expect(screen.getByRole("link", { name: "Dashboard" })).toHaveAttribute("href", "/dashboard");
     expect(screen.getByRole("button", { name: "Cerrar sesión" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Login" })).not.toBeInTheDocument();
@@ -71,13 +82,7 @@ describe("SiteShell navegación auth-aware", () => {
   it("cerrar sesión llama a logout, limpia la sesión y redirige a /login", async () => {
     vi.mocked(logoutCandidate).mockResolvedValueOnce(undefined);
     const user = userEvent.setup();
-    render(
-      <AuthProvider>
-        <SeedSessionButton />
-        <SiteShell>contenido</SiteShell>
-      </AuthProvider>
-    );
-    fireEvent.click(screen.getByText("seed-session"));
+    renderPrivate();
     await user.click(screen.getByRole("button", { name: "Cerrar sesión" }));
     await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/login"));
     expect(logoutCandidate).toHaveBeenCalledWith("tok-nav");
@@ -88,13 +93,64 @@ describe("SiteShell navegación auth-aware", () => {
 
   it("no usa localStorage ni sessionStorage", () => {
     const setItem = vi.spyOn(Storage.prototype, "setItem");
-    render(
-      <AuthProvider>
-        <SeedSessionButton />
-        <SiteShell>contenido</SiteShell>
-      </AuthProvider>
-    );
-    fireEvent.click(screen.getByText("seed-session"));
+    renderPrivate();
     expect(setItem).not.toHaveBeenCalled();
+  });
+
+  it("muestra la marca JobIT y 'Perfil tech vivo' en la zona privada", () => {
+    renderPrivate();
+    expect(screen.getAllByText("JobIT").length).toBeGreaterThan(0);
+    expect(screen.getByText("Perfil tech vivo")).toBeInTheDocument();
+  });
+
+  it("Dashboard es enlace real a /dashboard y marca aria-current=page cuando está activo", () => {
+    renderPrivate();
+    const dashboard = screen.getByRole("link", { name: "Dashboard" });
+    expect(dashboard).toHaveAttribute("href", "/dashboard");
+    expect(dashboard).toHaveAttribute("aria-current", "page");
+  });
+
+  it("los módulos futuros aparecen con estado pero NO enlazan a rutas inexistentes", () => {
+    renderPrivate();
+    expect(screen.getByText("JobIT CV")).toBeInTheDocument();
+    expect(screen.getByText("JobIT Jobs")).toBeInTheDocument();
+    expect(screen.getByText("Guardadas")).toBeInTheDocument();
+    expect(screen.getByText("JobIT Match")).toBeInTheDocument();
+    const links = screen.getAllByRole("link");
+    for (const href of ["/profile", "/jobs", "/saved-jobs", "/match"]) {
+      expect(links.some((l) => l.getAttribute("href") === href)).toBe(false);
+    }
+  });
+
+  it("en móvil abre y cierra el drawer con el botón de menú", async () => {
+    const user = userEvent.setup();
+    renderPrivate();
+    // Cerrado: existe el botón de abrir y NO el de cerrar.
+    expect(screen.getByRole("button", { name: "Abrir menú" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Cerrar menú" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Abrir menú" }));
+    expect(screen.getByRole("dialog", { name: "Menú de navegación" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cerrar menú" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Cerrar menú" }));
+    expect(screen.queryByRole("button", { name: "Cerrar menú" })).not.toBeInTheDocument();
+  });
+
+  it("en escritorio permite ocultar y mostrar la sidebar", async () => {
+    const user = userEvent.setup();
+    renderPrivate();
+    // Por defecto la sidebar está visible → botón "Ocultar menú" con aria-expanded=true.
+    const toggle = screen.getByRole("button", { name: "Ocultar menú" });
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(toggle).toHaveAttribute("aria-controls", "app-sidebar");
+
+    await user.click(toggle);
+    // Ahora está oculta → el mismo botón pasa a "Mostrar menú" con aria-expanded=false.
+    const toggleClosed = screen.getByRole("button", { name: "Mostrar menú" });
+    expect(toggleClosed).toHaveAttribute("aria-expanded", "false");
+
+    await user.click(toggleClosed);
+    expect(screen.getByRole("button", { name: "Ocultar menú" })).toHaveAttribute("aria-expanded", "true");
   });
 });

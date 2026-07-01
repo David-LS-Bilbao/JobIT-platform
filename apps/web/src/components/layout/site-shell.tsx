@@ -1,22 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import type { ReactNode } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useState, type ReactNode } from "react";
 
 import { logoutCandidate } from "@/features/auth/auth-api";
 import { useAuth } from "@/features/auth/auth-context";
 
 /**
- * App shell reutilizable. Sistema visual "Nexus Professional" (claro, teal/green),
- * coherente con la landing y las pantallas de auth. No depende del tema del SO.
+ * App shell reutilizable de la zona privada. Sistema visual "Nexus Professional"
+ * (claro, teal/green), coherente con landing y auth; no depende del tema del SO.
  *
  * - Sin sesión: cabecera superior pública (Inicio / Login / Registro).
- * - Con sesión: layout privado con sidebar fija (desktop) + header con logout.
+ * - Con sesión: layout privado con navegación real y responsive:
+ *     · desktop → sidebar fija;
+ *     · móvil   → botón "Abrir menú" + drawer con overlay.
  *
- * La sesión vive en memoria (ADR-0006): al recargar se pierde y vuelve al estado
- * público. Título/subtítulo del header son parametrizables para reutilizar el
- * shell en futuras rutas privadas (por defecto, "Dashboard").
+ * La navegación es una única fuente (PRIVATE_NAV) compartida por sidebar y drawer.
+ * El estado activo se deriva de la ruta (`usePathname`), no está hardcodeado.
+ * Título/subtítulo del header son parametrizables (por defecto, "Dashboard").
+ * Sesión en memoria (ADR-0006): al recargar vuelve al estado público.
  */
 
 const PUBLIC_LINKS: ReadonlyArray<{ href: string; label: string }> = [
@@ -79,6 +82,20 @@ function IconHelp() {
     </svg>
   );
 }
+function IconMenu() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" aria-hidden="true">
+      <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+function IconClose() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" aria-hidden="true">
+      <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 function BrandMark() {
   return (
@@ -88,24 +105,124 @@ function BrandMark() {
   );
 }
 
-function SidebarBadge({ tone, children }: { tone: "next" | "pending"; children: ReactNode }) {
+/* --- navegación privada (única fuente compartida) ------------------------- */
+type NavStatus = "available" | "next" | "pending";
+
+interface PrivateNavItem {
+  label: string;
+  href: string;
+  status: NavStatus;
+  icon: ReactNode;
+}
+
+// Solo `available` es enlace real. `next`/`pending` se muestran deshabilitados
+// con badge para no crear rutas rotas (aún no existen esas vistas).
+const PRIVATE_NAV: ReadonlyArray<PrivateNavItem> = [
+  { label: "Dashboard", href: "/dashboard", status: "available", icon: <IconDashboard /> },
+  { label: "JobIT CV", href: "/profile", status: "next", icon: <IconDoc /> },
+  { label: "JobIT Jobs", href: "/jobs", status: "pending", icon: <IconWork /> },
+  { label: "Guardadas", href: "/saved-jobs", status: "pending", icon: <IconBookmark /> },
+  { label: "JobIT Match", href: "/match", status: "pending", icon: <IconTarget /> }
+];
+
+const activeNavClass =
+  "flex items-center gap-3 rounded-lg border-r-4 border-[#006591] bg-[#eff4ff] px-3 py-2.5 font-semibold text-[#006591]";
+const inactiveNavClass =
+  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-600 transition-colors hover:bg-slate-50";
+
+function isActive(pathname: string | null, href: string): boolean {
+  if (!pathname) return false;
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function StatusBadge({ status }: { status: Exclude<NavStatus, "available"> }) {
   return (
     <span
       className={`rounded px-2 py-0.5 text-[10px] font-bold ${
-        tone === "next" ? "bg-[#eff4ff] text-[#006591]" : "bg-slate-100 text-slate-500"
+        status === "next" ? "bg-[#eff4ff] text-[#006591]" : "bg-slate-100 text-slate-500"
       }`}
     >
-      {children}
+      {status === "next" ? "Siguiente" : "Pendiente"}
     </span>
   );
 }
 
-// Ítems de navegación aún no disponibles: NO son enlaces (evita rutas rotas).
-const SIDEBAR_PENDING: ReadonlyArray<{ label: string; icon: ReactNode }> = [
-  { label: "JobIT Jobs", icon: <IconWork /> },
-  { label: "Guardadas", icon: <IconBookmark /> },
-  { label: "JobIT Match", icon: <IconTarget /> }
-];
+/** Lista de navegación privada, reutilizada en sidebar (desktop) y drawer (móvil). */
+function PrivateNav({ pathname, onNavigate }: { pathname: string | null; onNavigate?: () => void }) {
+  return (
+    <nav aria-label="Navegación privada" className="flex-1 space-y-1">
+      {PRIVATE_NAV.map((item) => {
+        if (item.status === "available") {
+          const active = isActive(pathname, item.href);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              aria-current={active ? "page" : undefined}
+              onClick={onNavigate}
+              className={active ? activeNavClass : inactiveNavClass}
+            >
+              {item.icon}
+              <span className="text-sm">{item.label}</span>
+            </Link>
+          );
+        }
+        return (
+          <div
+            key={item.href}
+            aria-disabled="true"
+            className={`flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 ${
+              item.status === "pending" ? "text-slate-500 opacity-70" : "text-slate-600"
+            }`}
+          >
+            <span className="flex items-center gap-3">
+              {item.icon}
+              <span className="text-sm">{item.label}</span>
+            </span>
+            <StatusBadge status={item.status} />
+          </div>
+        );
+      })}
+    </nav>
+  );
+}
+
+function SidebarBrand() {
+  return (
+    <div className="mb-8 flex items-center gap-3 px-2">
+      <BrandMark />
+      <div>
+        <p className="text-lg font-extrabold tracking-tight text-[#004c6e]">JobIT</p>
+        <p className="text-xs text-slate-500">Perfil tech vivo</p>
+      </div>
+    </div>
+  );
+}
+
+function SidebarBottom() {
+  return (
+    <div className="mt-auto space-y-1 border-t border-slate-200 pt-4">
+      {/* CTA deshabilitada mientras /profile no exista (sin ruta rota) */}
+      <button
+        type="button"
+        disabled
+        aria-disabled="true"
+        title="Disponible en una próxima fase"
+        className="mb-3 w-full cursor-not-allowed rounded-lg bg-[#006591] px-4 py-2.5 text-sm font-semibold text-white opacity-60"
+      >
+        Preparar JobIT CV
+      </button>
+      <div className="flex items-center gap-3 rounded-lg px-3 py-2 text-slate-500 opacity-70">
+        <IconSettings />
+        <span className="text-sm">Ajustes (futuro)</span>
+      </div>
+      <div className="flex items-center gap-3 rounded-lg px-3 py-2 text-slate-500 opacity-70">
+        <IconHelp />
+        <span className="text-sm">Ayuda (futuro)</span>
+      </div>
+    </div>
+  );
+}
 
 export function SiteShell({
   children,
@@ -118,6 +235,9 @@ export function SiteShell({
 }) {
   const { isAuthenticated, accessToken, clearSession } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = useState(false); // drawer móvil
+  const [desktopNavOpen, setDesktopNavOpen] = useState(true); // sidebar desktop (ocultable)
 
   async function handleLogout() {
     try {
@@ -158,84 +278,82 @@ export function SiteShell({
     );
   }
 
-  // --- Shell privado (con sesión): sidebar + header ------------------------
+  // --- Shell privado (con sesión): sidebar desktop + drawer móvil ----------
   return (
     <div className="min-h-dvh bg-[#f8f9ff] text-slate-900">
-      <aside className="fixed left-0 top-0 z-50 hidden h-full w-64 flex-col border-r border-slate-200 bg-white px-4 py-6 md:flex">
-        <div className="mb-8 flex items-center gap-3 px-2">
-          <BrandMark />
-          <div>
-            <p className="text-lg font-extrabold tracking-tight text-[#004c6e]">JobIT</p>
-            <p className="text-xs text-slate-500">Perfil tech vivo</p>
-          </div>
-        </div>
-
-        <nav aria-label="Navegación principal" className="flex-1 space-y-1">
-          <Link
-            href="/dashboard"
-            aria-current="page"
-            className="flex items-center gap-3 rounded-lg border-r-4 border-[#006591] bg-[#eff4ff] px-3 py-2.5 font-semibold text-[#006591]"
-          >
-            <IconDashboard />
-            <span className="text-sm">Dashboard</span>
-          </Link>
-
-          {/* JobIT CV: siguiente, pero aún sin ruta → no es enlace */}
-          <div
-            aria-disabled="true"
-            className="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-slate-600"
-          >
-            <span className="flex items-center gap-3">
-              <IconDoc />
-              <span className="text-sm">JobIT CV</span>
-            </span>
-            <SidebarBadge tone="next">Siguiente</SidebarBadge>
-          </div>
-
-          {SIDEBAR_PENDING.map((item) => (
-            <div
-              key={item.label}
-              aria-disabled="true"
-              className="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-slate-500 opacity-70"
-            >
-              <span className="flex items-center gap-3">
-                {item.icon}
-                <span className="text-sm">{item.label}</span>
-              </span>
-              <SidebarBadge tone="pending">Pendiente</SidebarBadge>
-            </div>
-          ))}
-        </nav>
-
-        <div className="mt-auto space-y-1 border-t border-slate-200 pt-4">
-          <button
-            type="button"
-            disabled
-            aria-disabled="true"
-            title="Disponible en una próxima fase"
-            className="mb-3 w-full cursor-not-allowed rounded-lg bg-[#006591] px-4 py-2.5 text-sm font-semibold text-white opacity-60"
-          >
-            Preparar JobIT CV
-          </button>
-          <div className="flex items-center gap-3 rounded-lg px-3 py-2 text-slate-500 opacity-70">
-            <IconSettings />
-            <span className="text-sm">Ajustes (futuro)</span>
-          </div>
-          <div className="flex items-center gap-3 rounded-lg px-3 py-2 text-slate-500 opacity-70">
-            <IconHelp />
-            <span className="text-sm">Ayuda (futuro)</span>
-          </div>
-        </div>
+      {/* Sidebar desktop (ocultable) */}
+      <aside
+        id="app-sidebar"
+        className={`fixed left-0 top-0 z-30 hidden h-full w-64 flex-col border-r border-slate-200 bg-white px-4 py-6 ${
+          desktopNavOpen ? "md:flex" : ""
+        }`}
+      >
+        <SidebarBrand />
+        <PrivateNav pathname={pathname} />
+        <SidebarBottom />
       </aside>
 
-      <div className="flex min-h-dvh flex-col md:ml-64">
-        <header className="sticky top-0 z-40 flex items-center justify-between gap-4 border-b border-slate-200 bg-white/80 px-4 py-3 backdrop-blur md:px-6">
+      {/* Drawer móvil */}
+      {menuOpen ? (
+        <div className="md:hidden">
+          <div
+            className="fixed inset-0 z-40 bg-slate-900/40"
+            aria-hidden="true"
+            onClick={() => setMenuOpen(false)}
+          />
+          <aside
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menú de navegación"
+            className="fixed left-0 top-0 z-50 flex h-full w-72 max-w-[85%] flex-col border-r border-slate-200 bg-white px-4 py-6"
+          >
+            <div className="mb-6 flex items-center justify-between">
+              <SidebarBrand />
+              <button
+                type="button"
+                onClick={() => setMenuOpen(false)}
+                aria-label="Cerrar menú"
+                className="rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-100"
+              >
+                <IconClose />
+              </button>
+            </div>
+            <PrivateNav pathname={pathname} onNavigate={() => setMenuOpen(false)} />
+            <SidebarBottom />
+          </aside>
+        </div>
+      ) : null}
+
+      {/* Columna de contenido */}
+      <div
+        className={`flex min-h-dvh flex-col transition-[margin] duration-200 ${
+          desktopNavOpen ? "md:ml-64" : "md:ml-0"
+        }`}
+      >
+        <header className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-slate-200 bg-white/80 px-4 py-3 backdrop-blur md:px-6">
           <div className="flex items-center gap-3">
-            <Link href="/" className="flex items-center gap-2 font-bold tracking-tight md:hidden">
-              <BrandMark />
-            </Link>
+            {/* Toggle desktop: oculta/muestra la sidebar */}
+            <button
+              type="button"
+              onClick={() => setDesktopNavOpen((open) => !open)}
+              aria-label={desktopNavOpen ? "Ocultar menú" : "Mostrar menú"}
+              aria-expanded={desktopNavOpen}
+              aria-controls="app-sidebar"
+              className="hidden rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-100 md:inline-flex"
+            >
+              <IconMenu />
+            </button>
+            {/* Toggle móvil: abre el drawer */}
+            <button
+              type="button"
+              onClick={() => setMenuOpen(true)}
+              aria-label="Abrir menú"
+              className="rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-100 md:hidden"
+            >
+              <IconMenu />
+            </button>
             <div>
-              <h1 className="text-xl font-bold tracking-tight text-slate-900">{title}</h1>
+              <h1 className="text-lg font-bold tracking-tight text-slate-900 md:text-xl">{title}</h1>
               <p className="hidden text-sm text-slate-500 md:block">{subtitle}</p>
             </div>
           </div>
