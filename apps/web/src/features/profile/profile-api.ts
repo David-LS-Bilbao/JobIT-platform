@@ -9,7 +9,12 @@
  * datos: solo evita accesos a `undefined` en la UI.
  */
 import { apiRequest } from "@/lib/api-client";
-import type { CandidateProfileDto, UpdateProfileBasicInfoInput } from "@/types/api";
+import type {
+  CandidateProfileDto,
+  CreateProfileSkillInput,
+  ProfileSkillDto,
+  UpdateProfileBasicInfoInput
+} from "@/types/api";
 
 function normalizeProfile(raw: Partial<CandidateProfileDto>): CandidateProfileDto {
   return {
@@ -50,4 +55,17 @@ export async function updateMyProfile(
     body: input
   });
   return normalizeProfile(raw);
+}
+
+/** `POST /api/profile/me/skills` → skill creada (201). */
+export function addProfileSkill(token: string, input: CreateProfileSkillInput): Promise<ProfileSkillDto> {
+  return apiRequest<ProfileSkillDto>("/api/profile/me/skills", { method: "POST", token, body: input });
+}
+
+/** `DELETE /api/profile/me/skills/:skillId` → 204 sin cuerpo. */
+export function deleteProfileSkill(token: string, skillId: string): Promise<void> {
+  return apiRequest<void>(`/api/profile/me/skills/${encodeURIComponent(skillId)}`, {
+    method: "DELETE",
+    token
+  });
 }
