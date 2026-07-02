@@ -281,7 +281,7 @@ export function SiteShell({
       {/* Sidebar desktop (ocultable) */}
       <aside
         id="app-sidebar"
-        className={`fixed left-0 top-0 z-30 hidden h-full w-64 flex-col border-r border-slate-200 bg-white px-4 py-6 ${
+        className={`fixed left-0 top-0 z-30 hidden h-full w-64 flex-col border-r border-slate-200 bg-white px-4 py-6 print:hidden ${
           desktopNavOpen ? "md:flex" : ""
         }`}
       >
@@ -292,7 +292,7 @@ export function SiteShell({
 
       {/* Drawer móvil */}
       {menuOpen ? (
-        <div className="md:hidden">
+        <div className="md:hidden print:hidden">
           <div
             className="fixed inset-0 z-40 bg-slate-900/40"
             aria-hidden="true"
@@ -323,11 +323,11 @@ export function SiteShell({
 
       {/* Columna de contenido */}
       <div
-        className={`flex min-h-dvh flex-col transition-[margin] duration-200 ${
+        className={`flex min-h-dvh flex-col transition-[margin] duration-200 print:ml-0! ${
           desktopNavOpen ? "md:ml-64" : "md:ml-0"
         }`}
       >
-        <header className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-slate-200 bg-white/80 px-4 py-3 backdrop-blur md:px-6">
+        <header className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-slate-200 bg-white/80 px-4 py-3 backdrop-blur md:px-6 print:hidden">
           <div className="flex items-center gap-3">
             {/* Toggle desktop: oculta/muestra la sidebar */}
             <button
