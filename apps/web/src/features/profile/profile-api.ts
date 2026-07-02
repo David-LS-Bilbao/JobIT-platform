@@ -27,7 +27,9 @@ import type {
   PutProfileLinksResponse,
   PutProfilePreferencesInput,
   ProfilePreferencesDto,
-  UploadAvatarResponse
+  UploadAvatarResponse,
+  PortfolioSettingsDto,
+  UpdatePortfolioSettingsInput
 } from "@/types/api";
 
 function normalizeProfile(raw: Partial<CandidateProfileDto>): CandidateProfileDto {
@@ -93,6 +95,46 @@ export function resolveProfileImageUrl(avatarUrl: string | null | undefined): st
     return base ? `${base}${trimmed}` : trimmed;
   }
   return trimmed;
+}
+
+// --- JobIT Portfolio V1: ajustes de publicación (endpoints privados) ---------
+
+/** `GET /api/profile/me/portfolio` → ajustes (se crean si no existen). */
+export function getMyPortfolioSettings(token: string): Promise<PortfolioSettingsDto> {
+  return apiRequest<PortfolioSettingsDto>("/api/profile/me/portfolio", { token });
+}
+
+/** `PUT /api/profile/me/portfolio` → actualiza slug/flags (no publica). */
+export function updateMyPortfolioSettings(
+  token: string,
+  input: UpdatePortfolioSettingsInput
+): Promise<PortfolioSettingsDto> {
+  return apiRequest<PortfolioSettingsDto>("/api/profile/me/portfolio", { method: "PUT", token, body: input });
+}
+
+/** `POST /api/profile/me/portfolio/publish` → publica si cumple el mínimo. */
+export function publishMyPortfolio(token: string): Promise<PortfolioSettingsDto> {
+  return apiRequest<PortfolioSettingsDto>("/api/profile/me/portfolio/publish", { method: "POST", token });
+}
+
+/** `POST /api/profile/me/portfolio/unpublish` → despublica. */
+export function unpublishMyPortfolio(token: string): Promise<PortfolioSettingsDto> {
+  return apiRequest<PortfolioSettingsDto>("/api/profile/me/portfolio/unpublish", { method: "POST", token });
+}
+
+/**
+ * URL pública absoluta del portfolio a partir de `publicUrlPath` (relativo):
+ * - `NEXT_PUBLIC_PUBLIC_BASE_URL` si está configurada;
+ * - si no, `window.location.origin` en cliente;
+ * - fallback SSR/test: la propia ruta relativa.
+ */
+export function buildPublicPortfolioUrl(publicUrlPath: string): string {
+  const base = (process.env.NEXT_PUBLIC_PUBLIC_BASE_URL ?? "").trim().replace(/\/+$/, "");
+  if (base) return `${base}${publicUrlPath}`;
+  if (typeof window !== "undefined" && window.location?.origin) {
+    return `${window.location.origin}${publicUrlPath}`;
+  }
+  return publicUrlPath;
 }
 
 /** `POST /api/profile/me/skills` → skill creada (201). */
