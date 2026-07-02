@@ -6,7 +6,7 @@ import { useState, type FormEvent } from "react";
 import { ApiClientError } from "@/lib/api-client";
 import type { AvailabilityStatus, CandidateProfileDto, UpdateProfileBasicInfoInput } from "@/types/api";
 
-import { getMyProfile, updateMyProfile } from "./profile-api";
+import { getMyProfile, updateMyProfile, uploadProfileAvatar } from "./profile-api";
 import { ProfileCompletionCard } from "./profile-completion-card";
 import { ProfilePreview } from "./profile-preview";
 import { ProfileEducationSection } from "./profile-education-section";
@@ -39,8 +39,20 @@ export function ProfileContent({ profile: initialProfile, token }: { profile: Ca
   const [locationRemote, setLocationRemote] = useState(initialProfile.locationRemote);
   const [availabilityStatus, setAvailabilityStatus] = useState<AvailabilityStatus>(initialProfile.availabilityStatus);
   const [summary, setSummary] = useState(initialProfile.summary ?? "");
+  // El campo de texto gestiona SOLO URL externa (avanzado). Las imágenes subidas
+  // se guardan como ruta interna en profile.avatarUrl y no rellenan el campo.
+  const [avatarUrl, setAvatarUrl] = useState(
+    initialProfile.avatarUrl && /^https?:\/\//i.test(initialProfile.avatarUrl) ? initialProfile.avatarUrl : ""
+  );
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadOk, setUploadOk] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // avatarUrl (campo texto): vacío permitido; si tiene valor, debe ser URL http(s).
+  const avatarTrimmed = avatarUrl.trim();
+  const avatarInvalid = avatarTrimmed !== "" && !/^https?:\/\//i.test(avatarTrimmed);
 
   const pct = profile.completionPercentage;
 
@@ -53,7 +65,10 @@ export function ProfileContent({ profile: initialProfile, token }: { profile: Ca
     location: location.trim() || null,
     locationRemote,
     availabilityStatus,
-    summary: summary.trim() || null
+    summary: summary.trim() || null,
+    // Preview: la URL externa en edición tiene prioridad; si no, el avatar persistido
+    // (que puede ser una imagen subida servida como /uploads/...).
+    avatarUrl: avatarTrimmed || profile.avatarUrl
   };
 
   // Re-obtiene el perfil tras mutar subrecursos (skills): refresca listas,
@@ -67,6 +82,38 @@ export function ProfileContent({ profile: initialProfile, token }: { profile: Ca
     }
   }
 
+  async function handleAvatarUpload(file: File | undefined) {
+    if (!file) return;
+    setUploadError(null);
+    setUploadOk(false);
+    // Pre-chequeo cliente (feedback rápido); el backend es la fuente de verdad.
+    const allowedTypes = ["image/png", "image/jpeg", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      setUploadError("Formato no permitido. Usa PNG, JPG o WebP.");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setUploadError("La imagen supera el máximo de 2 MB.");
+      return;
+    }
+    setUploading(true);
+    try {
+      await uploadProfileAvatar(token, file);
+      // Persistida como ruta interna: refrescamos el perfil para pintarla en
+      // preview/portfolio y limpiamos el campo de URL externa.
+      setAvatarUrl("");
+      const fresh = await getMyProfile(token);
+      setProfile(fresh);
+      setUploadOk(true);
+    } catch (err) {
+      setUploadError(
+        err instanceof ApiClientError ? err.message : "No se ha podido subir la imagen. Inténtalo de nuevo."
+      );
+    } finally {
+      setUploading(false);
+    }
+  }
+
   async function handleSave(event: FormEvent) {
     event.preventDefault();
     setErrorMsg(null);
@@ -75,7 +122,21 @@ export function ProfileContent({ profile: initialProfile, token }: { profile: Ca
       setErrorMsg("Nombre y apellidos son obligatorios (mínimo 2 caracteres).");
       return;
     }
+    if (avatarInvalid) {
+      // El error inline del campo ya lo comunica; solo bloqueamos el guardado.
+      setSaveState("error");
+      return;
+    }
     setSaveState("saving");
+    // avatarUrl solo gestiona la URL externa: con valor → set; vacío habiendo
+    // antes una URL externa → null (limpiar); resto (imagen subida o sin avatar)
+    // → undefined (omitir, para no borrar una imagen subida vía POST /me/avatar).
+    const avatarForSave =
+      avatarTrimmed !== ""
+        ? avatarTrimmed
+        : profile.avatarUrl && /^https?:\/\//i.test(profile.avatarUrl)
+          ? null
+          : undefined;
     const input: UpdateProfileBasicInfoInput = {
       firstName: firstName.trim(),
       lastName: lastName.trim(),
@@ -83,7 +144,8 @@ export function ProfileContent({ profile: initialProfile, token }: { profile: Ca
       summary: summary.trim() || undefined,
       location: location.trim() || undefined,
       locationRemote,
-      availabilityStatus
+      availabilityStatus,
+      avatarUrl: avatarForSave
     };
     try {
       const updated = await updateMyProfile(token, input);
@@ -236,6 +298,59 @@ export function ProfileContent({ profile: initialProfile, token }: { profile: Ca
                   placeholder="Cuéntanos sobre tu experiencia y objetivos…"
                   maxLength={1000}
                 />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <span className={labelClass}>Imagen de perfil</span>
+                {/* Subida desde dispositivo (opción principal) */}
+                <div className="flex flex-wrap items-center gap-3">
+                  <label
+                    htmlFor="pf-avatar-file"
+                    className="cursor-pointer rounded-lg border border-[#006591] px-4 py-2 text-sm font-semibold text-[#006591] transition-colors hover:bg-[#eff4ff]"
+                  >
+                    Subir imagen
+                  </label>
+                  <input
+                    id="pf-avatar-file"
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    disabled={uploading}
+                    onChange={(e) => handleAvatarUpload(e.target.files?.[0])}
+                    className="sr-only"
+                  />
+                  {uploading ? <span className="text-xs text-slate-500">Subiendo…</span> : null}
+                </div>
+                <p className="text-xs text-slate-500">PNG, JPG o WebP · máximo 2 MB.</p>
+                {uploadError ? (
+                  <p role="alert" className="text-xs font-medium text-red-600">
+                    {uploadError}
+                  </p>
+                ) : null}
+                {uploadOk ? <p className="text-xs font-medium text-emerald-600">Imagen actualizada.</p> : null}
+
+                {/* Opción avanzada: URL externa directa a una imagen */}
+                <label htmlFor="pf-avatarUrl" className="mt-1 block text-xs font-medium text-slate-500">
+                  O pega una URL de imagen (avanzado)
+                </label>
+                <input
+                  id="pf-avatarUrl"
+                  type="url"
+                  inputMode="url"
+                  className={inputClass}
+                  value={avatarUrl}
+                  onChange={(e) => setAvatarUrl(e.target.value)}
+                  placeholder="https://..."
+                  aria-invalid={avatarInvalid}
+                  aria-describedby={avatarInvalid ? "pf-avatarUrl-error" : "pf-avatarUrl-help"}
+                />
+                {avatarInvalid ? (
+                  <p id="pf-avatarUrl-error" role="alert" className="text-xs font-medium text-red-600">
+                    Debe ser una URL directa a una imagen o usa la subida desde tu dispositivo.
+                  </p>
+                ) : (
+                  <p id="pf-avatarUrl-help" className="text-xs text-slate-500">
+                    Usa una URL pública directa a una imagen (por ejemplo …/foto.jpg).
+                  </p>
+                )}
               </div>
             </div>
           </ProfileSectionCard>

@@ -19,7 +19,8 @@ import {
   updateProfileExperience,
   updateProfileProject,
   replaceProfileLinks,
-  updateProfilePreferences
+  updateProfilePreferences,
+  uploadProfileAvatar
 } from "@/features/profile/profile-api";
 import { ProfilePage } from "@/features/profile/profile-page";
 import { ApiClientError } from "@/lib/api-client";
@@ -37,7 +38,10 @@ vi.mock("next/link", () => ({
     </a>
   )
 }));
-vi.mock("@/features/profile/profile-api", () => ({
+vi.mock("@/features/profile/profile-api", async (importOriginal) => ({
+  // Conserva los helpers puros reales (p. ej. resolveProfileImageUrl que usa
+  // ProfileAvatar) y solo sustituye las funciones de red.
+  ...(await importOriginal<typeof import("@/features/profile/profile-api")>()),
   getMyProfile: vi.fn(),
   updateMyProfile: vi.fn(),
   addProfileSkill: vi.fn(),
@@ -52,7 +56,8 @@ vi.mock("@/features/profile/profile-api", () => ({
   updateProfileProject: vi.fn(),
   deleteProfileProject: vi.fn(),
   replaceProfileLinks: vi.fn(),
-  updateProfilePreferences: vi.fn()
+  updateProfilePreferences: vi.fn(),
+  uploadProfileAvatar: vi.fn()
 }));
 vi.mock("@/features/auth/auth-api", () => ({ logoutCandidate: vi.fn() }));
 
@@ -308,6 +313,129 @@ describe("ProfilePage (/profile · JobIT CV)", () => {
     renderWithSession();
     await screen.findByText("Tu perfil tech vivo");
     expect(screen.getByText("Aún no has añadido skills.")).toBeInTheDocument();
+  });
+
+  it("muestra la sección Imagen de perfil con subida de archivo y URL avanzada", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    expect(screen.getByText("Imagen de perfil")).toBeInTheDocument();
+    const fileInput = screen.getByLabelText("Subir imagen");
+    expect(fileInput).toHaveAttribute("type", "file");
+    expect(fileInput).toHaveAttribute("accept", "image/png,image/jpeg,image/webp");
+    expect(screen.getByLabelText(/pega una URL de imagen/i)).toBeInTheDocument();
+  });
+
+  it("muestra la ayuda de tipos y tamaño (PNG, JPG o WebP · 2 MB)", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+    expect(screen.getByText(/PNG, JPG o WebP · máximo 2 MB/i)).toBeInTheDocument();
+  });
+
+  it("sube una imagen: llama a uploadProfileAvatar y refresca el perfil con la imagen", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    vi.mocked(uploadProfileAvatar).mockResolvedValueOnce({ avatarUrl: "/uploads/avatars/u1_abc.png" });
+    vi.mocked(getMyProfile).mockResolvedValueOnce({ ...fullProfile, avatarUrl: "/uploads/avatars/u1_abc.png" });
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    const file = new File(["binary-image-data"], "foto.png", { type: "image/png" });
+    await user.upload(screen.getByLabelText("Subir imagen"), file);
+
+    await waitFor(() => expect(uploadProfileAvatar).toHaveBeenCalledWith("tok-cv", expect.any(File)));
+    const img = await screen.findByAltText("Ana Pérez");
+    expect(img.getAttribute("src")).toContain("/uploads/avatars/u1_abc.png");
+  });
+
+  it("muestra un error si la subida de imagen falla", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    vi.mocked(uploadProfileAvatar).mockRejectedValueOnce(
+      new ApiClientError(413, "FILE_TOO_LARGE", "La imagen supera el máximo de 2 MB.")
+    );
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    const file = new File(["x"], "foto.png", { type: "image/png" });
+    await user.upload(screen.getByLabelText("Subir imagen"), file);
+
+    expect(await screen.findByText("La imagen supera el máximo de 2 MB.")).toBeInTheDocument();
+  });
+
+  it("guarda una URL de imagen externa válida vía PUT /api/profile/me", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    vi.mocked(updateMyProfile).mockResolvedValueOnce({ ...fullProfile, avatarUrl: "https://img.test/a.png" });
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    await user.type(screen.getByLabelText(/pega una URL de imagen/i), "https://img.test/a.png");
+    await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
+
+    await waitFor(() =>
+      expect(updateMyProfile).toHaveBeenCalledWith(
+        "tok-cv",
+        expect.objectContaining({ avatarUrl: "https://img.test/a.png" })
+      )
+    );
+  });
+
+  it("bloquea una URL de imagen inválida y no llama a updateMyProfile", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    await user.type(screen.getByLabelText(/pega una URL de imagen/i), "no-es-una-url");
+    await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
+
+    expect(
+      screen.getByText("Debe ser una URL directa a una imagen o usa la subida desde tu dispositivo.")
+    ).toBeInTheDocument();
+    expect(updateMyProfile).not.toHaveBeenCalled();
+  });
+
+  it("permite limpiar la URL externa (envía avatarUrl null)", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce({ ...fullProfile, avatarUrl: "https://img.test/a.png" });
+    vi.mocked(updateMyProfile).mockResolvedValueOnce({ ...fullProfile, avatarUrl: null });
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    await user.clear(screen.getByLabelText(/pega una URL de imagen/i));
+    await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
+
+    await waitFor(() => expect(updateMyProfile).toHaveBeenCalled());
+    expect(vi.mocked(updateMyProfile).mock.calls[0][1].avatarUrl).toBeNull();
+  });
+
+  it("la preview muestra la imagen cuando hay avatarUrl", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce({ ...fullProfile, avatarUrl: "https://img.test/a.png" });
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    const img = await screen.findByAltText("Ana Pérez");
+    expect(img).toHaveAttribute("src", "https://img.test/a.png");
+  });
+
+  it("la preview muestra iniciales cuando no hay avatarUrl", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile); // avatarUrl: null
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    expect(screen.queryByAltText("Ana Pérez")).not.toBeInTheDocument();
+    expect(screen.getByText("AP")).toBeInTheDocument();
+  });
+
+  it("no usa base64 ni proveedores externos (Cloudinary/S3) en el cliente", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    expect(screen.queryByText(/cloudinary|amazon s3|\bS3\b|base64/i)).not.toBeInTheDocument();
   });
 
   it("añadir una skill llama a POST /api/profile/me/skills y refresca el perfil", async () => {

@@ -88,8 +88,24 @@ export async function updateCandidateProfileBasicInfo(
       ...(input.availabilityStatus !== undefined && {
         availabilityStatus: input.availabilityStatus
       }),
-      avatarUrl: input.avatarUrl ?? null
+      // avatarUrl es condicional: omitirlo NO lo borra (así una imagen subida vía
+      // POST /me/avatar sobrevive a un guardado de datos básicos). `null` lo limpia.
+      ...(input.avatarUrl !== undefined && { avatarUrl: input.avatarUrl })
     },
+    include: PROFILE_RELATIONS
+  });
+}
+
+/** Actualiza solo `avatarUrl` (usado por la subida de imagen `POST /me/avatar`). */
+export async function setCandidateAvatarUrl(
+  userId: string,
+  avatarUrl: string
+): Promise<ProfileWithRelations> {
+  await getOrCreateCandidateProfile(userId);
+
+  return prisma.candidateProfile.update({
+    where: { userId },
+    data: { avatarUrl },
     include: PROFILE_RELATIONS
   });
 }

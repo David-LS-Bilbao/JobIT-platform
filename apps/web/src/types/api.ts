@@ -262,7 +262,14 @@ export interface UpdateProfileBasicInfoInput {
   location?: string;
   locationRemote?: boolean;
   availabilityStatus?: AvailabilityStatus;
-  avatarUrl?: string;
+  // URL externa (avanzado). `null` limpia el avatar; omitir lo preserva
+  // (las imágenes subidas se guardan como ruta interna vía POST /me/avatar).
+  avatarUrl?: string | null;
+}
+
+/** Respuesta de `POST /api/profile/me/avatar`. */
+export interface UploadAvatarResponse {
+  avatarUrl: string;
 }
 
 /** Cuerpo de `POST /api/profile/me/skills`. Solo `name` es obligatorio. */

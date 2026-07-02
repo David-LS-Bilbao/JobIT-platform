@@ -41,3 +41,7 @@ docker-data/
 .DS_Store
 Thumbs.db
 .claude/settings.local.json
+
+# Avatares subidos (almacenamiento local MVP): conserva la carpeta, ignora las imágenes generadas
+apps/api/uploads/avatars/*
+!apps/api/uploads/avatars/.gitkeep

@@ -8,8 +8,11 @@ import {
   type Skill
 } from "@prisma/client";
 import { ZodError } from "zod";
+import multer from "multer";
 
 import { requireAuth, type AuthenticatedRequest } from "../auth/require-auth.middleware.js";
+import { avatarMulter } from "./avatar.upload.js";
+import { saveAvatarImage, sniffImageMime } from "./avatar.storage.js";
 import { ProfileError } from "./profile.ownership.js";
 import {
   createEducationSchema,
@@ -35,6 +38,7 @@ import {
   deleteCandidateSkill,
   getOrCreateCandidateProfile,
   replaceCandidateLinks,
+  setCandidateAvatarUrl,
   updateCandidateEducation,
   updateCandidateExperience,
   updateCandidateProject,
@@ -176,6 +180,71 @@ profileRouter.put(
         sendValidationError(res, err);
         return;
       }
+      next(err);
+    }
+  }
+);
+
+// Traduce errores de multer a respuestas HTTP controladas (sin filtrar detalles).
+function handleAvatarUpload(req: Request, res: Response, next: NextFunction): void {
+  avatarMulter.single("avatar")(req, res, (err: unknown) => {
+    if (err instanceof multer.MulterError) {
+      if (err.code === "LIMIT_FILE_SIZE") {
+        res
+          .status(413)
+          .json({ error: { code: "FILE_TOO_LARGE", message: "La imagen supera el máximo de 2 MB." } });
+        return;
+      }
+      res.status(400).json({ error: { code: "UPLOAD_ERROR", message: "No se ha podido procesar la imagen." } });
+      return;
+    }
+    if (err && typeof err === "object" && (err as { code?: string }).code === "UNSUPPORTED_TYPE") {
+      res.status(415).json({
+        error: { code: "UNSUPPORTED_MEDIA_TYPE", message: "Formato no permitido. Usa PNG, JPG o WebP." }
+      });
+      return;
+    }
+    if (err) {
+      next(err instanceof Error ? err : new Error("Avatar upload failed."));
+      return;
+    }
+    next();
+  });
+}
+
+profileRouter.post(
+  "/me/avatar",
+  requireAuth,
+  handleAvatarUpload,
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as unknown as AuthenticatedRequest).auth;
+      const file = req.file;
+      if (!file) {
+        res.status(400).json({ error: { code: "NO_FILE", message: "No se ha enviado ninguna imagen." } });
+        return;
+      }
+      // El Content-Type declarado no basta: confirmamos con los magic bytes reales.
+      const sniffed = sniffImageMime(file.buffer);
+      if (!sniffed || sniffed !== file.mimetype) {
+        res.status(415).json({
+          error: { code: "UNSUPPORTED_MEDIA_TYPE", message: "El archivo no es una imagen PNG, JPG o WebP válida." }
+        });
+        return;
+      }
+      let avatarUrl: string;
+      try {
+        avatarUrl = await saveAvatarImage(file.buffer, sniffed, userId);
+      } catch {
+        // No propagamos el error de fs para no filtrar rutas internas absolutas.
+        res
+          .status(500)
+          .json({ error: { code: "STORAGE_ERROR", message: "No se ha podido almacenar la imagen." } });
+        return;
+      }
+      await setCandidateAvatarUrl(userId, avatarUrl);
+      res.status(200).json({ avatarUrl });
+    } catch (err) {
       next(err);
     }
   }
