@@ -12,6 +12,7 @@ import {
   unpublishMyPortfolio,
   updateMyPortfolioSettings
 } from "./profile-api";
+import { PortfolioQrCard } from "./portfolio-qr-card";
 
 const inputClass =
   "w-full rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-900 outline-none transition-shadow focus:border-[#006591] focus:ring-2 focus:ring-[#006591]/40";
@@ -187,6 +188,9 @@ export function ProfilePortfolioSettings({
           </p>
         ) : null}
       </section>
+
+      {/* QR del portfolio (generado localmente) */}
+      <PortfolioQrCard url={publicUrl} isPublished={settings.isPublished} slug={settings.slug} />
 
       {/* Checklist de publicación */}
       <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">

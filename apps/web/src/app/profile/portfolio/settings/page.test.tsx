@@ -237,13 +237,50 @@ describe("ProfilePortfolioSettingsPage (/profile/portfolio/settings)", () => {
     ).toBeInTheDocument();
   });
 
-  it("no expone QR, PDF server-side, IA ni monetización", async () => {
+  it("muestra el QR del portfolio (generado localmente) cuando está publicado", async () => {
+    vi.mocked(getMyPortfolioSettings).mockResolvedValueOnce(published);
+    renderWithSession();
+    await screen.findByText("Publicado");
+
+    expect(screen.getByText("QR del portfolio")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: /código qr/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Descargar QR" })).toBeInTheDocument();
+  });
+
+  it("el QR se basa en la URL pública absoluta", async () => {
+    vi.mocked(getMyPortfolioSettings).mockResolvedValueOnce(published);
+    renderWithSession();
+    await screen.findByText("Publicado");
+
+    expect(screen.getAllByText(/https?:\/\/.+\/u\/ana-perez/).length).toBeGreaterThan(0);
+  });
+
+  it("no muestra QR activo si el portfolio no está publicado", async () => {
     vi.mocked(getMyPortfolioSettings).mockResolvedValueOnce(unpublished);
     renderWithSession();
     await screen.findByText("No publicado");
 
-    expect(screen.queryByText(/\bQR\b|código qr/i)).not.toBeInTheDocument();
+    expect(screen.getByText("Publica tu portfolio para compartir este QR.")).toBeInTheDocument();
+    expect(screen.queryByRole("img", { name: /código qr/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Descargar QR" })).not.toBeInTheDocument();
+  });
+
+  it("el QR no usa servicios externos (SVG inline, sin imágenes remotas)", async () => {
+    vi.mocked(getMyPortfolioSettings).mockResolvedValueOnce(published);
+    const { container } = renderWithSession();
+    await screen.findByText("Publicado");
+
+    expect(container.querySelector("img[src]")).toBeNull();
+    expect(screen.queryByText(/qrserver|quickchart|chart\.googleapis|goqr/i)).not.toBeInTheDocument();
+  });
+
+  it("no expone PDF server-side, GitHub import, IA ni monetización", async () => {
+    vi.mocked(getMyPortfolioSettings).mockResolvedValueOnce(unpublished);
+    renderWithSession();
+    await screen.findByText("No publicado");
+
     expect(screen.queryByText(/pdf/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/github import|importar github/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/inteligencia artificial|ai review/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/pro plan|pricing|suscripción/i)).not.toBeInTheDocument();
   });
