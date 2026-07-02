@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { getPublicPortfolio } from "@/features/profile/profile-api";
@@ -37,8 +38,8 @@ export function PublicPortfolioPage({ slug }: { slug: string }) {
   }, [slug]);
 
   return (
-    <div className="min-h-dvh bg-[#f8f9ff] text-slate-900">
-      <main className="mx-auto w-full max-w-3xl px-4 py-8">
+    <div className="min-h-dvh bg-[#f8f9ff] text-slate-900 print:bg-white">
+      <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 print:py-0">
         {state === "loading" ? <p className="text-sm text-slate-600">Cargando portfolio…</p> : null}
 
         {state === "notfound" ? (
@@ -58,7 +59,13 @@ export function PublicPortfolioPage({ slug }: { slug: string }) {
 
         {state === "ok" && data ? (
           <>
-            <div className="mb-6 flex items-center justify-end print:hidden">
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-3 print:hidden">
+              <Link href="/" className="flex items-center gap-2 text-sm font-bold tracking-tight text-[#004c6e]">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-[#006591] to-[#006c49] text-xs font-bold text-white">
+                  J
+                </span>
+                JobIT
+              </Link>
               <button
                 type="button"
                 onClick={() => window.print()}
