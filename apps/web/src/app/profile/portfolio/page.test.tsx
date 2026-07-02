@@ -222,6 +222,17 @@ describe("ProfilePortfolioPage (/profile/portfolio · Portfolio JobIT CV)", () =
     expect(printMock).toHaveBeenCalledTimes(1);
   });
 
+  it("enlaza a la gestión de publicación del portfolio", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    renderWithSession();
+
+    await screen.findByRole("heading", { name: "Ana Pérez" });
+    expect(screen.getByRole("link", { name: "Gestionar publicación" })).toHaveAttribute(
+      "href",
+      "/profile/portfolio/settings"
+    );
+  });
+
   it("con perfil vacío usa el fallback 'Candidato tech' y no rompe", async () => {
     vi.mocked(getMyProfile).mockResolvedValueOnce(emptyProfile);
     renderWithSession();

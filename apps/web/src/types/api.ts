@@ -21,6 +21,8 @@ export interface ApiErrorBody {
   code: ApiErrorCode;
   message: string;
   details?: unknown;
+  // Campos de perfil pendientes cuando el portfolio no cumple el mínimo publicable.
+  missingFields?: string[];
 }
 
 export interface ApiErrorResponse {
@@ -270,6 +272,25 @@ export interface UpdateProfileBasicInfoInput {
 /** Respuesta de `POST /api/profile/me/avatar`. */
 export interface UploadAvatarResponse {
   avatarUrl: string;
+}
+
+/** Ajustes de publicación del portfolio (JobIT Portfolio V1). */
+export interface PortfolioSettingsDto {
+  slug: string;
+  isPublished: boolean;
+  publishedAt: string | null;
+  showLocation: boolean;
+  showAvailability: boolean;
+  showPreferences: boolean;
+  publicUrlPath: string; // relativo, p. ej. "/u/ana-perez"
+}
+
+/** Body de `PUT /api/profile/me/portfolio` (todos opcionales). */
+export interface UpdatePortfolioSettingsInput {
+  slug?: string;
+  showLocation?: boolean;
+  showAvailability?: boolean;
+  showPreferences?: boolean;
 }
 
 /** Cuerpo de `POST /api/profile/me/skills`. Solo `name` es obligatorio. */

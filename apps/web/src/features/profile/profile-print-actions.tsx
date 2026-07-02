@@ -7,9 +7,17 @@ export function ProfilePrintActions() {
   return (
     <div className="mb-6 print:hidden">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Link href="/profile" className="text-sm font-medium text-[#006591] hover:underline">
-          ← Volver a editar
-        </Link>
+        <div className="flex flex-wrap items-center gap-4">
+          <Link href="/profile" className="text-sm font-medium text-[#006591] hover:underline">
+            ← Volver a editar
+          </Link>
+          <Link
+            href="/profile/portfolio/settings"
+            className="text-sm font-medium text-[#006591] hover:underline"
+          >
+            Gestionar publicación
+          </Link>
+        </div>
         <button
           type="button"
           onClick={() => window.print()}
