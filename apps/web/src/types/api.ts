@@ -319,3 +319,19 @@ export interface CreateProfileProjectInput {
 
 /** Cuerpo de `PUT /api/profile/me/projects/:id`. Todos los campos opcionales. */
 export type UpdateProfileProjectInput = Partial<CreateProfileProjectInput>;
+
+/**
+ * Cuerpo de `PUT /api/profile/me/links`: reemplaza la lista completa de enlaces.
+ * El backend exige mínimo 1 enlace y cada `url` debe ser una URL válida.
+ */
+export interface PutProfileLinksInput {
+  links: Array<{
+    type: ProfileLinkType;
+    url: string;
+  }>;
+}
+
+/** Respuesta de `PUT /api/profile/me/links`: la lista resultante de enlaces. */
+export interface PutProfileLinksResponse {
+  links: ProfileLinkDto[];
+}
