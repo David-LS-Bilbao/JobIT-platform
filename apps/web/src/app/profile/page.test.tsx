@@ -18,7 +18,8 @@ import {
   updateProfileEducation,
   updateProfileExperience,
   updateProfileProject,
-  replaceProfileLinks
+  replaceProfileLinks,
+  updateProfilePreferences
 } from "@/features/profile/profile-api";
 import { ProfilePage } from "@/features/profile/profile-page";
 import { ApiClientError } from "@/lib/api-client";
@@ -50,7 +51,8 @@ vi.mock("@/features/profile/profile-api", () => ({
   addProfileProject: vi.fn(),
   updateProfileProject: vi.fn(),
   deleteProfileProject: vi.fn(),
-  replaceProfileLinks: vi.fn()
+  replaceProfileLinks: vi.fn(),
+  updateProfilePreferences: vi.fn()
 }));
 vi.mock("@/features/auth/auth-api", () => ({ logoutCandidate: vi.fn() }));
 
@@ -235,7 +237,8 @@ describe("ProfilePage (/profile · JobIT CV)", () => {
 
     expect(screen.getByText("Aún no has añadido experiencia profesional.")).toBeInTheDocument();
     expect(screen.getByText("Aún no has añadido formación.")).toBeInTheDocument();
-    expect(screen.getByText("Define qué buscas en tu próxima oportunidad.")).toBeInTheDocument();
+    // Preferencias ya no es read-only: con perfil vacío muestra el formulario editable (valores por defecto).
+    expect(screen.getByRole("button", { name: "Guardar preferencias" })).toBeInTheDocument();
     expect(screen.getAllByText("Candidato tech").length).toBeGreaterThan(0);
   });
 
@@ -346,15 +349,15 @@ describe("ProfilePage (/profile · JobIT CV)", () => {
     await waitFor(() => expect(getMyProfile).toHaveBeenCalledTimes(2));
   });
 
-  it("Skills es funcional (sin 'próxima fase') y el resto de secciones sigue pendiente", async () => {
+  it("Skills es funcional (sin 'próxima fase') y ya no quedan secciones en próxima fase", async () => {
     vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
     renderWithSession();
     await screen.findByText("Tu perfil tech vivo");
 
     expect(screen.queryByText("Añadir skill · próxima fase")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Añadir skill" })).toBeInTheDocument();
-    // Solo Preferencias sigue como próxima fase (Skills/Experiencia/Educación/Proyectos/Enlaces ya funcionan).
-    expect(screen.getAllByText("Próxima fase").length).toBe(1);
+    // Ya no quedan secciones en "próxima fase": todo el CV es funcional.
+    expect(screen.queryAllByText("Próxima fase")).toHaveLength(0);
   });
 
   it("añadir experiencia llama a POST /api/profile/me/experience y refresca", async () => {
@@ -645,7 +648,7 @@ describe("ProfilePage (/profile · JobIT CV)", () => {
     await waitFor(() => expect(getMyProfile).toHaveBeenCalledTimes(2));
   });
 
-  it("Educación es funcional (sin 'Próxima fase') y Preferencias sigue pendiente", async () => {
+  it("Educación es funcional (sin 'Próxima fase')", async () => {
     vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
     renderWithSession();
     await screen.findByText("Tu perfil tech vivo");
@@ -653,7 +656,7 @@ describe("ProfilePage (/profile · JobIT CV)", () => {
     const edu = sectionByHeading("Educación");
     expect(edu.queryByText("Próxima fase")).not.toBeInTheDocument();
     expect(edu.getByRole("button", { name: "Añadir formación" })).toBeInTheDocument();
-    expect(screen.getAllByText("Próxima fase").length).toBe(1);
+    expect(screen.queryAllByText("Próxima fase")).toHaveLength(0);
   });
 
   it("muestra botón de editar por formación y precarga los datos al abrir el editor", async () => {
@@ -767,7 +770,7 @@ describe("ProfilePage (/profile · JobIT CV)", () => {
     expect(screen.getByText("Aún no has añadido proyectos.")).toBeInTheDocument();
   });
 
-  it("Proyectos es funcional (sin 'Próxima fase'); solo Preferencias sigue pendiente", async () => {
+  it("Proyectos es funcional (sin 'Próxima fase')", async () => {
     vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
     renderWithSession();
     await screen.findByText("Tu perfil tech vivo");
@@ -775,7 +778,7 @@ describe("ProfilePage (/profile · JobIT CV)", () => {
     const proj = sectionByHeading("Proyectos");
     expect(proj.queryByText("Próxima fase")).not.toBeInTheDocument();
     expect(proj.getByRole("button", { name: "Añadir proyecto" })).toBeInTheDocument();
-    expect(screen.getAllByText("Próxima fase").length).toBe(1);
+    expect(screen.queryAllByText("Próxima fase")).toHaveLength(0);
   });
 
   it("añadir un proyecto llama a POST /api/profile/me/projects y refresca", async () => {
@@ -1167,14 +1170,14 @@ describe("ProfilePage (/profile · JobIT CV)", () => {
     expect(sec.getByLabelText("Tipo del enlace 1")).toHaveValue("GITHUB");
   });
 
-  it("Enlaces es funcional (sin 'Próxima fase'); solo Preferencias sigue pendiente", async () => {
+  it("Enlaces es funcional (sin 'Próxima fase')", async () => {
     vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
     renderWithSession();
     await screen.findByText("Tu perfil tech vivo");
     const sec = sectionByHeading("Enlaces");
     expect(sec.queryByText("Próxima fase")).not.toBeInTheDocument();
     expect(sec.getByRole("button", { name: "Guardar enlaces" })).toBeInTheDocument();
-    expect(screen.getAllByText("Próxima fase").length).toBe(1);
+    expect(screen.queryAllByText("Próxima fase")).toHaveLength(0);
   });
 
   it("añade una fila de enlace localmente", async () => {
@@ -1303,5 +1306,156 @@ describe("ProfilePage (/profile · JobIT CV)", () => {
     const sec = sectionByHeading("Enlaces");
     await user.click(sec.getByRole("button", { name: "Guardar enlaces" }));
     expect(await sec.findByText("Revisa los datos de los enlaces.")).toBeInTheDocument();
+  });
+
+  // --- Preferencias (Sprint 13H-01) -----------------------------------------
+
+  it("Preferencias es funcional: sin 'Próxima fase' y con botón de guardar", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+    const sec = sectionByHeading("Preferencias");
+    expect(sec.queryByText("Próxima fase")).not.toBeInTheDocument();
+    expect(sec.getByRole("button", { name: "Guardar preferencias" })).toBeInTheDocument();
+    expect(screen.queryAllByText("Próxima fase")).toHaveLength(0);
+  });
+
+  it("con preferencias null muestra valores por defecto editables", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(emptyProfile);
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+    const sec = sectionByHeading("Preferencias");
+    expect(sec.getByLabelText("Roles deseados")).toHaveValue("");
+    expect(sec.getByLabelText("Modalidad")).toHaveValue("ANY");
+    expect(sec.getByLabelText("Seniority")).toHaveValue("");
+    expect(sec.getByLabelText("Jornada completa")).not.toBeChecked();
+  });
+
+  it("precarga las preferencias existentes", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+    const sec = sectionByHeading("Preferencias");
+    expect(sec.getByLabelText("Roles deseados")).toHaveValue("Frontend");
+    expect(sec.getByLabelText("Ubicaciones preferidas")).toHaveValue("Bilbao");
+    expect(sec.getByLabelText("Modalidad")).toHaveValue("REMOTE");
+    expect(sec.getByLabelText("Seniority")).toHaveValue("MID");
+    expect(sec.getByLabelText("Salario mínimo")).toHaveValue(35000);
+    expect(sec.getByLabelText("Salario máximo")).toHaveValue(50000);
+    expect(sec.getByLabelText("Jornada completa")).toBeChecked();
+  });
+
+  it("guardar llama a updateProfilePreferences con payload normalizado y refresca", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    vi.mocked(updateProfilePreferences).mockResolvedValueOnce(fullProfile.preferences!);
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    const sec = sectionByHeading("Preferencias");
+    fireEvent.change(sec.getByLabelText("Roles deseados"), { target: { value: "Frontend, Frontend , Backend ," } });
+    await user.click(sec.getByRole("button", { name: "Guardar preferencias" }));
+
+    await waitFor(() =>
+      expect(updateProfilePreferences).toHaveBeenCalledWith("tok-cv", {
+        desiredRoles: ["Frontend", "Backend"],
+        preferredLocations: ["Bilbao"],
+        remotePreference: "REMOTE",
+        seniority: "MID",
+        salaryMin: 35000,
+        salaryMax: 50000,
+        contractTypes: ["FULL_TIME"]
+      })
+    );
+    await waitFor(() => expect(getMyProfile).toHaveBeenCalledTimes(2));
+  });
+
+  it("permite vaciar arrays y salarios (envía [] y null)", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    vi.mocked(updateProfilePreferences).mockResolvedValueOnce(fullProfile.preferences!);
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    const sec = sectionByHeading("Preferencias");
+    fireEvent.change(sec.getByLabelText("Roles deseados"), { target: { value: "" } });
+    fireEvent.change(sec.getByLabelText("Ubicaciones preferidas"), { target: { value: "" } });
+    fireEvent.change(sec.getByLabelText("Salario mínimo"), { target: { value: "" } });
+    fireEvent.change(sec.getByLabelText("Salario máximo"), { target: { value: "" } });
+    await user.click(sec.getByLabelText("Jornada completa")); // desmarca FULL_TIME
+    await user.click(sec.getByRole("button", { name: "Guardar preferencias" }));
+
+    await waitFor(() =>
+      expect(updateProfilePreferences).toHaveBeenCalledWith("tok-cv", {
+        desiredRoles: [],
+        preferredLocations: [],
+        remotePreference: "REMOTE",
+        seniority: "MID",
+        salaryMin: null,
+        salaryMax: null,
+        contractTypes: []
+      })
+    );
+  });
+
+  it("no envía si el salario mínimo no es un entero positivo", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+    const sec = sectionByHeading("Preferencias");
+    fireEvent.change(sec.getByLabelText("Salario mínimo"), { target: { value: "0" } });
+    await user.click(sec.getByRole("button", { name: "Guardar preferencias" }));
+    expect(sec.getByText("El salario mínimo debe ser un número entero positivo.")).toBeInTheDocument();
+    expect(updateProfilePreferences).not.toHaveBeenCalled();
+  });
+
+  it("no envía si el salario máximo no es un entero positivo", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+    const sec = sectionByHeading("Preferencias");
+    fireEvent.change(sec.getByLabelText("Salario máximo"), { target: { value: "-5" } });
+    await user.click(sec.getByRole("button", { name: "Guardar preferencias" }));
+    expect(sec.getByText("El salario máximo debe ser un número entero positivo.")).toBeInTheDocument();
+    expect(updateProfilePreferences).not.toHaveBeenCalled();
+  });
+
+  it("no envía si el salario es decimal", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+    const sec = sectionByHeading("Preferencias");
+    fireEvent.change(sec.getByLabelText("Salario mínimo"), { target: { value: "12.5" } });
+    await user.click(sec.getByRole("button", { name: "Guardar preferencias" }));
+    expect(sec.getByText("El salario mínimo debe ser un número entero positivo.")).toBeInTheDocument();
+    expect(updateProfilePreferences).not.toHaveBeenCalled();
+  });
+
+  it("no envía si el salario máximo es menor que el mínimo", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+    const sec = sectionByHeading("Preferencias");
+    fireEvent.change(sec.getByLabelText("Salario máximo"), { target: { value: "30000" } });
+    await user.click(sec.getByRole("button", { name: "Guardar preferencias" }));
+    expect(sec.getByText("El salario máximo no puede ser menor que el salario mínimo.")).toBeInTheDocument();
+    expect(updateProfilePreferences).not.toHaveBeenCalled();
+  });
+
+  it("muestra error si el PUT de preferencias falla", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    vi.mocked(updateProfilePreferences).mockRejectedValueOnce(new ApiClientError(400, "VALIDATION_ERROR", "bad"));
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+    const sec = sectionByHeading("Preferencias");
+    await user.click(sec.getByRole("button", { name: "Guardar preferencias" }));
+    expect(await sec.findByText("Revisa los datos de preferencias.")).toBeInTheDocument();
   });
 });

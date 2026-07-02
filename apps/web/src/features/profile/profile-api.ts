@@ -24,7 +24,9 @@ import type {
   UpdateProfileExperienceInput,
   UpdateProfileProjectInput,
   PutProfileLinksInput,
-  PutProfileLinksResponse
+  PutProfileLinksResponse,
+  PutProfilePreferencesInput,
+  ProfilePreferencesDto
 } from "@/types/api";
 
 function normalizeProfile(raw: Partial<CandidateProfileDto>): CandidateProfileDto {
@@ -171,4 +173,12 @@ export function replaceProfileLinks(
   input: PutProfileLinksInput
 ): Promise<PutProfileLinksResponse> {
   return apiRequest<PutProfileLinksResponse>("/api/profile/me/links", { method: "PUT", token, body: input });
+}
+
+/** `PUT /api/profile/me/preferences` → upsert de preferencias; devuelve las preferencias resultantes. */
+export function updateProfilePreferences(
+  token: string,
+  input: PutProfilePreferencesInput
+): Promise<ProfilePreferencesDto> {
+  return apiRequest<ProfilePreferencesDto>("/api/profile/me/preferences", { method: "PUT", token, body: input });
 }
