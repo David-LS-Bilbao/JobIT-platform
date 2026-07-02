@@ -125,7 +125,8 @@ El Sprint 08 valido el entorno local real (backend + PostgreSQL + frontend) en e
 - Entorno operativo obligatorio: clon nativo de WSL `/home/david/projects/JobIT-platform` (ver `docs/agents/operating-environment.md`). No usar la carpeta de OneDrive/Windows para tooling.
 - Base de datos local de dev/smoke: `jobit_dev` en el contenedor `jobit-postgres-test` (host `5434`), separada de la base de test `jobit_test`.
 - Plantilla de entorno del backend: `apps/api/.env.example` (placeholders, sin secretos). Los `.env` reales (`apps/api/.env`, `apps/web/.env.local`) son locales e ignorados por Git.
-- Variables (sin valores reales): backend `DATABASE_URL`, `JWT_ACCESS_SECRET`, `PORT` (4000), `CORS_ORIGIN` (`http://localhost:3000`), `NODE_ENV`, `JOOBLE_API_KEY` (opcional/vacia); frontend `NEXT_PUBLIC_API_BASE_URL` (`http://localhost:4000`).
+- Variables (sin valores reales): backend `DATABASE_URL`, `DATABASE_URL_TEST`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `PORT` (4000), `CORS_ORIGIN`, `NODE_ENV`, `JOOBLE_API_KEY` (opcional/vacia); frontend `NEXT_PUBLIC_API_BASE_URL` (`http://localhost:4000`).
+- Guia detallada de entorno local (arranque API/Web, `DATABASE_URL_TEST` y smoke con curl): [`docs/development/local-env.md`](docs/development/local-env.md). Importante: `CORS_ORIGIN` debe coincidir con el puerto REAL del frontend; si el 3000 esta ocupado y el web corre en `:3001`, usa `CORS_ORIGIN=http://localhost:3001` (si no, el login falla por CORS).
 
 Resultado del smoke local (PASS_WITH_NOTES):
 
