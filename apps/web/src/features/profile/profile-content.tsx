@@ -29,11 +29,11 @@ const labelClass = "text-xs font-semibold uppercase tracking-wide text-slate-500
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
+function PreferenceField({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div>
-      <dt className={labelClass}>{label}</dt>
-      <dd className="mt-0.5 text-sm text-slate-700">{children}</dd>
+      <p className={labelClass}>{label}</p>
+      <p className="mt-0.5 text-sm text-slate-700">{children}</p>
     </div>
   );
 }
@@ -129,16 +129,12 @@ export function ProfileContent({ profile: initialProfile, token }: { profile: Ca
             </span>
           </div>
           <div className="flex items-center gap-3 md:w-72">
-            <div
-              className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100"
-              role="progressbar"
+            <progress
               aria-label="Completitud del perfil"
-              aria-valuenow={pct as unknown as number}
-              aria-valuemin={0}
-              aria-valuemax={100}
-            >
-              <div className="h-full rounded-full bg-[#006591]" style={{ width: `${pct}%` }} />
-            </div>
+              value={pct}
+              max={100}
+              className="h-2 flex-1 overflow-hidden rounded-full border-0 bg-slate-100 [&::-webkit-progress-bar]:rounded-full [&::-webkit-progress-bar]:bg-slate-100 [&::-webkit-progress-value]:rounded-full [&::-webkit-progress-value]:bg-[#006591] [&::-moz-progress-bar]:rounded-full [&::-moz-progress-bar]:bg-[#006591]"
+            />
             <span className="text-sm font-semibold text-slate-600">{pct}%</span>
           </div>
         </div>
@@ -283,16 +279,16 @@ export function ProfileContent({ profile: initialProfile, token }: { profile: Ca
 
           <ProfileSectionCard title="Preferencias" action={<NextPhaseBadge />}>
             {profile.preferences ? (
-              <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <Field label="Roles deseados">{orDash(profile.preferences.desiredRoles)}</Field>
-                <Field label="Ubicaciones">{orDash(profile.preferences.preferredLocations)}</Field>
-                <Field label="Modalidad">{REMOTE_PREFERENCE_LABELS[profile.preferences.remotePreference]}</Field>
-                <Field label="Seniority">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <PreferenceField label="Roles deseados">{orDash(profile.preferences.desiredRoles)}</PreferenceField>
+                <PreferenceField label="Ubicaciones">{orDash(profile.preferences.preferredLocations)}</PreferenceField>
+                <PreferenceField label="Modalidad">{REMOTE_PREFERENCE_LABELS[profile.preferences.remotePreference]}</PreferenceField>
+                <PreferenceField label="Seniority">
                   {profile.preferences.seniority ? SENIORITY_LABELS[profile.preferences.seniority] : "—"}
-                </Field>
-                <Field label="Salario">{formatSalary(profile.preferences.salaryMin, profile.preferences.salaryMax)}</Field>
-                <Field label="Tipos de contrato">{orDash(profile.preferences.contractTypes)}</Field>
-              </dl>
+                </PreferenceField>
+                <PreferenceField label="Salario">{formatSalary(profile.preferences.salaryMin, profile.preferences.salaryMax)}</PreferenceField>
+                <PreferenceField label="Tipos de contrato">{orDash(profile.preferences.contractTypes)}</PreferenceField>
+              </div>
             ) : (
               <ProfileEmptyState title="Preferencias" description="Define qué buscas en tu próxima oportunidad." />
             )}
