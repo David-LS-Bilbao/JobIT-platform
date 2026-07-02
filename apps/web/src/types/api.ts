@@ -293,6 +293,49 @@ export interface UpdatePortfolioSettingsInput {
   showPreferences?: boolean;
 }
 
+// --- Portfolio público (`GET /api/public/portfolios/:slug`) ------------------
+// Read model construido por whitelist en backend: solo campos públicos. Los
+// campos ocultos por flags llegan como `null`; nunca incluye salario ni datos
+// privados (userId, email, tokens, completitud, saved jobs, matches).
+
+export interface PublicPortfolioProfile {
+  name: string;
+  headline: string | null;
+  summary: string | null;
+  avatarUrl: string | null;
+  location: string | null;
+  availabilityStatus: AvailabilityStatus | null;
+  locationRemote: boolean | null;
+  skills: { name: string; level: SkillLevel | null }[];
+  experiences: {
+    company: string;
+    role: string;
+    startDate: string;
+    endDate: string | null;
+    current: boolean;
+    description: string | null;
+    location: string | null;
+  }[];
+  education: {
+    institution: string;
+    title: string;
+    field: string | null;
+    startDate: string | null;
+    endDate: string | null;
+    current: boolean;
+  }[];
+  projects: { name: string; description: string | null; technologies: string[]; url: string | null; repoUrl: string | null }[];
+  links: { type: ProfileLinkType; url: string }[];
+  preferences: { desiredRoles: string[]; preferredLocations: string[]; remotePreference: RemotePreference } | null;
+}
+
+export interface PublicPortfolioDto {
+  slug: string;
+  publicUrlPath: string;
+  publishedAt: string | null;
+  profile: PublicPortfolioProfile;
+}
+
 /** Cuerpo de `POST /api/profile/me/skills`. Solo `name` es obligatorio. */
 export interface CreateProfileSkillInput {
   name: string;

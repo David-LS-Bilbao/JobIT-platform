@@ -224,14 +224,16 @@ describe("ProfilePortfolioSettingsPage (/profile/portfolio/settings)", () => {
     expect(screen.getAllByText(/\/u\/ana-perez/).length).toBeGreaterThan(0);
   });
 
-  it("enlaza a la preview privada y avisa de que la ruta pública llega después", async () => {
+  it("enlaza a la preview privada y avisa de que el enlace requiere publicar", async () => {
     vi.mocked(getMyPortfolioSettings).mockResolvedValueOnce(unpublished);
     renderWithSession();
     await screen.findByText("No publicado");
 
     expect(screen.getByRole("link", { name: "Ver preview privada" })).toHaveAttribute("href", "/profile/portfolio");
+    // Microcopy actualizado (14F): la ruta ya está activa; el enlace requiere publicar.
+    expect(screen.queryByText(/se activará en el siguiente paso/)).not.toBeInTheDocument();
     expect(
-      screen.getByText("La ruta pública se activará en el siguiente paso del módulo Portfolio.")
+      screen.getByText("Este enlace no será visible públicamente hasta que publiques tu portfolio.")
     ).toBeInTheDocument();
   });
 

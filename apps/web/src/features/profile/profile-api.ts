@@ -29,7 +29,8 @@ import type {
   ProfilePreferencesDto,
   UploadAvatarResponse,
   PortfolioSettingsDto,
-  UpdatePortfolioSettingsInput
+  UpdatePortfolioSettingsInput,
+  PublicPortfolioDto
 } from "@/types/api";
 
 function normalizeProfile(raw: Partial<CandidateProfileDto>): CandidateProfileDto {
@@ -135,6 +136,14 @@ export function buildPublicPortfolioUrl(publicUrlPath: string): string {
     return `${window.location.origin}${publicUrlPath}`;
   }
   return publicUrlPath;
+}
+
+/**
+ * `GET /api/public/portfolios/:slug` → portfolio público (sin auth).
+ * Lanza `ApiClientError` con status 404 si no existe o no está publicado.
+ */
+export function getPublicPortfolio(slug: string): Promise<PublicPortfolioDto> {
+  return apiRequest<PublicPortfolioDto>(`/api/public/portfolios/${encodeURIComponent(slug)}`);
 }
 
 /** `POST /api/profile/me/skills` → skill creada (201). */

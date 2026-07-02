@@ -172,9 +172,13 @@ export function ProfilePortfolioSettings({
             {copied ? <span className="text-xs font-medium text-emerald-600">Enlace copiado</span> : null}
           </div>
           <p className="text-xs text-slate-500">Ruta pública: {settings.publicUrlPath}</p>
-          <p className="text-xs text-slate-500">
-            La ruta pública se activará en el siguiente paso del módulo Portfolio.
-          </p>
+          {settings.isPublished ? (
+            <p className="text-xs text-slate-500">Comparte este enlace: tu portfolio está publicado.</p>
+          ) : (
+            <p className="text-xs text-slate-500">
+              Este enlace no será visible públicamente hasta que publiques tu portfolio.
+            </p>
+          )}
         </div>
 
         {publishError ? (
