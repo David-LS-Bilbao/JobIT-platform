@@ -13,6 +13,7 @@ import { savedJobsRouter } from "./saved-jobs/saved-jobs.router.js";
 import { matchRouter } from "./match/match.router.js";
 import { profileRouter } from "./profile/profile.router.js";
 import { portfolioRouter } from "./profile/portfolio.router.js";
+import { publicPortfolioRouter } from "./profile/public-portfolio.router.js";
 import { UPLOADS_ROOT } from "./profile/avatar.storage.js";
 import { healthRouter } from "./routes/health.routes.js";
 
@@ -48,6 +49,8 @@ app.use("/api/auth", authRouter);
 // Rutas de gestión del portfolio (más específicas): antes del router de profile.
 app.use("/api/profile/me/portfolio", portfolioRouter);
 app.use("/api/profile", profileRouter);
+// Portfolio público (sin auth): read model por whitelist.
+app.use("/api/public", publicPortfolioRouter);
 app.use("/api/dashboard", dashboardRouter);
 app.use("/api/jobs", jobsRouter);
 app.use("/api/saved-jobs", savedJobsRouter);
