@@ -49,6 +49,12 @@ function buildUrl(path: string): string {
   return `${getBaseUrl()}${normalizedPath}`;
 }
 
+/** Base URL del backend normalizada, o "" si no está configurada (para URLs de assets). */
+export function apiBaseUrlOrNull(): string {
+  const base = process.env.NEXT_PUBLIC_API_BASE_URL;
+  return base && base.trim().length > 0 ? base.trim().replace(/\/+$/, "") : "";
+}
+
 function safeJsonParse(text: string): unknown {
   try {
     return JSON.parse(text);
@@ -71,6 +77,22 @@ function toApiError(status: number, data: unknown): ApiClientError {
     }
   }
   return new ApiClientError(status, "UNKNOWN", `Error de API (HTTP ${status}).`);
+}
+
+async function parseResponse<T>(response: Response): Promise<T> {
+  // 204 No Content (logout, delete): sin cuerpo que parsear.
+  const isNoBody = response.status === 204;
+  let data: unknown;
+  if (!isNoBody) {
+    const text = await response.text();
+    data = text.length > 0 ? safeJsonParse(text) : undefined;
+  }
+
+  if (!response.ok) {
+    throw toApiError(response.status, data);
+  }
+
+  return (isNoBody ? undefined : data) as T;
 }
 
 export interface ApiRequestOptions {
@@ -101,17 +123,30 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
     signal
   });
 
-  // 204 No Content (logout, delete): sin cuerpo que parsear.
-  const isNoBody = response.status === 204;
-  let data: unknown;
-  if (!isNoBody) {
-    const text = await response.text();
-    data = text.length > 0 ? safeJsonParse(text) : undefined;
+  return parseResponse<T>(response);
+}
+
+/**
+ * Sube `multipart/form-data` (p. ej. imagen de avatar). No fija `Content-Type`:
+ * el navegador añade el boundary automáticamente. Reutiliza el manejo de errores.
+ */
+export async function apiUpload<T>(
+  path: string,
+  formData: FormData,
+  options: { token?: string | null; signal?: AbortSignal } = {}
+): Promise<T> {
+  const headers: Record<string, string> = { Accept: "application/json" };
+  if (options.token) {
+    headers["Authorization"] = `Bearer ${options.token}`;
   }
 
-  if (!response.ok) {
-    throw toApiError(response.status, data);
-  }
+  const response = await fetch(buildUrl(path), {
+    method: "POST",
+    credentials: "include",
+    headers,
+    body: formData,
+    signal: options.signal
+  });
 
-  return (isNoBody ? undefined : data) as T;
+  return parseResponse<T>(response);
 }

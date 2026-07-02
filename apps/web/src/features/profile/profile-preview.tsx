@@ -1,6 +1,7 @@
 import type { CandidateProfileDto } from "@/types/api";
 
-import { AVAILABILITY_LABELS, displayName, initialsFrom } from "./profile-format";
+import { ProfileAvatar } from "./profile-avatar";
+import { AVAILABILITY_LABELS, displayName } from "./profile-format";
 
 function IconPin() {
   return (
@@ -14,16 +15,18 @@ function IconPin() {
 /** Preview read-only del JobIT CV (columna derecha, refleja los edits en vivo). */
 export function ProfilePreview({ profile }: { profile: CandidateProfileDto }) {
   const name = displayName(profile);
-  const initials = initialsFrom(name);
   const locationBits = [profile.location?.trim() || null, profile.locationRemote ? "Remoto" : null].filter(Boolean);
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-[0_10px_15px_-3px_rgba(0,0,0,0.1)]">
       <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-slate-400">Vista previa</p>
       <div className="flex items-start gap-4">
-        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-white bg-gradient-to-br from-[#006591] to-[#004c6e] text-lg font-bold text-white shadow-sm">
-          {initials}
-        </span>
+        <ProfileAvatar
+          name={name}
+          avatarUrl={profile.avatarUrl}
+          imgClassName="h-14 w-14 shrink-0 rounded-full border-2 border-white object-cover shadow-sm"
+          fallbackClassName="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-white bg-gradient-to-br from-[#006591] to-[#004c6e] text-lg font-bold text-white shadow-sm"
+        />
         <div className="min-w-0">
           <h4 className="truncate text-lg font-bold text-slate-900">{name}</h4>
           <p className="truncate text-sm font-medium text-[#006591]">

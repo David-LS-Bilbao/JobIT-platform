@@ -9,7 +9,9 @@ export const updateBasicInfoSchema = z
     location: z.string().trim().optional(),
     locationRemote: z.boolean().optional(),
     availabilityStatus: z.enum(["ACTIVE", "OPEN", "NOT_LOOKING"]).optional(),
-    avatarUrl: z.string().url().optional()
+    // URL externa (avanzado). `null` limpia el avatar; omitirlo lo preserva. Las
+    // imágenes subidas se guardan como ruta interna vía POST /me/avatar, no aquí.
+    avatarUrl: z.string().url().nullable().optional()
   })
   .strip();
 

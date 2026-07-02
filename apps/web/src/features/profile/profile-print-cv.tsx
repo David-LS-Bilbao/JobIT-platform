@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import type { CandidateProfileDto } from "@/types/api";
 
+import { ProfileAvatar } from "./profile-avatar";
 import {
   AVAILABILITY_LABELS,
   LINK_TYPE_LABELS,
@@ -10,8 +11,7 @@ import {
   SKILL_LEVEL_LABELS,
   displayName,
   formatContractType,
-  formatDateRange,
-  initialsFrom
+  formatDateRange
 } from "./profile-format";
 
 function CvSection({ title, children }: { title: string; children: ReactNode }) {
@@ -55,18 +55,12 @@ export function ProfilePrintCv({ profile }: { profile: CandidateProfileDto }) {
   return (
     <article className="rounded-xl border border-slate-200 bg-white p-8 text-slate-900 shadow-sm print:rounded-none print:border-0 print:p-0 print:shadow-none">
       <header className="flex items-center gap-5 border-b-2 border-[#006591] pb-5">
-        {profile.avatarUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={profile.avatarUrl}
-            alt={name}
-            className="h-20 w-20 shrink-0 rounded-full object-cover ring-1 ring-slate-200"
-          />
-        ) : (
-          <span className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-[#dce9ff] text-2xl font-bold text-[#004c6e] ring-1 ring-[#b9d3f2] print:bg-white">
-            {initialsFrom(name)}
-          </span>
-        )}
+        <ProfileAvatar
+          name={name}
+          avatarUrl={profile.avatarUrl}
+          imgClassName="h-20 w-20 shrink-0 rounded-full object-cover ring-1 ring-slate-200"
+          fallbackClassName="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-[#dce9ff] text-2xl font-bold text-[#004c6e] ring-1 ring-[#b9d3f2] print:bg-white"
+        />
         <div className="min-w-0">
           <h1 className="text-3xl font-bold leading-tight tracking-tight text-slate-900">{name}</h1>
           {profile.headline ? <p className="mt-0.5 text-base font-medium text-[#006591]">{profile.headline}</p> : null}

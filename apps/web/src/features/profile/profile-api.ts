@@ -8,7 +8,7 @@
  * incluyan todas las relaciones (listas → [], preferences → null). No inventa
  * datos: solo evita accesos a `undefined` en la UI.
  */
-import { apiRequest } from "@/lib/api-client";
+import { apiBaseUrlOrNull, apiRequest, apiUpload } from "@/lib/api-client";
 import type {
   CandidateProfileDto,
   CreateProfileEducationInput,
@@ -26,7 +26,8 @@ import type {
   PutProfileLinksInput,
   PutProfileLinksResponse,
   PutProfilePreferencesInput,
-  ProfilePreferencesDto
+  ProfilePreferencesDto,
+  UploadAvatarResponse
 } from "@/types/api";
 
 function normalizeProfile(raw: Partial<CandidateProfileDto>): CandidateProfileDto {
@@ -68,6 +69,30 @@ export async function updateMyProfile(
     body: input
   });
   return normalizeProfile(raw);
+}
+
+/** `POST /api/profile/me/avatar` (multipart, campo `avatar`) → nueva `avatarUrl`. */
+export function uploadProfileAvatar(token: string, file: File): Promise<UploadAvatarResponse> {
+  const formData = new FormData();
+  formData.append("avatar", file);
+  return apiUpload<UploadAvatarResponse>("/api/profile/me/avatar", formData, { token });
+}
+
+/**
+ * Resuelve la URL pintable de un avatar:
+ * - http(s) → tal cual (URL externa);
+ * - `/uploads/...` → se prefija con la base de la API (imagen interna servida por el backend);
+ * - vacío → null.
+ */
+export function resolveProfileImageUrl(avatarUrl: string | null | undefined): string | null {
+  const trimmed = avatarUrl?.trim();
+  if (!trimmed) return null;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (trimmed.startsWith("/uploads")) {
+    const base = apiBaseUrlOrNull();
+    return base ? `${base}${trimmed}` : trimmed;
+  }
+  return trimmed;
 }
 
 /** `POST /api/profile/me/skills` → skill creada (201). */

@@ -262,9 +262,60 @@ Nota: los subrecursos **no** tienen `createdAt`/`updatedAt` en el modelo de dato
 - Exportación del perfil a PDF.
 - Importación desde LinkedIn o CV externo.
 - Validación de skills con insignias o evidencias.
-- Foto de perfil con subida de archivo (solo URL externa en MVP).
+- Foto de perfil en almacenamiento en la nube / CDN (el MVP sube a almacenamiento local; ver "Subida de imagen de perfil").
 - Historial de cambios del perfil.
 - Modo borrador o versiones del perfil.
+
+## Subida de imagen de perfil (Sprint 14B)
+
+### Objetivo
+Permitir que el candidato suba una imagen de perfil **desde su dispositivo** (MVP con almacenamiento local en el backend) y la vea en `/profile`, en la preview del CV y en `/profile/portfolio`. Se mantiene `avatarUrl` con URL externa como opción avanzada/fallback.
+
+### Usuario afectado
+Candidato tech autenticado gestionando su JobIT CV en `/profile`.
+
+### Flujo principal
+1. En "Datos profesionales → Imagen de perfil", el candidato pulsa "Subir imagen" y elige un archivo (PNG/JPG/WebP ≤ 2 MB).
+2. El frontend envía `multipart/form-data` (campo `avatar`) a `POST /api/profile/me/avatar` con Bearer token.
+3. El backend valida MIME (allowlist + magic bytes) y tamaño, guarda el archivo con un nombre aleatorio y seguro en almacenamiento local, actualiza `profile.avatarUrl` y responde `{ avatarUrl }` (ruta interna `/uploads/avatars/<archivo>`).
+4. El frontend refresca el perfil y pinta la imagen (preview y portfolio). Fallback a iniciales si no hay imagen o falla la carga.
+
+### Endpoint
+`POST /api/profile/me/avatar` (privado).
+- `Content-Type: multipart/form-data`, campo `avatar`.
+- Tipos permitidos: `image/jpeg`, `image/png`, `image/webp`. Máximo 2 MB.
+- Respuesta OK `200`: `{ "avatarUrl": "/uploads/avatars/<archivo>" }`.
+- La carpeta `/uploads` se sirve estáticamente (`Cross-Origin-Resource-Policy: cross-origin`) para pintarla desde el frontend en otro origen.
+
+### Validaciones
+- Auth requerida (401 sin token).
+- Presencia de archivo.
+- MIME en allowlist (rechazo por `fileFilter`) y **coincidencia de magic bytes** con el MIME declarado (rechaza tipo falsificado, SVG y GIF).
+- Tamaño ≤ 2 MB (límite de multer).
+- `PUT /api/profile/me`: `avatarUrl` pasa a ser condicional (omitirlo **preserva** el avatar; `null` lo limpia; solo acepta URL http(s) externa). Evita que un guardado de datos básicos borre una imagen subida.
+
+### Errores
+- `401` no autenticado.
+- `400` sin archivo (`NO_FILE`) / error de subida (`UPLOAD_ERROR`).
+- `415` tipo no permitido o bytes que no coinciden (`UNSUPPORTED_MEDIA_TYPE`).
+- `413` supera 2 MB (`FILE_TOO_LARGE`).
+- `500` fallo de almacenamiento (`STORAGE_ERROR`), sin filtrar rutas internas.
+
+### Almacenamiento MVP
+- Local en `apps/api/uploads/avatars/` (carpeta versionada con `.gitkeep`; imágenes generadas ignoradas por `.gitignore`).
+- Nombre de archivo aleatorio (`<userId>_<uuid>.<ext>`), nunca el nombre original; extensión derivada del MIME validado; guardia anti path traversal.
+
+### Criterios de aceptación
+- [ ] `POST /api/profile/me/avatar` acepta PNG/JPG/WebP ≤ 2 MB y actualiza `avatarUrl`.
+- [ ] Rechaza no autenticado (401), sin archivo (400), tipo no permitido (415) y tamaño excesivo (413).
+- [ ] La respuesta no filtra rutas absolutas internas.
+- [ ] La imagen se ve en `/profile` (preview) y en `/profile/portfolio`; fallback a iniciales.
+- [ ] `PUT /api/profile/me` no borra la imagen subida al guardar datos básicos.
+
+### Fuera de alcance
+- Almacenamiento en la nube (S3/Cloudinary/CDN), recorte/crop, compresión en cliente, drag & drop, cámara.
+- SVG y GIF. Base64 o blobs en base de datos.
+- Vista pública/compartible del avatar.
 
 ## Auditoría requerida
 

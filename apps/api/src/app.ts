@@ -12,6 +12,7 @@ import { jobsRouter } from "./jobs/jobs.router.js";
 import { savedJobsRouter } from "./saved-jobs/saved-jobs.router.js";
 import { matchRouter } from "./match/match.router.js";
 import { profileRouter } from "./profile/profile.router.js";
+import { UPLOADS_ROOT } from "./profile/avatar.storage.js";
 import { healthRouter } from "./routes/health.routes.js";
 
 export const app = express();
@@ -27,6 +28,19 @@ app.use(
 );
 app.use(express.json());
 app.use(cookieParser());
+
+// Almacenamiento local MVP de avatares: servido estáticamente. `Cross-Origin-Resource-Policy: cross-origin`
+// permite que el frontend (otro origen) pinte la imagen pese al CORP same-origin por defecto de helmet.
+app.use(
+  "/uploads",
+  express.static(UPLOADS_ROOT, {
+    index: false,
+    dotfiles: "ignore",
+    setHeaders: (res) => {
+      res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+    }
+  })
+);
 
 app.use(healthRouter);
 app.use("/api/auth", authRouter);

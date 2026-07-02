@@ -19,7 +19,11 @@ vi.mock("next/link", () => ({
     </a>
   )
 }));
-vi.mock("@/features/profile/profile-api", () => ({ getMyProfile: vi.fn() }));
+vi.mock("@/features/profile/profile-api", async (importOriginal) => ({
+  // Mantiene resolveProfileImageUrl real (lo usa ProfileAvatar); mockea solo la red.
+  ...(await importOriginal<typeof import("@/features/profile/profile-api")>()),
+  getMyProfile: vi.fn()
+}));
 vi.mock("@/features/auth/auth-api", () => ({ logoutCandidate: vi.fn() }));
 
 const sessionUser: UserDto = {
@@ -245,6 +249,25 @@ describe("ProfilePortfolioPage (/profile/portfolio · Portfolio JobIT CV)", () =
     expect(prefs.getByText(/Jornada completa/)).toBeInTheDocument();
     expect(prefs.getByText(/Freelance/)).toBeInTheDocument();
     expect(screen.queryByText(/FULL_TIME/)).not.toBeInTheDocument();
+  });
+
+  it("renderiza la imagen con un avatarUrl interno (/uploads) resuelto", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce({ ...fullProfile, avatarUrl: "/uploads/avatars/u1_abc.png" });
+    renderWithSession();
+
+    const img = await screen.findByAltText("Ana Pérez");
+    expect(img.getAttribute("src")).toContain("/uploads/avatars/u1_abc.png");
+  });
+
+  it("mantiene las iniciales cuando no hay avatarUrl y no expone input de archivo", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile); // avatarUrl: null
+    const { container } = renderWithSession();
+
+    await screen.findByRole("heading", { name: "Ana Pérez" });
+    expect(screen.queryByAltText("Ana Pérez")).not.toBeInTheDocument();
+    expect(screen.getByText("AP")).toBeInTheDocument();
+    // La subida vive solo en /profile: el portfolio no expone input de archivo.
+    expect(container.querySelector('input[type="file"]')).toBeNull();
   });
 
   it("no expone funcionalidades fuera del MVP candidate-first", async () => {
