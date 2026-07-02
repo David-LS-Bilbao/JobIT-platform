@@ -1,0 +1,243 @@
+import type { ReactNode } from "react";
+
+import type { CandidateProfileDto } from "@/types/api";
+
+import {
+  AVAILABILITY_LABELS,
+  LINK_TYPE_LABELS,
+  REMOTE_PREFERENCE_LABELS,
+  SENIORITY_LABELS,
+  SKILL_LEVEL_LABELS,
+  displayName,
+  formatContractType,
+  formatDateRange,
+  initialsFrom
+} from "./profile-format";
+
+function CvSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="mt-5 break-inside-avoid">
+      <h2 className="mb-2 border-b border-slate-200 pb-1 text-[11px] font-bold uppercase tracking-[0.14em] text-[#006591]">
+        {title}
+      </h2>
+      {children}
+    </section>
+  );
+}
+
+function formatSalary(min: number | null, max: number | null): string | null {
+  if (min != null && max != null) return `${min} – ${max}`;
+  if (min != null) return `Desde ${min}`;
+  if (max != null) return `Hasta ${max}`;
+  return null;
+}
+
+/**
+ * Documento CV imprimible. Fondo blanco, jerarquía sobria y `break-inside-avoid`
+ * para evitar cortes feos al imprimir. Los navegadores omiten fondos por defecto
+ * en impresión; la cabecera/sidebar del AppShell se ocultan con `print:hidden`.
+ * Los enums (contratos, disponibilidad, modalidad) se muestran humanizados.
+ */
+export function ProfilePrintCv({ profile }: { profile: CandidateProfileDto }) {
+  const name = displayName(profile);
+  const { preferences } = profile;
+  const contactLine = [
+    profile.location,
+    profile.locationRemote ? "Disponible en remoto" : null,
+    AVAILABILITY_LABELS[profile.availabilityStatus]
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const salary = preferences ? formatSalary(preferences.salaryMin, preferences.salaryMax) : null;
+  const hasContent =
+    profile.experiences.length > 0 || profile.education.length > 0 || profile.projects.length > 0;
+
+  return (
+    <article className="rounded-xl border border-slate-200 bg-white p-8 text-slate-900 shadow-sm print:rounded-none print:border-0 print:p-0 print:shadow-none">
+      <header className="flex items-center gap-5 border-b-2 border-[#006591] pb-5">
+        {profile.avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={profile.avatarUrl}
+            alt={name}
+            className="h-20 w-20 shrink-0 rounded-full object-cover ring-1 ring-slate-200"
+          />
+        ) : (
+          <span className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-[#dce9ff] text-2xl font-bold text-[#004c6e] ring-1 ring-[#b9d3f2] print:bg-white">
+            {initialsFrom(name)}
+          </span>
+        )}
+        <div className="min-w-0">
+          <h1 className="text-3xl font-bold leading-tight tracking-tight text-slate-900">{name}</h1>
+          {profile.headline ? <p className="mt-0.5 text-base font-medium text-[#006591]">{profile.headline}</p> : null}
+          {contactLine ? <p className="mt-1 text-xs text-slate-500">{contactLine}</p> : null}
+        </div>
+      </header>
+
+      {profile.summary ? (
+        <CvSection title="Resumen">
+          <p className="text-sm leading-relaxed text-slate-700">{profile.summary}</p>
+        </CvSection>
+      ) : null}
+
+      {profile.skills.length > 0 ? (
+        <CvSection title="Skills">
+          <ul className="flex flex-wrap gap-1.5">
+            {profile.skills.map((skill) => (
+              <li
+                key={skill.id}
+                className="rounded-md border border-slate-300 bg-slate-50 px-2.5 py-0.5 text-xs text-slate-700 print:bg-white"
+              >
+                {skill.name}
+                {skill.level ? <span className="text-slate-400"> · {SKILL_LEVEL_LABELS[skill.level]}</span> : null}
+              </li>
+            ))}
+          </ul>
+        </CvSection>
+      ) : null}
+
+      {profile.experiences.length > 0 ? (
+        <CvSection title="Experiencia">
+          <ul className="space-y-3">
+            {profile.experiences.map((exp) => (
+              <li key={exp.id} className="break-inside-avoid">
+                <div className="flex items-baseline justify-between gap-3">
+                  <p className="text-sm font-semibold text-slate-900">{exp.role}</p>
+                  <p className="shrink-0 text-xs text-slate-500">
+                    {formatDateRange(exp.startDate, exp.endDate, exp.current)}
+                  </p>
+                </div>
+                <p className="text-sm text-slate-600">
+                  {exp.company}
+                  {exp.location ? ` · ${exp.location}` : ""}
+                </p>
+                {exp.description ? <p className="mt-0.5 text-sm text-slate-700">{exp.description}</p> : null}
+              </li>
+            ))}
+          </ul>
+        </CvSection>
+      ) : null}
+
+      {profile.education.length > 0 ? (
+        <CvSection title="Educación">
+          <ul className="space-y-3">
+            {profile.education.map((edu) => (
+              <li key={edu.id} className="break-inside-avoid">
+                <div className="flex items-baseline justify-between gap-3">
+                  <p className="text-sm font-semibold text-slate-900">{edu.title}</p>
+                  <p className="shrink-0 text-xs text-slate-500">
+                    {formatDateRange(edu.startDate, edu.endDate, edu.current)}
+                  </p>
+                </div>
+                <p className="text-sm text-slate-600">
+                  {edu.institution}
+                  {edu.field?.trim() ? ` · ${edu.field}` : ""}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </CvSection>
+      ) : null}
+
+      {profile.projects.length > 0 ? (
+        <CvSection title="Proyectos">
+          <ul className="space-y-3">
+            {profile.projects.map((project) => (
+              <li key={project.id} className="break-inside-avoid">
+                <p className="text-sm font-semibold text-slate-900">{project.name}</p>
+                {project.description?.trim() ? (
+                  <p className="text-sm text-slate-700">{project.description}</p>
+                ) : null}
+                {project.technologies.length > 0 ? (
+                  <p className="text-xs text-slate-500">{project.technologies.join(" · ")}</p>
+                ) : null}
+                {project.url || project.repoUrl ? (
+                  <div className="flex flex-wrap gap-3 text-xs">
+                    {project.url ? (
+                      <a href={project.url} target="_blank" rel="noopener noreferrer" className="text-[#006591] underline">
+                        {project.url}
+                      </a>
+                    ) : null}
+                    {project.repoUrl ? (
+                      <a
+                        href={project.repoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#006591] underline"
+                      >
+                        {project.repoUrl}
+                      </a>
+                    ) : null}
+                  </div>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </CvSection>
+      ) : null}
+
+      {profile.links.length > 0 ? (
+        <CvSection title="Enlaces">
+          <ul className="space-y-1">
+            {profile.links.map((link) => (
+              <li key={link.id} className="text-sm">
+                <span className="font-medium text-slate-700">{LINK_TYPE_LABELS[link.type]}: </span>
+                <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-[#006591] underline">
+                  {link.url}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </CvSection>
+      ) : null}
+
+      {preferences ? (
+        <CvSection title="Preferencias">
+          <div className="grid grid-cols-1 gap-1 text-sm sm:grid-cols-2">
+            {preferences.desiredRoles.length > 0 ? (
+              <p>
+                <span className="text-slate-500">Roles: </span>
+                {preferences.desiredRoles.join(", ")}
+              </p>
+            ) : null}
+            {preferences.preferredLocations.length > 0 ? (
+              <p>
+                <span className="text-slate-500">Ubicaciones: </span>
+                {preferences.preferredLocations.join(", ")}
+              </p>
+            ) : null}
+            <p>
+              <span className="text-slate-500">Modalidad: </span>
+              {REMOTE_PREFERENCE_LABELS[preferences.remotePreference]}
+            </p>
+            {preferences.seniority ? (
+              <p>
+                <span className="text-slate-500">Seniority: </span>
+                {SENIORITY_LABELS[preferences.seniority]}
+              </p>
+            ) : null}
+            {salary ? (
+              <p>
+                <span className="text-slate-500">Salario: </span>
+                {salary}
+              </p>
+            ) : null}
+            {preferences.contractTypes.length > 0 ? (
+              <p>
+                <span className="text-slate-500">Contrato: </span>
+                {preferences.contractTypes.map(formatContractType).join(", ")}
+              </p>
+            ) : null}
+          </div>
+        </CvSection>
+      ) : null}
+
+      {!hasContent ? (
+        <p className="mt-6 text-sm text-slate-500 print:hidden">
+          Aún no has añadido experiencia, formación ni proyectos. Complétalos en tu JobIT CV para enriquecer tu
+          portfolio.
+        </p>
+      ) : null}
+    </article>
+  );
+}

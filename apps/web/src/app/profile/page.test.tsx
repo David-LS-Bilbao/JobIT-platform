@@ -294,6 +294,15 @@ describe("ProfilePage (/profile · JobIT CV)", () => {
     expect(screen.queryByText(/pricing/i)).not.toBeInTheDocument();
   });
 
+  it("enlaza al portfolio imprimible en /profile/portfolio", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    const portfolioLink = screen.getByRole("link", { name: "Ver portfolio / imprimir CV" });
+    expect(portfolioLink).toHaveAttribute("href", "/profile/portfolio");
+  });
+
   it("muestra empty state de skills cuando no hay skills", async () => {
     vi.mocked(getMyProfile).mockResolvedValueOnce(emptyProfile);
     renderWithSession();

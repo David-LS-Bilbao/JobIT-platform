@@ -43,6 +43,33 @@ export const SENIORITY_LABELS: Record<PreferenceSeniority, string> = {
   SENIOR: "Senior"
 };
 
+// `contractTypes` llega como string[] libre desde el backend: mapeamos los
+// valores conocidos y dejamos un fallback seguro para cualquier otro.
+export const CONTRACT_TYPE_LABELS: Record<string, string> = {
+  FULL_TIME: "Jornada completa",
+  PART_TIME: "Media jornada",
+  CONTRACT: "Contrato",
+  FREELANCE: "Freelance",
+  INTERNSHIP: "Prácticas",
+  TEMPORARY: "Temporal"
+};
+
+/**
+ * Humaniza un valor de enum crudo: usa el catálogo conocido y, si no existe,
+ * aplica un fallback seguro (guiones bajos → espacios y capitalización inicial).
+ */
+export function humanizeEnum(value: string, labels: Record<string, string> = {}): string {
+  const known = labels[value];
+  if (known) return known;
+  const cleaned = value.replace(/_/g, " ").trim().toLowerCase();
+  return cleaned ? cleaned.charAt(0).toUpperCase() + cleaned.slice(1) : value;
+}
+
+/** Etiqueta legible de un tipo de contrato (p. ej. `FULL_TIME` → "Jornada completa"). */
+export function formatContractType(value: string): string {
+  return humanizeEnum(value, CONTRACT_TYPE_LABELS);
+}
+
 const MONTHS_ES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 
 export function formatMonthYear(iso: string): string {

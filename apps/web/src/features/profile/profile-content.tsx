@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, type FormEvent } from "react";
 
 import { ApiClientError } from "@/lib/api-client";
@@ -125,6 +126,9 @@ export function ProfileContent({ profile: initialProfile, token }: { profile: Ca
           >
             {saveState === "saving" ? "Guardando…" : "Guardar cambios"}
           </button>
+          <Link href="/profile/portfolio" className="text-xs font-medium text-[#006591] hover:underline">
+            Ver portfolio / imprimir CV
+          </Link>
           {saveState === "saved" ? (
             <span className="text-xs font-medium text-emerald-600">Cambios guardados</span>
           ) : null}
