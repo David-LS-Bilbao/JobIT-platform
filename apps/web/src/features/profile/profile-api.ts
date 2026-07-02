@@ -22,7 +22,9 @@ import type {
   UpdateProfileBasicInfoInput,
   UpdateProfileEducationInput,
   UpdateProfileExperienceInput,
-  UpdateProfileProjectInput
+  UpdateProfileProjectInput,
+  PutProfileLinksInput,
+  PutProfileLinksResponse
 } from "@/types/api";
 
 function normalizeProfile(raw: Partial<CandidateProfileDto>): CandidateProfileDto {
@@ -161,4 +163,12 @@ export function deleteProfileProject(token: string, projectId: string): Promise<
     method: "DELETE",
     token
   });
+}
+
+/** `PUT /api/profile/me/links` → reemplaza toda la lista; devuelve los enlaces resultantes. */
+export function replaceProfileLinks(
+  token: string,
+  input: PutProfileLinksInput
+): Promise<PutProfileLinksResponse> {
+  return apiRequest<PutProfileLinksResponse>("/api/profile/me/links", { method: "PUT", token, body: input });
 }

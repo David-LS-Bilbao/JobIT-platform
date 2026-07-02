@@ -17,7 +17,8 @@ import {
   updateMyProfile,
   updateProfileEducation,
   updateProfileExperience,
-  updateProfileProject
+  updateProfileProject,
+  replaceProfileLinks
 } from "@/features/profile/profile-api";
 import { ProfilePage } from "@/features/profile/profile-page";
 import { ApiClientError } from "@/lib/api-client";
@@ -48,7 +49,8 @@ vi.mock("@/features/profile/profile-api", () => ({
   deleteProfileEducation: vi.fn(),
   addProfileProject: vi.fn(),
   updateProfileProject: vi.fn(),
-  deleteProfileProject: vi.fn()
+  deleteProfileProject: vi.fn(),
+  replaceProfileLinks: vi.fn()
 }));
 vi.mock("@/features/auth/auth-api", () => ({ logoutCandidate: vi.fn() }));
 
@@ -351,8 +353,8 @@ describe("ProfilePage (/profile · JobIT CV)", () => {
 
     expect(screen.queryByText("Añadir skill · próxima fase")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Añadir skill" })).toBeInTheDocument();
-    // Enlaces y Preferencias siguen como próxima fase (Skills/Experiencia/Educación/Proyectos ya funcionan).
-    expect(screen.getAllByText("Próxima fase").length).toBe(2);
+    // Solo Preferencias sigue como próxima fase (Skills/Experiencia/Educación/Proyectos/Enlaces ya funcionan).
+    expect(screen.getAllByText("Próxima fase").length).toBe(1);
   });
 
   it("añadir experiencia llama a POST /api/profile/me/experience y refresca", async () => {
@@ -643,7 +645,7 @@ describe("ProfilePage (/profile · JobIT CV)", () => {
     await waitFor(() => expect(getMyProfile).toHaveBeenCalledTimes(2));
   });
 
-  it("Educación es funcional (sin 'Próxima fase') y Enlaces/Preferencias siguen pendientes", async () => {
+  it("Educación es funcional (sin 'Próxima fase') y Preferencias sigue pendiente", async () => {
     vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
     renderWithSession();
     await screen.findByText("Tu perfil tech vivo");
@@ -651,7 +653,7 @@ describe("ProfilePage (/profile · JobIT CV)", () => {
     const edu = sectionByHeading("Educación");
     expect(edu.queryByText("Próxima fase")).not.toBeInTheDocument();
     expect(edu.getByRole("button", { name: "Añadir formación" })).toBeInTheDocument();
-    expect(screen.getAllByText("Próxima fase").length).toBe(2);
+    expect(screen.getAllByText("Próxima fase").length).toBe(1);
   });
 
   it("muestra botón de editar por formación y precarga los datos al abrir el editor", async () => {
@@ -765,7 +767,7 @@ describe("ProfilePage (/profile · JobIT CV)", () => {
     expect(screen.getByText("Aún no has añadido proyectos.")).toBeInTheDocument();
   });
 
-  it("Proyectos es funcional (sin 'Próxima fase'); solo Enlaces y Preferencias siguen pendientes", async () => {
+  it("Proyectos es funcional (sin 'Próxima fase'); solo Preferencias sigue pendiente", async () => {
     vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
     renderWithSession();
     await screen.findByText("Tu perfil tech vivo");
@@ -773,7 +775,7 @@ describe("ProfilePage (/profile · JobIT CV)", () => {
     const proj = sectionByHeading("Proyectos");
     expect(proj.queryByText("Próxima fase")).not.toBeInTheDocument();
     expect(proj.getByRole("button", { name: "Añadir proyecto" })).toBeInTheDocument();
-    expect(screen.getAllByText("Próxima fase").length).toBe(2);
+    expect(screen.getAllByText("Próxima fase").length).toBe(1);
   });
 
   it("añadir un proyecto llama a POST /api/profile/me/projects y refresca", async () => {
@@ -1144,5 +1146,162 @@ describe("ProfilePage (/profile · JobIT CV)", () => {
 
     expect(editor.getByText(/Para quitar una URL existente hace falta soporte backend/)).toBeInTheDocument();
     expect(updateProfileProject).not.toHaveBeenCalled();
+  });
+
+  // --- Enlaces (Sprint 13G-01) ----------------------------------------------
+
+  it("muestra empty state de enlaces cuando no hay registros", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(emptyProfile);
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+    const sec = sectionByHeading("Enlaces");
+    expect(sec.getByText(/Aún no has añadido enlaces/)).toBeInTheDocument();
+  });
+
+  it("renderiza los enlaces existentes con su tipo y URL", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+    const sec = sectionByHeading("Enlaces");
+    expect(sec.getByLabelText("URL del enlace 1")).toHaveValue("https://github.com/ana");
+    expect(sec.getByLabelText("Tipo del enlace 1")).toHaveValue("GITHUB");
+  });
+
+  it("Enlaces es funcional (sin 'Próxima fase'); solo Preferencias sigue pendiente", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+    const sec = sectionByHeading("Enlaces");
+    expect(sec.queryByText("Próxima fase")).not.toBeInTheDocument();
+    expect(sec.getByRole("button", { name: "Guardar enlaces" })).toBeInTheDocument();
+    expect(screen.getAllByText("Próxima fase").length).toBe(1);
+  });
+
+  it("añade una fila de enlace localmente", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(emptyProfile);
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+    const sec = sectionByHeading("Enlaces");
+    expect(sec.queryByLabelText("URL del enlace 1")).not.toBeInTheDocument();
+    await user.click(sec.getByRole("button", { name: /añadir enlace/i }));
+    expect(sec.getByLabelText("URL del enlace 1")).toBeInTheDocument();
+  });
+
+  it("cambia el tipo de un enlace", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+    const sec = sectionByHeading("Enlaces");
+    await user.selectOptions(sec.getByLabelText("Tipo del enlace 1"), "LINKEDIN");
+    expect(sec.getByLabelText("Tipo del enlace 1")).toHaveValue("LINKEDIN");
+  });
+
+  it("guardar llama a PUT /api/profile/me/links con la lista completa limpia y refresca", async () => {
+    const savedLinks = [
+      { id: "l1", type: "GITHUB" as const, url: "https://github.com/ana" },
+      { id: "l2", type: "LINKEDIN" as const, url: "https://linkedin.com/in/ana" }
+    ];
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    vi.mocked(replaceProfileLinks).mockResolvedValueOnce({ links: savedLinks });
+    vi.mocked(getMyProfile).mockResolvedValueOnce({ ...fullProfile, links: savedLinks });
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    const sec = sectionByHeading("Enlaces");
+    await user.click(sec.getByRole("button", { name: /añadir enlace/i }));
+    await user.selectOptions(sec.getByLabelText("Tipo del enlace 2"), "LINKEDIN");
+    await user.type(sec.getByLabelText("URL del enlace 2"), "https://linkedin.com/in/ana");
+    await user.click(sec.getByRole("button", { name: "Guardar enlaces" }));
+
+    await waitFor(() =>
+      expect(replaceProfileLinks).toHaveBeenCalledWith("tok-cv", {
+        links: [
+          { type: "GITHUB", url: "https://github.com/ana" },
+          { type: "LINKEDIN", url: "https://linkedin.com/in/ana" }
+        ]
+      })
+    );
+    await waitFor(() => expect(getMyProfile).toHaveBeenCalledTimes(2));
+  });
+
+  it("no envía si no hay enlaces", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(emptyProfile);
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+    const sec = sectionByHeading("Enlaces");
+    await user.click(sec.getByRole("button", { name: "Guardar enlaces" }));
+    expect(sec.getByText("Añade al menos un enlace válido.")).toBeInTheDocument();
+    expect(replaceProfileLinks).not.toHaveBeenCalled();
+  });
+
+  it("no envía si una URL está vacía", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(emptyProfile);
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+    const sec = sectionByHeading("Enlaces");
+    await user.click(sec.getByRole("button", { name: /añadir enlace/i }));
+    await user.click(sec.getByRole("button", { name: "Guardar enlaces" }));
+    expect(sec.getByText("Completa la URL o elimina la fila.")).toBeInTheDocument();
+    expect(replaceProfileLinks).not.toHaveBeenCalled();
+  });
+
+  it("no envía si una URL no es http/https", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(emptyProfile);
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+    const sec = sectionByHeading("Enlaces");
+    await user.click(sec.getByRole("button", { name: /añadir enlace/i }));
+    await user.type(sec.getByLabelText("URL del enlace 1"), "ftp://nope");
+    await user.click(sec.getByRole("button", { name: "Guardar enlaces" }));
+    expect(sec.getByText("La URL debe empezar por http:// o https://.")).toBeInTheDocument();
+    expect(replaceProfileLinks).not.toHaveBeenCalled();
+  });
+
+  it("eliminar una fila localmente y guardar envía la lista restante", async () => {
+    const twoLinks = {
+      ...fullProfile,
+      links: [
+        { id: "l1", type: "GITHUB" as const, url: "https://github.com/ana" },
+        { id: "l2", type: "LINKEDIN" as const, url: "https://linkedin.com/in/ana" }
+      ]
+    };
+    vi.mocked(getMyProfile).mockResolvedValueOnce(twoLinks);
+    vi.mocked(replaceProfileLinks).mockResolvedValueOnce({
+      links: [{ id: "l2", type: "LINKEDIN", url: "https://linkedin.com/in/ana" }]
+    });
+    vi.mocked(getMyProfile).mockResolvedValueOnce({
+      ...twoLinks,
+      links: [{ id: "l2", type: "LINKEDIN", url: "https://linkedin.com/in/ana" }]
+    });
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+
+    const sec = sectionByHeading("Enlaces");
+    await user.click(sec.getByRole("button", { name: "Eliminar enlace 1" }));
+    await user.click(sec.getByRole("button", { name: "Guardar enlaces" }));
+
+    await waitFor(() =>
+      expect(replaceProfileLinks).toHaveBeenCalledWith("tok-cv", {
+        links: [{ type: "LINKEDIN", url: "https://linkedin.com/in/ana" }]
+      })
+    );
+  });
+
+  it("muestra error si el PUT de enlaces falla", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    vi.mocked(replaceProfileLinks).mockRejectedValueOnce(new ApiClientError(400, "VALIDATION_ERROR", "bad"));
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+    const sec = sectionByHeading("Enlaces");
+    await user.click(sec.getByRole("button", { name: "Guardar enlaces" }));
+    expect(await sec.findByText("Revisa los datos de los enlaces.")).toBeInTheDocument();
   });
 });

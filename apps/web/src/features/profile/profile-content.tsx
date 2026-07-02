@@ -8,10 +8,11 @@ import type { AvailabilityStatus, CandidateProfileDto, UpdateProfileBasicInfoInp
 import { getMyProfile, updateMyProfile } from "./profile-api";
 import { ProfileCompletionCard } from "./profile-completion-card";
 import { ProfileEmptyState } from "./profile-empty-state";
-import { LINK_TYPE_LABELS, REMOTE_PREFERENCE_LABELS, SENIORITY_LABELS } from "./profile-format";
+import { REMOTE_PREFERENCE_LABELS, SENIORITY_LABELS } from "./profile-format";
 import { ProfilePreview } from "./profile-preview";
 import { ProfileEducationSection } from "./profile-education-section";
 import { ProfileExperienceSection } from "./profile-experience-section";
+import { ProfileLinksSection } from "./profile-links-section";
 import { ProfileProjectsSection } from "./profile-projects-section";
 import { NextPhaseBadge, ProfileSectionCard } from "./profile-section-card";
 import { ProfileSkillsSection } from "./profile-skills-section";
@@ -276,26 +277,8 @@ export function ProfileContent({ profile: initialProfile, token }: { profile: Ca
             <ProfileProjectsSection projects={profile.projects} token={token} onChanged={refreshProfile} />
           </ProfileSectionCard>
 
-          <ProfileSectionCard title="Enlaces" action={<NextPhaseBadge />}>
-            {profile.links.length > 0 ? (
-              <ul className="space-y-2">
-                {profile.links.map((link) => (
-                  <li key={link.id} className="flex items-center gap-2 text-sm">
-                    <span className="font-medium text-slate-700">{LINK_TYPE_LABELS[link.type]}</span>
-                    <a
-                      href={link.url}
-                      target="_blank"
-                      rel="noreferrer noopener"
-                      className="truncate text-[#006591] hover:underline"
-                    >
-                      {link.url}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <ProfileEmptyState title="Enlaces" description="Añade tu GitHub, LinkedIn o portfolio." />
-            )}
+          <ProfileSectionCard title="Enlaces">
+            <ProfileLinksSection links={profile.links} token={token} onChanged={refreshProfile} />
           </ProfileSectionCard>
 
           <ProfileSectionCard title="Preferencias" action={<NextPhaseBadge />}>
