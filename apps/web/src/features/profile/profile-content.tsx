@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { useState, type SyntheticEvent } from "react";
 
 import { ApiClientError } from "@/lib/api-client";
 import type { AvailabilityStatus, CandidateProfileDto, UpdateProfileBasicInfoInput } from "@/types/api";
@@ -114,7 +114,7 @@ export function ProfileContent({ profile: initialProfile, token }: { profile: Ca
     }
   }
 
-  async function handleSave(event: FormEvent) {
+  async function handleSave(event: SyntheticEvent) {
     event.preventDefault();
     setErrorMsg(null);
     if (firstName.trim().length < 2 || lastName.trim().length < 2) {

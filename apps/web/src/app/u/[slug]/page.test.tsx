@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { getPublicPortfolio } from "@/features/profile/profile-api";
@@ -6,10 +7,19 @@ import { PublicPortfolioPage } from "@/features/profile/public-portfolio-page";
 import { ApiClientError } from "@/lib/api-client";
 import type { PublicPortfolioDto } from "@/types/api";
 
+import { metadata } from "./page";
+
 vi.mock("@/features/profile/profile-api", async (importOriginal) => ({
   // Mantiene resolveProfileImageUrl real (lo usa ProfileAvatar); mockea solo la red.
   ...(await importOriginal<typeof import("@/features/profile/profile-api")>()),
   getPublicPortfolio: vi.fn()
+}));
+vi.mock("next/link", () => ({
+  default: ({ href, children, ...rest }: { href: string; children: ReactNode }) => (
+    <a href={href} {...rest}>
+      {children}
+    </a>
+  )
 }));
 
 const dto: PublicPortfolioDto = {
@@ -139,5 +149,35 @@ describe("PublicPortfolioPage (/u/[slug])", () => {
     expect(screen.queryByText(/export pdf|pdf server/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/github sync|importar github/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/inteligencia artificial|pro plan|pricing/i)).not.toBeInTheDocument();
+  });
+
+  it("no pinta secciones vacías (educación ausente en el DTO)", async () => {
+    vi.mocked(getPublicPortfolio).mockResolvedValueOnce(dto); // education: []
+    render(<PublicPortfolioPage slug="ana-perez" />);
+    await screen.findByRole("heading", { name: "Ana Pérez" });
+
+    expect(screen.queryByRole("heading", { name: "Educación" })).not.toBeInTheDocument();
+    // Las secciones con datos sí aparecen.
+    expect(screen.getByRole("heading", { name: "Experiencia" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Proyectos" })).toBeInTheDocument();
+  });
+
+  it("muestra la atribución a JobIT y oculta el chrome (barra/footer) en impresión", async () => {
+    vi.mocked(getPublicPortfolio).mockResolvedValueOnce(dto);
+    render(<PublicPortfolioPage slug="ana-perez" />);
+    await screen.findByRole("heading", { name: "Ana Pérez" });
+
+    // Marca JobIT como generador (discreta), enlazada a la landing.
+    const brand = screen.getAllByRole("link").find((l) => l.getAttribute("href") === "/");
+    expect(brand).toBeDefined();
+    expect(brand).toHaveTextContent(/JobIT/i);
+    // El footer de atribución y la barra del botón de imprimir se ocultan en print.
+    expect(screen.getByText("Generado con JobIT")).toHaveClass("print:hidden");
+    const printBtn = screen.getByRole("button", { name: "Imprimir / Guardar PDF" });
+    expect(printBtn.closest("div")).toHaveClass("print:hidden");
+  });
+
+  it("la ruta pública declara noindex (privacidad V1)", () => {
+    expect(metadata.robots).toMatchObject({ index: false });
   });
 });

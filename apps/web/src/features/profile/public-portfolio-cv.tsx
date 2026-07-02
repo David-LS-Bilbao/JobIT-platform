@@ -37,8 +37,8 @@ export function PublicPortfolioCv({ profile }: { profile: PublicPortfolioProfile
     .join(" · ");
 
   return (
-    <article className="rounded-xl border border-slate-200 bg-white p-8 text-slate-900 shadow-sm print:rounded-none print:border-0 print:p-0 print:shadow-none">
-      <header className="flex items-center gap-5 border-b-2 border-[#006591] pb-5">
+    <article className="rounded-xl border border-slate-200 bg-white p-6 text-slate-900 shadow-sm sm:p-8 print:rounded-none print:border-0 print:p-0 print:shadow-none">
+      <header className="flex items-center gap-4 border-b-2 border-[#006591] pb-5 sm:gap-5">
         <ProfileAvatar
           name={profile.name}
           avatarUrl={profile.avatarUrl}
@@ -46,7 +46,9 @@ export function PublicPortfolioCv({ profile }: { profile: PublicPortfolioProfile
           fallbackClassName="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-[#dce9ff] text-2xl font-bold text-[#004c6e] ring-1 ring-[#b9d3f2] print:bg-white"
         />
         <div className="min-w-0">
-          <h1 className="text-3xl font-bold leading-tight tracking-tight text-slate-900">{profile.name}</h1>
+          <h1 className="text-2xl font-bold leading-tight tracking-tight text-slate-900 sm:text-3xl">
+            {profile.name}
+          </h1>
           {profile.headline ? <p className="mt-0.5 text-base font-medium text-[#006591]">{profile.headline}</p> : null}
           {contactLine ? <p className="mt-1 text-xs text-slate-500">{contactLine}</p> : null}
         </div>
@@ -136,7 +138,7 @@ export function PublicPortfolioCv({ profile }: { profile: PublicPortfolioProfile
                 {project.url || project.repoUrl ? (
                   <div className="flex flex-wrap gap-3 text-xs">
                     {project.url ? (
-                      <a href={project.url} target="_blank" rel="noopener noreferrer" className="text-[#006591] underline">
+                      <a href={project.url} target="_blank" rel="noopener noreferrer" className="break-all text-[#006591] underline">
                         {project.url}
                       </a>
                     ) : null}
@@ -145,7 +147,7 @@ export function PublicPortfolioCv({ profile }: { profile: PublicPortfolioProfile
                         href={project.repoUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[#006591] underline"
+                        className="break-all text-[#006591] underline"
                       >
                         {project.repoUrl}
                       </a>
@@ -164,7 +166,7 @@ export function PublicPortfolioCv({ profile }: { profile: PublicPortfolioProfile
             {profile.links.map((link, i) => (
               <li key={`${link.url}-${i}`} className="text-sm">
                 <span className="font-medium text-slate-700">{LINK_TYPE_LABELS[link.type]}: </span>
-                <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-[#006591] underline">
+                <a href={link.url} target="_blank" rel="noopener noreferrer" className="break-all text-[#006591] underline">
                   {link.url}
                 </a>
               </li>
