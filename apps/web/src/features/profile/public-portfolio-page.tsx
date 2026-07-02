@@ -61,7 +61,7 @@ export function PublicPortfolioPage({ slug }: { slug: string }) {
           <>
             <div className="mb-6 flex flex-wrap items-center justify-between gap-3 print:hidden">
               <Link href="/" className="flex items-center gap-2 text-sm font-bold tracking-tight text-[#004c6e]">
-                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-[#006591] to-[#006c49] text-xs font-bold text-white">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-linear-to-br from-[#006591] to-[#006c49] text-xs font-bold text-white">
                   J
                 </span>
                 JobIT

@@ -99,7 +99,7 @@ function IconClose() {
 
 function BrandMark() {
   return (
-    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#006591] to-[#006c49] text-sm font-bold text-white">
+    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-[#006591] to-[#006c49] text-sm font-bold text-white">
       J
     </span>
   );
