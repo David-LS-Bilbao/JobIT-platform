@@ -1,20 +1,19 @@
 "use client";
 
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useState, type FormEvent } from "react";
 
 import { ApiClientError } from "@/lib/api-client";
 import type { AvailabilityStatus, CandidateProfileDto, UpdateProfileBasicInfoInput } from "@/types/api";
 
 import { getMyProfile, updateMyProfile } from "./profile-api";
 import { ProfileCompletionCard } from "./profile-completion-card";
-import { ProfileEmptyState } from "./profile-empty-state";
-import { REMOTE_PREFERENCE_LABELS, SENIORITY_LABELS } from "./profile-format";
 import { ProfilePreview } from "./profile-preview";
 import { ProfileEducationSection } from "./profile-education-section";
 import { ProfileExperienceSection } from "./profile-experience-section";
 import { ProfileLinksSection } from "./profile-links-section";
+import { ProfilePreferencesSection } from "./profile-preferences-section";
 import { ProfileProjectsSection } from "./profile-projects-section";
-import { NextPhaseBadge, ProfileSectionCard } from "./profile-section-card";
+import { ProfileSectionCard } from "./profile-section-card";
 import { ProfileSkillsSection } from "./profile-skills-section";
 
 const AVAILABILITY_OPTIONS: ReadonlyArray<{ value: AvailabilityStatus; label: string }> = [
@@ -29,27 +28,7 @@ const labelClass = "text-xs font-semibold uppercase tracking-wide text-slate-500
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
-function PreferenceField({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div>
-      <p className={labelClass}>{label}</p>
-      <p className="mt-0.5 text-sm text-slate-700">{children}</p>
-    </div>
-  );
-}
-
-function orDash(arr: string[]): string {
-  return arr.length > 0 ? arr.join(", ") : "—";
-}
-
-function formatSalary(min: number | null, max: number | null): string {
-  if (min != null && max != null) return `${min} – ${max}`;
-  if (min != null) return `Desde ${min}`;
-  if (max != null) return `Hasta ${max}`;
-  return "—";
-}
-
-/** JobIT CV: vista + edición de datos profesionales básicos (PUT). Subrecursos read-only. */
+/** JobIT CV: vista + edición de datos profesionales básicos (PUT) + subrecursos editables. */
 export function ProfileContent({ profile: initialProfile, token }: { profile: CandidateProfileDto; token: string }) {
   const [profile, setProfile] = useState<CandidateProfileDto>(initialProfile);
   const [firstName, setFirstName] = useState(initialProfile.firstName ?? "");
@@ -277,21 +256,8 @@ export function ProfileContent({ profile: initialProfile, token }: { profile: Ca
             <ProfileLinksSection links={profile.links} token={token} onChanged={refreshProfile} />
           </ProfileSectionCard>
 
-          <ProfileSectionCard title="Preferencias" action={<NextPhaseBadge />}>
-            {profile.preferences ? (
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <PreferenceField label="Roles deseados">{orDash(profile.preferences.desiredRoles)}</PreferenceField>
-                <PreferenceField label="Ubicaciones">{orDash(profile.preferences.preferredLocations)}</PreferenceField>
-                <PreferenceField label="Modalidad">{REMOTE_PREFERENCE_LABELS[profile.preferences.remotePreference]}</PreferenceField>
-                <PreferenceField label="Seniority">
-                  {profile.preferences.seniority ? SENIORITY_LABELS[profile.preferences.seniority] : "—"}
-                </PreferenceField>
-                <PreferenceField label="Salario">{formatSalary(profile.preferences.salaryMin, profile.preferences.salaryMax)}</PreferenceField>
-                <PreferenceField label="Tipos de contrato">{orDash(profile.preferences.contractTypes)}</PreferenceField>
-              </div>
-            ) : (
-              <ProfileEmptyState title="Preferencias" description="Define qué buscas en tu próxima oportunidad." />
-            )}
+          <ProfileSectionCard title="Preferencias">
+            <ProfilePreferencesSection preferences={profile.preferences} token={token} onChanged={refreshProfile} />
           </ProfileSectionCard>
         </div>
 

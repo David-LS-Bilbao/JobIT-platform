@@ -335,3 +335,18 @@ export interface PutProfileLinksInput {
 export interface PutProfileLinksResponse {
   links: ProfileLinkDto[];
 }
+
+/**
+ * Cuerpo de `PUT /api/profile/me/preferences` (upsert). Todos los campos son
+ * opcionales; el backend aplica defaults e ignora campos desconocidos (`.strip()`).
+ * La respuesta reutiliza `ProfilePreferencesDto`.
+ */
+export interface PutProfilePreferencesInput {
+  desiredRoles?: string[];
+  preferredLocations?: string[];
+  remotePreference?: RemotePreference;
+  seniority?: PreferenceSeniority | null;
+  salaryMin?: number | null;
+  salaryMax?: number | null;
+  contractTypes?: string[];
+}
