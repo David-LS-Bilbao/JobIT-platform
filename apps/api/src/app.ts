@@ -12,6 +12,7 @@ import { jobsRouter } from "./jobs/jobs.router.js";
 import { savedJobsRouter } from "./saved-jobs/saved-jobs.router.js";
 import { matchRouter } from "./match/match.router.js";
 import { profileRouter } from "./profile/profile.router.js";
+import { portfolioRouter } from "./profile/portfolio.router.js";
 import { UPLOADS_ROOT } from "./profile/avatar.storage.js";
 import { healthRouter } from "./routes/health.routes.js";
 
@@ -44,6 +45,8 @@ app.use(
 
 app.use(healthRouter);
 app.use("/api/auth", authRouter);
+// Rutas de gestión del portfolio (más específicas): antes del router de profile.
+app.use("/api/profile/me/portfolio", portfolioRouter);
 app.use("/api/profile", profileRouter);
 app.use("/api/dashboard", dashboardRouter);
 app.use("/api/jobs", jobsRouter);

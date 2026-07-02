@@ -8,15 +8,16 @@ datasource db {
 }
 
 model User {
-  id            String            @id @default(uuid())
-  email         String            @unique
-  passwordHash  String
-  role          String            @default("CANDIDATE")
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
-  refreshTokens RefreshToken[]
-  profile       CandidateProfile?
-  savedJobs     SavedJob[]
+  id                String             @id @default(uuid())
+  email             String             @unique
+  passwordHash      String
+  role              String             @default("CANDIDATE")
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  refreshTokens     RefreshToken[]
+  profile           CandidateProfile?
+  savedJobs         SavedJob[]
+  portfolioSettings PortfolioSettings?
 }
 
 model RefreshToken {
@@ -81,6 +82,23 @@ model CandidateProfile {
   projects           Project[]
   links              Link[]
   preferences        JobPreferences?
+}
+
+// JobIT Portfolio V1: configuración privada de publicación del portfolio público.
+// No almacena HTML ni snapshot del perfil: el portfolio se proyecta en vivo desde
+// el CandidateProfile. Solo guarda slug, estado de publicación y flags de visibilidad.
+model PortfolioSettings {
+  id               String    @id @default(uuid())
+  userId           String    @unique
+  slug             String    @unique
+  isPublished      Boolean   @default(false)
+  publishedAt      DateTime?
+  showLocation     Boolean   @default(true)
+  showAvailability Boolean   @default(true)
+  showPreferences  Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Skill {
@@ -193,12 +211,12 @@ model Job {
   postedAt     DateTime     @default(now())
   expiresAt    DateTime?
 
-  source       JobSource    @default(INTERNAL)
-  externalId   String?
-  sourceUrl    String?
-  ingestedAt   DateTime?
+  source     JobSource @default(INTERNAL)
+  externalId String?
+  sourceUrl  String?
+  ingestedAt DateTime?
 
-  savedBy      SavedJob[]
+  savedBy SavedJob[]
 
   @@index([status])
   @@index([remoteType])
