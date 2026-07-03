@@ -284,11 +284,11 @@ describe("ProfilePage (/profile · JobIT CV)", () => {
     expect(screen.getByRole("link", { name: "JobIT CV" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("link", { name: "Dashboard" })).toHaveAttribute("href", "/dashboard");
 
-    // Sin rutas no implementadas
+    // Jobs y Guardadas ya son rutas reales en la sidebar; Match sigue sin implementar.
     const links = screen.getAllByRole("link");
-    for (const href of ["/jobs", "/saved-jobs", "/match"]) {
-      expect(links.some((l) => l.getAttribute("href") === href)).toBe(false);
-    }
+    expect(links.some((l) => l.getAttribute("href") === "/jobs")).toBe(true);
+    expect(links.some((l) => l.getAttribute("href") === "/saved-jobs")).toBe(true);
+    expect(links.some((l) => l.getAttribute("href") === "/match")).toBe(false);
 
     // Nada fuera de MVP
     expect(screen.queryByText(/expertech/i)).not.toBeInTheDocument();

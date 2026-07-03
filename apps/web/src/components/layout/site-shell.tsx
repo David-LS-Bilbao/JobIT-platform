@@ -120,8 +120,8 @@ interface PrivateNavItem {
 const PRIVATE_NAV: ReadonlyArray<PrivateNavItem> = [
   { label: "Dashboard", href: "/dashboard", status: "available", icon: <IconDashboard /> },
   { label: "JobIT CV", href: "/profile", status: "available", icon: <IconDoc /> },
-  { label: "JobIT Jobs", href: "/jobs", status: "pending", icon: <IconWork /> },
-  { label: "Guardadas", href: "/saved-jobs", status: "pending", icon: <IconBookmark /> },
+  { label: "JobIT Jobs", href: "/jobs", status: "available", icon: <IconWork /> },
+  { label: "Guardadas", href: "/saved-jobs", status: "available", icon: <IconBookmark /> },
   { label: "JobIT Match", href: "/match", status: "pending", icon: <IconTarget /> }
 ];
 
