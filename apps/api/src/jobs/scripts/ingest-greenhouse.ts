@@ -1,7 +1,7 @@
 /**
  * Ingesta controlada de ofertas Greenhouse (ATS público, por empresa) para dev/staging.
  *
- * Backend-only y MANUAL: no expone endpoint ni se invoca desde requests del candidato;
+ * Backend-only y MANUAL: no se ejecuta automáticamente, no expone endpoint ni se invoca desde requests del candidato;
  * alimenta la DB local que consulta `GET /api/jobs`. No hace scraping, NO usa secretos (el
  * Job Board API es público) y NO borra el seed ni datos existentes (upsert idempotente por
  * `(source, externalId)`).
@@ -14,6 +14,7 @@
  *   ING_LIMIT               Máximo de ofertas por board (1..100).
  *
  * La lista curada de empresas vive versionada en `greenhouse.companies.ts` (no en `.env`).
+ * Smoke real: requiere autorización explícita del operador antes de ejecutar este script.
  * Base URL: `GREENHOUSE_API_BASE_URL` (opcional; default público de Greenhouse).
  */
 import { env } from "../../config/env.js";
@@ -46,7 +47,7 @@ async function main(): Promise<void> {
     console.error(
       "[ingest-greenhouse] No hay boards curados que ingerir " +
         "(GREENHOUSE_COMPANIES vacío o ING_GREENHOUSE_TOKENS sin coincidencias). " +
-        "Aborta sin llamar a Greenhouse."
+        "Aborta sin llamar a Greenhouse. Smoke real requiere autorización explícita."
     );
     process.exit(1);
   }
