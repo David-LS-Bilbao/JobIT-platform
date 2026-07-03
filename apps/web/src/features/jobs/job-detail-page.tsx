@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 
 import { SiteShell } from "@/components/layout/site-shell";
 import { useAuth } from "@/features/auth/auth-context";
+import { JobMatchPanel } from "@/features/match/job-match-panel";
 import { getSavedJobs, saveJob, unsaveJob } from "@/features/saved-jobs/saved-jobs-api";
 import { ApiClientError, isSessionExpiredError } from "@/lib/api-client";
 import type { JobPublicDto } from "@/types/api";
@@ -194,6 +195,10 @@ export function JobDetailPage({ id }: { id: string }) {
             </a>
           ) : null}
         </article>
+
+        {/* Panel de match explicable: autocontenido; su fallo no rompe el detalle.
+            `key={id}` lo remonta con estado limpio al navegar a otra oferta. */}
+        {accessToken ? <JobMatchPanel key={id} jobId={id} token={accessToken} /> : null}
       </div>
     );
   }

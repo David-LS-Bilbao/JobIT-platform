@@ -1,4 +1,4 @@
-import type { MatchLevel } from "@/types/api";
+import type { MatchFactorName, MatchLevel } from "@/types/api";
 
 /**
  * Etiquetas y clases visuales del nivel de afinidad del match básico.
@@ -32,4 +32,27 @@ export const MATCH_LEVEL_BAR_CLASS: Record<MatchLevel, string> = {
 export function clampScore(score: number): number {
   if (!Number.isFinite(score)) return 0;
   return Math.max(0, Math.min(100, Math.round(score)));
+}
+
+/** Nombre legible de cada factor del desglose (el backend usa claves cortas). */
+export const MATCH_FACTOR_LABELS: Record<MatchFactorName, string> = {
+  skills: "Skills",
+  remote: "Modalidad",
+  seniority: "Seniority",
+  location: "Ubicación"
+};
+
+/** Estado legible de un factor según `match` (true/false/null). */
+export function matchFactorState(match: boolean | null): {
+  label: string;
+  dotClass: string;
+  textClass: string;
+} {
+  if (match === true) {
+    return { label: "Coincide", dotClass: "bg-emerald-500", textClass: "text-emerald-700" };
+  }
+  if (match === false) {
+    return { label: "No coincide", dotClass: "bg-amber-400", textClass: "text-amber-700" };
+  }
+  return { label: "Sin datos", dotClass: "bg-slate-300", textClass: "text-slate-500" };
 }
