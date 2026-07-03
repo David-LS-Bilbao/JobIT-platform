@@ -137,6 +137,16 @@ JOOBLE_API_KEY=<KEY> JOOBLE_API_BASE_URL=https://es.jooble.org/api ING_LOCATION=
 # Imprime un resumen (keywords/location/fetched/created/updated/skipped); nunca la key.
 ```
 
+Poblar **varias ubicaciones** de una vez (en serie; continúa si una falla; exit `1` si
+alguna falló):
+
+```bash
+JOOBLE_API_KEY=<KEY> JOOBLE_API_BASE_URL=https://es.jooble.org/api \
+  ING_LOCATIONS="Bilbao,Madrid,Barcelona,Remoto,España" ING_LIMIT=20 \
+  pnpm --filter @jobit/api exec tsx src/jobs/scripts/ingest-jooble-locations.ts
+# Resumen por ubicacion + agregado (locations/ok/failed + totales). Nunca imprime la key.
+```
+
 Los datos ingeridos son locales de dev y se pierden al reseedear (`prisma db seed`
 vacía la tabla `Job`). No se commitean.
 
