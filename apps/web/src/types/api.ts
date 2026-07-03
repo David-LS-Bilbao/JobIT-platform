@@ -82,6 +82,30 @@ export interface JobPublicDto {
   sourceUrl: string | null;
 }
 
+// Valores admitidos por los filtros de `GET /api/jobs` (subconjuntos de los enums).
+export type JobRemoteFilter = "REMOTE" | "HYBRID" | "ON_SITE";
+export type JobSeniorityFilter = "JUNIOR" | "MID" | "SENIOR";
+export type JobContractType = "FULL_TIME" | "PART_TIME" | "CONTRACT" | "FREELANCE";
+
+/** Filtros de `GET /api/jobs` (todos opcionales). `q` busca por texto libre. */
+export interface JobFilters {
+  q?: string;
+  remote?: JobRemoteFilter;
+  seniority?: JobSeniorityFilter;
+  contractType?: JobContractType;
+  source?: JobSource;
+  page?: number;
+  limit?: number;
+}
+
+/** Respuesta paginada de `GET /api/jobs`. */
+export interface JobsListResponse {
+  data: JobPublicDto[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
 // --- Saved Jobs --------------------------------------------------------------
 
 export interface SavedJobDto {

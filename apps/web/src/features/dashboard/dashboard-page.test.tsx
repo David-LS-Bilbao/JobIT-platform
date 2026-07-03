@@ -199,13 +199,13 @@ describe("DashboardPage", () => {
     expect(screen.queryByText(/inteligencia artificial/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/pricing/i)).not.toBeInTheDocument();
 
-    // JobIT CV (/profile) ya es enlace activo desde el dashboard/sidebar…
+    // JobIT CV (/profile), Jobs y Guardadas ya son enlaces activos desde la sidebar…
     const links = screen.getAllByRole("link");
     expect(links.some((l) => l.getAttribute("href")?.startsWith("/profile"))).toBe(true);
-    // …pero Jobs/Guardadas/Match siguen sin enlace.
-    for (const href of ["/jobs", "/saved-jobs", "/match"]) {
-      expect(links.some((l) => l.getAttribute("href") === href)).toBe(false);
-    }
+    expect(links.some((l) => l.getAttribute("href") === "/jobs")).toBe(true);
+    expect(links.some((l) => l.getAttribute("href") === "/saved-jobs")).toBe(true);
+    // …pero Match sigue sin enlace.
+    expect(links.some((l) => l.getAttribute("href") === "/match")).toBe(false);
   });
 
   it("ante 401 limpia la sesión y redirige a /login", async () => {
