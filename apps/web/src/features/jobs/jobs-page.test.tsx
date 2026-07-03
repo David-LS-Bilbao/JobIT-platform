@@ -117,6 +117,12 @@ describe("JobsPage (/jobs)", () => {
     expect(within(screen.getByRole("main")).getByText("1 ofertas")).toBeInTheDocument();
   });
 
+  it("las cards muestran la fuente de la oferta", async () => {
+    renderWithSession();
+    await screen.findByText("Frontend Developer");
+    expect(within(screen.getByRole("main")).getByText(/Fuente: JobIT/)).toBeInTheDocument();
+  });
+
   it("muestra el estado de carga mientras pide las ofertas", async () => {
     let resolve: (res: JobsListResponse) => void = () => {};
     vi.mocked(getJobs).mockReturnValueOnce(
@@ -163,6 +169,24 @@ describe("JobsPage (/jobs)", () => {
     await waitFor(() =>
       expect(getJobs).toHaveBeenLastCalledWith("tok-jobs", expect.objectContaining({ q: "react", page: 1 }))
     );
+  });
+
+  it("buscar por ubicación pide /api/jobs con location y page:1", async () => {
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Frontend Developer");
+
+    await user.type(screen.getByLabelText("Ubicación"), "Madrid");
+    await user.click(screen.getByRole("button", { name: "Buscar" }));
+    await waitFor(() =>
+      expect(getJobs).toHaveBeenLastCalledWith("tok-jobs", expect.objectContaining({ location: "Madrid", page: 1 }))
+    );
+  });
+
+  it("ya no muestra el selector de Fuente en los filtros", async () => {
+    renderWithSession();
+    await screen.findByText("Frontend Developer");
+    expect(screen.queryByLabelText("Fuente")).not.toBeInTheDocument();
   });
 
   it("guardar una oferta desde la card llama a saveJob y marca el botón como guardado", async () => {

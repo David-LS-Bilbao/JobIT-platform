@@ -145,13 +145,50 @@ describe("JobDetailPage (/jobs/[id])", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("No se ha podido cargar la oferta");
   });
 
-  it("el enlace a la oferta original abre en pestaña nueva de forma segura", async () => {
+  it("la oferta Jooble muestra 'Abrir en Jooble' con target/rel seguros y la fuente", async () => {
     renderWithSession();
     await screen.findByRole("heading", { name: "Senior React Engineer" });
-    const external = screen.getByRole("link", { name: "Ver oferta original" });
+    expect(screen.getByText(/Fuente: Jooble/)).toBeInTheDocument();
+    const external = screen.getByRole("link", { name: "Abrir en Jooble" });
     expect(external).toHaveAttribute("href", "https://jooble.org/jobs/senior-react-engineer");
     expect(external).toHaveAttribute("target", "_blank");
     expect(external).toHaveAttribute("rel", "noopener noreferrer");
+  });
+
+  it("una oferta interna sin sourceUrl muestra aviso honesto y NO enlace externo", async () => {
+    vi.mocked(getJobById).mockResolvedValue({ ...job, source: "INTERNAL", sourceUrl: null });
+    renderWithSession();
+    await screen.findByRole("heading", { name: "Senior React Engineer" });
+    expect(screen.getByText(/Fuente: JobIT/)).toBeInTheDocument();
+    expect(
+      screen.getByText("Oferta de ejemplo para el MVP. No tiene enlace externo de inscripción.")
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Abrir en|Ver oferta original/ })).not.toBeInTheDocument();
+  });
+
+  it("una oferta interna con sourceUrl válido muestra 'Ver oferta original' seguro", async () => {
+    vi.mocked(getJobById).mockResolvedValue({
+      ...job,
+      source: "INTERNAL",
+      sourceUrl: "https://empresa.example.com/oferta/1"
+    });
+    renderWithSession();
+    await screen.findByRole("heading", { name: "Senior React Engineer" });
+    const external = screen.getByRole("link", { name: "Ver oferta original" });
+    expect(external).toHaveAttribute("href", "https://empresa.example.com/oferta/1");
+    expect(external).toHaveAttribute("target", "_blank");
+    expect(external).toHaveAttribute("rel", "noopener noreferrer");
+  });
+
+  it("una sourceUrl con protocolo peligroso NO se renderiza como enlace", async () => {
+    vi.mocked(getJobById).mockResolvedValue({ ...job, source: "JOOBLE", sourceUrl: "javascript:alert(1)" });
+    renderWithSession();
+    await screen.findByRole("heading", { name: "Senior React Engineer" });
+    expect(
+      screen.queryByRole("link", { name: /Abrir en Jooble|Ver oferta original/ })
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("Esta oferta no incluye un enlace externo de inscripción.")).toBeInTheDocument();
+    expect(document.body.innerHTML).not.toContain("javascript:alert");
   });
 
   it("si la oferta ya está guardada muestra 'Quitar de guardadas' y llama a unsaveJob", async () => {
