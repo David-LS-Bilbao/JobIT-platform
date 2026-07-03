@@ -105,6 +105,41 @@ pnpm --filter @jobit/api test
 `apps/api/.env` con `DATABASE_URL_TEST` definido basta; si no, expórtalo antes de
 lanzar los tests.
 
+## Jooble (ingesta de ofertas externas)
+
+JobIT **no** consulta Jooble en cada request: la búsqueda (`GET /api/jobs`) lee la DB
+local. Las ofertas Jooble se **ingieren** de forma controlada (backend-only, manual) y
+quedan guardadas en la DB con `source=JOOBLE` y `sourceUrl`.
+
+Variables (en `apps/api/.env`, **nunca** commitear el `.env` real):
+
+- `JOOBLE_API_KEY`: clave de Jooble. Solo backend; **nunca** se loguea ni se pega en
+  chats/PRs. Sin ella, la ingesta aborta sin llamar a la red.
+- `JOOBLE_API_BASE_URL` (opcional): host de la API. Default `https://jooble.org/api`.
+  **Algunas keys son regionales**: la de España responde en `https://es.jooble.org/api`
+  (el host global da `403`). Debe ser http/https.
+
+Comprobar rápidamente que la key funciona (elige el host correcto; **no** pegues la key
+en logs; sustituye `<KEY>` por la tuya):
+
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" -X POST "https://es.jooble.org/api/<KEY>" \
+  -H "Content-Type: application/json" -d '{"keywords":"developer","location":"Bilbao"}'
+# 200 = host correcto para tu key; 403 = host equivocado (prueba el global o el regional)
+```
+
+Poblar ofertas reales en dev/staging (backend-only, no borra seed):
+
+```bash
+# Ajusta ING_LOCATION por plaza: Bilbao, Madrid, Barcelona, remoto, España…
+JOOBLE_API_KEY=<KEY> JOOBLE_API_BASE_URL=https://es.jooble.org/api ING_LOCATION=Bilbao \
+  pnpm --filter @jobit/api exec tsx src/jobs/scripts/ingest-jooble.ts
+# Imprime un resumen (keywords/location/fetched/created/updated/skipped); nunca la key.
+```
+
+Los datos ingeridos son locales de dev y se pierden al reseedear (`prisma db seed`
+vacía la tabla `Job`). No se commitean.
+
 ## Notas
 
 - No cambies la lógica de auth ni el CORS de producción desde aquí; esto es solo
