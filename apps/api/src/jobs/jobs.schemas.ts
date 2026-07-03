@@ -25,6 +25,10 @@ const tagsSchema = z.preprocess((value) => {
 export const listJobsQuerySchema = z
   .object({
     q: z.string().trim().max(200).optional(),
+    // Filtro por ubicación (ciudad/región). Búsqueda parcial insensible a mayúsculas
+    // sobre el campo `location`. Es el eje principal de búsqueda para fuentes externas
+    // (Jooble y futuras APIs/RSS buscan por ubicación). Ver docs/architecture/03-job-sources-and-search.md.
+    location: z.string().trim().max(200).optional(),
     remote: z.enum(REMOTE_TYPES).optional(),
     seniority: z.enum(SENIORITIES).optional(),
     contractType: z.enum(CONTRACT_TYPES).optional(),

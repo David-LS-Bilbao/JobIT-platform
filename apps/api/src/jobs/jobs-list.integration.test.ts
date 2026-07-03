@@ -109,6 +109,22 @@ describe("GET /api/jobs", () => {
     expect(byDescription.body.data[0].title).toBe("Backend Engineer");
   });
 
+  // 3b
+  it("filters by location (contains, case-insensitive)", async () => {
+    const { accessToken } = await registerUser("jobs-list-location@example.com");
+    await seedJobs([
+      jobFixture({ title: "Madrid Role", location: "Madrid" }),
+      jobFixture({ title: "Bilbao Role", location: "Bilbao" }),
+      jobFixture({ title: "Unknown Location", location: null })
+    ]);
+
+    const res = await listJobs(accessToken, { location: "madr" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.total).toBe(1);
+    expect(res.body.data[0].title).toBe("Madrid Role");
+  });
+
   // 4
   it("filters by remote (mapped to remoteType)", async () => {
     const { accessToken } = await registerUser("jobs-list-remote@example.com");
