@@ -74,7 +74,7 @@ export function JobCard({
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
         <span className="text-xs text-slate-400">
-          {JOB_SOURCE_LABELS[job.source]}
+          Fuente: {JOB_SOURCE_LABELS[job.source]}
           {job.postedAt ? ` · ${formatPostedDate(job.postedAt)}` : ""}
         </span>
         <Link href={`/jobs/${job.id}`} className="text-sm font-medium text-[#006591] hover:underline">

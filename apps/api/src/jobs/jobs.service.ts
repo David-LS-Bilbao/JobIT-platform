@@ -40,7 +40,7 @@ export async function getActiveJobById(id: string): Promise<Job> {
 }
 
 function buildJobsWhere(query: ListJobsQuery): Prisma.JobWhereInput {
-  const { q, remote, seniority, contractType, source, tags } = query;
+  const { q, location, remote, seniority, contractType, source, tags } = query;
 
   const where: Prisma.JobWhereInput = {
     status: "ACTIVE",
@@ -57,6 +57,10 @@ function buildJobsWhere(query: ListJobsQuery): Prisma.JobWhereInput {
         ]
       }
     ];
+  }
+  if (location) {
+    // Búsqueda parcial insensible a mayúsculas sobre la ubicación de la oferta.
+    where.location = { contains: location, mode: "insensitive" };
   }
   if (remote) {
     where.remoteType = remote;

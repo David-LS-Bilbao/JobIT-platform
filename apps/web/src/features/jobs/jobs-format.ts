@@ -55,3 +55,28 @@ export function locationLabel(job: Pick<JobPublicDto, "location" | "remoteType">
   const remote = REMOTE_TYPE_LABELS[job.remoteType];
   return job.location?.trim() ? `${job.location} · ${remote}` : remote;
 }
+
+/**
+ * Texto del CTA para abrir la oferta en su fuente original, según procedencia.
+ * Jooble → "Abrir en Jooble"; el resto usa un copy genérico. No inventa fuentes
+ * (el contrato solo define INTERNAL y JOOBLE).
+ */
+export function externalSourceCtaLabel(source: JobSource): string {
+  if (source === "JOOBLE") return "Abrir en Jooble";
+  return "Ver oferta original";
+}
+
+/**
+ * Valida que una URL externa sea segura para renderizar como enlace: debe ser
+ * parseable y usar protocolo `http:`/`https:`. Bloquea `javascript:`, `data:`,
+ * etc. Devuelve `false` para null/undefined/vacío o URLs no válidas.
+ */
+export function isSafeExternalUrl(value: string | null | undefined): boolean {
+  if (typeof value !== "string" || value.trim().length === 0) return false;
+  try {
+    const url = new URL(value.trim());
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}

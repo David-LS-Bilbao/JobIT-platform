@@ -70,7 +70,7 @@ Modulos backend implementados:
 
 Endpoints de Jobs disponibles (rutas privadas, requieren sesion):
 
-- `GET /api/jobs` — listado de ofertas activas con filtros (`q`, `remote`, `seniority`, `contractType`, `source`, `tags`) y paginacion (`page`, `limit`).
+- `GET /api/jobs` — listado de ofertas activas con filtros (`q`, `location`, `remote`, `seniority`, `contractType`, `source`, `tags`) y paginacion (`page`, `limit`). `location` filtra por ubicacion (contains, case-insensitive) y es el eje principal de busqueda, alineado con las fuentes externas (Jooble y futuras APIs/RSS).
 - `GET /api/jobs/:id` — detalle de una oferta activa; devuelve `404` si no existe, esta cerrada o ha expirado.
 
 Endpoints de Saved Jobs disponibles (rutas privadas, requieren sesion):
@@ -99,7 +99,7 @@ Pantallas implementadas:
 - `/register` — registro contra `POST /api/auth/register`, con confirmacion de contrasena y politica minima en cliente.
 - `/dashboard` — ruta privada que consume `GET /api/dashboard/me` y muestra perfil/completitud, skills, ofertas guardadas, mejores matches y proximos pasos, con estados de carga/error/vacio y boton de logout.
 - `/profile` (y `/profile/portfolio`, `/profile/portfolio/settings`) mas el portfolio publico `/u/[slug]` — JobIT CV editable y portfolio (Sprints 13-14).
-- `/jobs` y `/jobs/[id]` — exploracion y detalle de ofertas con filtros y guardar/quitar (Sprint 15A-B). El detalle muestra ademas un panel de match basico y explicable (`GET /api/jobs/:id/match`: score, nivel, explicacion, factores y skills), cuyo fallo no rompe el detalle (Sprint 15D). **Sin IA avanzada.**
+- `/jobs` y `/jobs/[id]` — exploracion y detalle de ofertas con filtros y guardar/quitar (Sprint 15A-B). El detalle muestra ademas un panel de match basico y explicable (`GET /api/jobs/:id/match`: score, nivel, explicacion, factores y skills), cuyo fallo no rompe el detalle (Sprint 15D). **Sin IA avanzada.** Cada oferta indica su **fuente** (JobIT/Jooble); si tiene `sourceUrl`, el candidato puede abrir la oferta original de forma segura (`target="_blank"` + `rel="noopener noreferrer"`, solo `http`/`https`) para inscribirse en el origen. Las ofertas de ejemplo (seed internas, sin URL) se marcan como tales y no muestran enlace de inscripcion. El MVP **no gestiona candidaturas internas**: la inscripcion ocurre siempre en la fuente original (Sprint 15E). La busqueda de `/jobs` se organiza por **ubicacion** (el antiguo selector de "Fuente" se sustituyo por un campo de ubicacion): con varias fuentes activas el candidato busca por sus parametros y el sistema devuelve ofertas de todas las fuentes disponibles. Las ofertas `JOOBLE` se ingieren con el modulo backend-only de Jooble; las `INTERNAL` seran, mas adelante, ofertas publicadas por empresas en la propia web de JobIT. Arquitectura de fuentes y extensibilidad (APIs/RSS): [`docs/architecture/03-job-sources-and-search.md`](docs/architecture/03-job-sources-and-search.md).
 - `/saved-jobs` — ofertas guardadas del candidato.
 - `/match` — JobIT Match basico y explicable (Sprint 15C): mejores ofertas del candidato ordenadas por una puntuacion basada en reglas visibles (skills, modalidad, seniority y ubicacion), con nivel de afinidad, skills coincidentes/faltantes, enlace al detalle y guardar/quitar. Consume `GET /api/profile/me/matches`; **no usa IA avanzada ni modelos opacos**.
 

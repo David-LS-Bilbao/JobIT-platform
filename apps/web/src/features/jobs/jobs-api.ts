@@ -4,6 +4,7 @@ import type { JobFilters, JobPublicDto, JobsListResponse } from "@/types/api";
 function toQueryString(filters: JobFilters): string {
   const params = new URLSearchParams();
   if (filters.q?.trim()) params.set("q", filters.q.trim());
+  if (filters.location?.trim()) params.set("location", filters.location.trim());
   if (filters.remote) params.set("remote", filters.remote);
   if (filters.seniority) params.set("seniority", filters.seniority);
   if (filters.contractType) params.set("contractType", filters.contractType);

@@ -7,7 +7,7 @@ import { SiteShell } from "@/components/layout/site-shell";
 import { useAuth } from "@/features/auth/auth-context";
 import { getSavedJobs, saveJob, unsaveJob } from "@/features/saved-jobs/saved-jobs-api";
 import { isSessionExpiredError } from "@/lib/api-client";
-import type { JobContractType, JobFilters, JobPublicDto, JobRemoteFilter, JobSeniorityFilter, JobSource } from "@/types/api";
+import type { JobContractType, JobFilters, JobPublicDto, JobRemoteFilter, JobSeniorityFilter } from "@/types/api";
 
 import { getJobs } from "./jobs-api";
 import { JobCard } from "./job-card";
@@ -22,6 +22,7 @@ export function JobsPage() {
 
   const [filters, setFilters] = useState<JobFilters>({});
   const [qInput, setQInput] = useState("");
+  const [locationInput, setLocationInput] = useState("");
   const [jobs, setJobs] = useState<JobPublicDto[] | null>(null);
   const [total, setTotal] = useState(0);
   const [errored, setErrored] = useState(false);
@@ -79,7 +80,7 @@ export function JobsPage() {
 
   function handleSearch(event: SyntheticEvent) {
     event.preventDefault();
-    applyFilter({ q: qInput.trim() || undefined });
+    applyFilter({ q: qInput.trim() || undefined, location: locationInput.trim() || undefined });
   }
 
   async function handleToggleSave(jobId: string) {
@@ -146,7 +147,14 @@ export function JobsPage() {
               className="w-full rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-sm text-slate-900 outline-none focus:border-[#006591] focus:ring-2 focus:ring-[#006591]/30"
               value={qInput}
               onChange={(e) => setQInput(e.target.value)}
-              placeholder="Buscar por título, empresa o ubicación…"
+              placeholder="Buscar por título o descripción…"
+            />
+            <input
+              aria-label="Ubicación"
+              className="w-full rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-sm text-slate-900 outline-none focus:border-[#006591] focus:ring-2 focus:ring-[#006591]/30 sm:max-w-56"
+              value={locationInput}
+              onChange={(e) => setLocationInput(e.target.value)}
+              placeholder="Ubicación (ciudad)"
             />
             <button
               type="submit"
@@ -155,7 +163,7 @@ export function JobsPage() {
               Buscar
             </button>
           </div>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             <select
               aria-label="Modalidad"
               className={selectClass}
@@ -189,16 +197,6 @@ export function JobsPage() {
               <option value="PART_TIME">Media jornada</option>
               <option value="CONTRACT">Contrato</option>
               <option value="FREELANCE">Freelance</option>
-            </select>
-            <select
-              aria-label="Fuente"
-              className={selectClass}
-              value={filters.source ?? ""}
-              onChange={(e) => applyFilter({ source: (e.target.value || undefined) as JobSource | undefined })}
-            >
-              <option value="">Fuente</option>
-              <option value="INTERNAL">JobIT</option>
-              <option value="JOOBLE">Jooble</option>
             </select>
           </div>
         </form>

@@ -87,9 +87,15 @@ export type JobRemoteFilter = "REMOTE" | "HYBRID" | "ON_SITE";
 export type JobSeniorityFilter = "JUNIOR" | "MID" | "SENIOR";
 export type JobContractType = "FULL_TIME" | "PART_TIME" | "CONTRACT" | "FREELANCE";
 
-/** Filtros de `GET /api/jobs` (todos opcionales). `q` busca por texto libre. */
+/**
+ * Filtros de `GET /api/jobs` (todos opcionales). `q` busca texto libre en
+ * título/descripción; `location` filtra por ubicación (eje principal de búsqueda,
+ * alineado con fuentes externas tipo Jooble). `source` sigue soportado por el
+ * backend pero ya no se expone en la UI (ver docs de fuentes múltiples).
+ */
 export interface JobFilters {
   q?: string;
+  location?: string;
   remote?: JobRemoteFilter;
   seniority?: JobSeniorityFilter;
   contractType?: JobContractType;

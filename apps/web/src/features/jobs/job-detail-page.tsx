@@ -15,9 +15,11 @@ import { getJobById } from "./jobs-api";
 import {
   JOB_SOURCE_LABELS,
   SENIORITY_LABELS,
+  externalSourceCtaLabel,
   formatContractType,
   formatPostedDate,
   formatSalary,
+  isSafeExternalUrl,
   locationLabel
 } from "./jobs-format";
 
@@ -149,7 +151,7 @@ export function JobDetailPage({ id }: { id: string }) {
           </p>
           {salary ? <p className="mt-1 text-base font-semibold text-slate-800">{salary}</p> : null}
           <p className="mt-1 text-xs text-slate-400">
-            {JOB_SOURCE_LABELS[job.source]}
+            Fuente: {JOB_SOURCE_LABELS[job.source]}
             {job.postedAt ? ` · Publicada el ${formatPostedDate(job.postedAt)}` : ""}
           </p>
 
@@ -184,16 +186,23 @@ export function JobDetailPage({ id }: { id: string }) {
             </ul>
           ) : null}
 
-          {job.sourceUrl ? (
+          {isSafeExternalUrl(job.sourceUrl) ? (
             <a
-              href={job.sourceUrl}
+              href={job.sourceUrl as string}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-6 inline-block rounded-lg bg-[#006591] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#004c6e]"
             >
-              Ver oferta original
+              {externalSourceCtaLabel(job.source)}
             </a>
-          ) : null}
+          ) : (
+            // Sin enlace externo usable: aviso honesto según procedencia (no CTA engañoso).
+            <p className="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+              {job.source === "INTERNAL"
+                ? "Oferta de ejemplo para el MVP. No tiene enlace externo de inscripción."
+                : "Esta oferta no incluye un enlace externo de inscripción."}
+            </p>
+          )}
         </article>
 
         {/* Panel de match explicable: autocontenido; su fallo no rompe el detalle.
