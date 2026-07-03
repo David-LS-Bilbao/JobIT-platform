@@ -94,10 +94,49 @@ Sin cambios de Prisma. Se reutiliza el modelo `Job` con las columnas de proceden
   → `JoobleHttpError` sin filtrar la key.
 - Ingesta: enhebra la base URL (deps y default de entorno) al cliente; no filtra la key.
 
+## Ingesta por múltiples ubicaciones (Sprint 15G)
+
+Comando de orquestación: `apps/api/src/jobs/scripts/ingest-jooble-locations.ts`
+(backend-only, manual, **sin endpoint**). Reutiliza la config de 15F (`JOOBLE_API_KEY`,
+`JOOBLE_API_BASE_URL`) y el servicio `ingestJoobleJobs`.
+
+Variables de entorno:
+
+| Variable | Default | Notas |
+|---|---|---|
+| `ING_LOCATIONS` | fallback a `ING_LOCATION`, luego `España` | CSV de ubicaciones objetivo. |
+| `ING_LOCATION` | `España` | Fallback si no hay `ING_LOCATIONS`. |
+| `ING_KEYWORDS` | `developer` | Términos de búsqueda. |
+| `ING_LIMIT` | `20` (acotado 1..50) | Nº de ofertas **por ubicación**. |
+
+Reglas de ejecución:
+
+- Parseo de `ING_LOCATIONS`: separa por coma, trim, descarta vacías y **deduplica
+  conservando el orden** (comparación insensible a mayúsculas). Nunca queda vacío
+  (mínimo `España`).
+- Ingesta **en serie** (una ubicación tras otra), no en paralelo: evita rate limiting y
+  mantiene logs legibles.
+- **Fallo parcial**: si una ubicación falla, se registra el error saneado (sin key) y se
+  **continúa** con la siguiente. Un fallo de configuración global (sin `JOOBLE_API_KEY`)
+  aborta antes de empezar.
+
+Formato de resumen:
+
+- Por ubicación: `fetched/normalized/created/updated/skipped` (o el error saneado).
+- Agregado final: `locations`, `ok`, `failed` y los totales de
+  `fetched/normalized/created/updated/skipped`.
+
+Comportamiento ante error parcial y **exit code**: `0` si todas las ubicaciones OK; `1`
+si alguna falló (o fallo de config global). Decisión: no abortar por un fallo de una
+ubicación (mejor cobertura), pero reflejar el fallo en el exit code.
+
+Seguridad: la `JOOBLE_API_KEY` nunca se imprime (ni en cabecera ni en errores por
+ubicación). No se escriben archivos de salida; no se commitean datos.
+
 ## Fuera de alcance
 
 - Endpoint HTTP de ingesta (público o admin).
-- Cron/orquestación automática de ingesta.
+- Cron / orquestación **automática/programada** (el comando multi-ubicación es **manual**).
 - Motor de sinónimos de ubicación (Vizcaya/Bizkaia…): solo se documenta la deuda.
 - Búsqueda live a Jooble por request; scraping; LinkedIn API; candidatura interna.
 - Cambios de Prisma, nuevas dependencias o cambios de frontend.

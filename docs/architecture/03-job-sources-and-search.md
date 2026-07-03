@@ -79,12 +79,14 @@ local**. Las ofertas externas se **ingieren** de forma controlada y quedan persi
 - **Host configurable**: `JOOBLE_API_BASE_URL` (opcional; default `https://jooble.org/api`).
   Algunas API keys son **regionales**: la de España responde en `https://es.jooble.org/api`
   y el host global devuelve `403`. Se valida http/https y se normaliza sin barra final.
-- **Comando (backend-only, manual)**: `apps/api/src/jobs/scripts/ingest-jooble.ts`
-  (`tsx`), parametrizado por entorno (`ING_KEYWORDS`, `ING_LOCATION`, `ING_LIMIT`). No
-  expone endpoint, no borra seed, no crea usuarios; upsert idempotente por `(source, externalId)`.
-- **Estrategia recomendada por ubicación**: ingerir por plazas relevantes para cubrir el
-  MVP —p. ej. `Bilbao`, `Madrid`, `Barcelona`, `remoto` y `España` (general)— repitiendo
-  el comando con cada `ING_LOCATION`. La `JOOBLE_API_KEY` nunca se imprime.
+- **Comandos (backend-only, manual)**: `apps/api/src/jobs/scripts/ingest-jooble.ts` (una
+  ubicación) e `ingest-jooble-locations.ts` (varias, **en serie**), con `tsx`. No exponen
+  endpoint, no borran seed, no crean usuarios; upsert idempotente por `(source, externalId)`.
+- **Estrategia recomendada por ubicación**: cubrir las plazas del MVP —`Bilbao`, `Madrid`,
+  `Barcelona`, `Remoto`, `España`— con el comando multi-ubicación
+  (`ING_LOCATIONS="Bilbao,Madrid,Barcelona,Remoto,España"`). Ingesta en serie con **fallo
+  parcial tolerado** (continúa ante error de una ubicación; exit `1` si alguna falló) y
+  resumen agregado. La `JOOBLE_API_KEY` nunca se imprime.
 
 ## Seguridad y honestidad (recordatorio)
 
