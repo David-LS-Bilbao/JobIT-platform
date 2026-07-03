@@ -3,7 +3,7 @@ import { z } from "zod";
 const REMOTE_TYPES = ["REMOTE", "HYBRID", "ON_SITE"] as const;
 const SENIORITIES = ["JUNIOR", "MID", "SENIOR"] as const;
 const CONTRACT_TYPES = ["FULL_TIME", "PART_TIME", "CONTRACT", "FREELANCE"] as const;
-const JOB_SOURCES = ["INTERNAL", "JOOBLE"] as const;
+const JOB_SOURCES = ["INTERNAL", "JOOBLE", "GREENHOUSE"] as const;
 
 /**
  * Normaliza el parámetro `tags`: admite query repetido (`?tags=a&tags=b`,
