@@ -1,11 +1,13 @@
 /**
- * Lista curada de boards públicos de Greenhouse a ingerir (por empresa).
+ * Product-curated public Greenhouse boards.
+ *
+ * Review before staging/demo. Board tokens are public, not secrets. No automatic
+ * ingestion without explicit operator action.
  *
  * El Job Board API es por empresa (`board_token`) y el payload del job NO incluye la
  * empresa: `company` se toma de aquí. Esta lista es una DECISIÓN DE PRODUCTO: mantenerla
- * pequeña y revisada en PR. No se inventan empresas; se inicia vacía hasta que producto
- * apruebe los empleadores tech (ES/remoto) concretos. Los board tokens son públicos (no
- * secretos), por eso viven versionados aquí y no en `.env`.
+ * pequeña y revisada en PR. No se inventan empresas: cada token debe apuntar a un board
+ * público activo de Greenhouse y quedar revisado antes de staging/demo.
  */
 export interface GreenhouseCompany {
   /** Board URL token público de Greenhouse (el de la careers page de la empresa). */
@@ -14,12 +16,11 @@ export interface GreenhouseCompany {
   company: string;
 }
 
-/**
- * Boards curados por producto. Vacío por defecto (no se inventan empresas). Ejemplo de
- * forma (rellenar solo con empleadores aprobados):
- *   { boardToken: "example", company: "Example Inc." }
- */
-export const GREENHOUSE_COMPANIES: GreenhouseCompany[] = [];
+export const GREENHOUSE_COMPANIES: GreenhouseCompany[] = [
+  { boardToken: "anthropic", company: "Anthropic" },
+  { boardToken: "vercel", company: "Vercel" },
+  { boardToken: "webflow", company: "Webflow" }
+];
 
 /**
  * Filtra la lista curada por un CSV opcional de board tokens (`ING_GREENHOUSE_TOKENS`).
