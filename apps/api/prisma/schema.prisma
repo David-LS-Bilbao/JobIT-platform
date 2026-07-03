@@ -180,6 +180,7 @@ enum RemoteType {
 enum JobSource {
   INTERNAL
   JOOBLE
+  ADZUNA
 }
 
 enum JobSeniority {
