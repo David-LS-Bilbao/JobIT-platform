@@ -99,7 +99,7 @@ Pantallas implementadas:
 - `/register` — registro contra `POST /api/auth/register`, con confirmacion de contrasena y politica minima en cliente.
 - `/dashboard` — ruta privada que consume `GET /api/dashboard/me` y muestra perfil/completitud, skills, ofertas guardadas, mejores matches y proximos pasos, con estados de carga/error/vacio y boton de logout.
 - `/profile` (y `/profile/portfolio`, `/profile/portfolio/settings`) mas el portfolio publico `/u/[slug]` — JobIT CV editable y portfolio (Sprints 13-14).
-- `/jobs` y `/jobs/[id]` — exploracion y detalle de ofertas con filtros y guardar/quitar (Sprint 15A-B).
+- `/jobs` y `/jobs/[id]` — exploracion y detalle de ofertas con filtros y guardar/quitar (Sprint 15A-B). El detalle muestra ademas un panel de match basico y explicable (`GET /api/jobs/:id/match`: score, nivel, explicacion, factores y skills), cuyo fallo no rompe el detalle (Sprint 15D). **Sin IA avanzada.**
 - `/saved-jobs` — ofertas guardadas del candidato.
 - `/match` — JobIT Match basico y explicable (Sprint 15C): mejores ofertas del candidato ordenadas por una puntuacion basada en reglas visibles (skills, modalidad, seniority y ubicacion), con nivel de afinidad, skills coincidentes/faltantes, enlace al detalle y guardar/quitar. Consume `GET /api/profile/me/matches`; **no usa IA avanzada ni modelos opacos**.
 

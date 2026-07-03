@@ -5,9 +5,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AuthProvider, useAuth } from "@/features/auth/auth-context";
 import { getJobById } from "@/features/jobs/jobs-api";
+import { getJobMatch } from "@/features/match/match-api";
 import { getSavedJobs, saveJob, unsaveJob } from "@/features/saved-jobs/saved-jobs-api";
 import { ApiClientError } from "@/lib/api-client";
-import type { JobPublicDto, SavedJobDto, UserDto } from "@/types/api";
+import type { JobMatchDto, JobPublicDto, SavedJobDto, UserDto } from "@/types/api";
 
 import { JobDetailPage } from "./job-detail-page";
 
@@ -29,6 +30,7 @@ vi.mock("@/features/saved-jobs/saved-jobs-api", () => ({
   saveJob: vi.fn(),
   unsaveJob: vi.fn()
 }));
+vi.mock("@/features/match/match-api", () => ({ getJobMatch: vi.fn() }));
 vi.mock("@/features/auth/auth-api", () => ({ logoutCandidate: vi.fn() }));
 
 const sessionUser: UserDto = {
@@ -58,6 +60,21 @@ const job: JobPublicDto = {
   sourceUrl: "https://jooble.org/jobs/senior-react-engineer"
 };
 
+const matchDto: JobMatchDto = {
+  jobId: "j1",
+  score: 72,
+  level: "GOOD",
+  matchedSkills: ["react", "typescript"],
+  missingSkills: ["aws"],
+  factors: [
+    { name: "skills", match: true, detail: "2 de 3 skills coinciden" },
+    { name: "remote", match: true, detail: "Modalidad compatible con tu preferencia" },
+    { name: "seniority", match: false, detail: "Seniority no coincide" },
+    { name: "location", match: null, detail: "Sin datos de ubicación" }
+  ],
+  explanation: "Afinidad GOOD con una puntuación de 72/100."
+};
+
 function SeedSessionButton() {
   const { setSession } = useAuth();
   return (
@@ -85,6 +102,7 @@ function renderWithSession(id = "j1") {
 beforeEach(() => {
   vi.mocked(getSavedJobs).mockResolvedValue([]);
   vi.mocked(getJobById).mockResolvedValue(job);
+  vi.mocked(getJobMatch).mockResolvedValue(matchDto);
   vi.mocked(saveJob).mockResolvedValue(undefined);
   vi.mocked(unsaveJob).mockResolvedValue(undefined);
 });
@@ -165,5 +183,63 @@ describe("JobDetailPage (/jobs/[id])", () => {
     vi.mocked(getJobById).mockRejectedValue(new ApiClientError(401, "UNAUTHORIZED", "x"));
     renderWithSession();
     await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/login"));
+  });
+
+  it("carga el panel de match: pide GET /api/jobs/:id/match con el token y muestra score y nivel", async () => {
+    renderWithSession();
+    await screen.findByRole("heading", { name: "Senior React Engineer" });
+
+    expect(await screen.findByText("Match con tu perfil")).toBeInTheDocument();
+    await waitFor(() => expect(getJobMatch).toHaveBeenCalledWith("tok-detail", "j1"));
+    expect(screen.getByText("Afinidad Buena")).toBeInTheDocument();
+    expect(screen.getByText("72/100")).toBeInTheDocument();
+    const bar = screen.getByRole("progressbar");
+    expect(bar).toHaveAttribute("aria-valuenow", "72");
+  });
+
+  it("muestra la explicación y el desglose de factores del backend", async () => {
+    renderWithSession();
+    await screen.findByText("Match con tu perfil");
+    expect(await screen.findByText("Afinidad GOOD con una puntuación de 72/100.")).toBeInTheDocument();
+    // Factores con su estado legible (coincide / no coincide / sin datos).
+    expect(screen.getByText("Skills")).toBeInTheDocument();
+    expect(screen.getByText("Seniority")).toBeInTheDocument();
+    expect(screen.getByText("Ubicación")).toBeInTheDocument();
+    expect(screen.getByText("2 de 3 skills coinciden")).toBeInTheDocument();
+    expect(screen.getAllByText("· Coincide").length).toBeGreaterThan(0);
+    expect(screen.getByText("· No coincide")).toBeInTheDocument();
+    expect(screen.getByText("· Sin datos")).toBeInTheDocument();
+  });
+
+  it("muestra skills coincidentes y faltantes del match", async () => {
+    renderWithSession();
+    await screen.findByText("Match con tu perfil");
+    await screen.findByText("Afinidad Buena");
+    const main = within(screen.getByRole("main"));
+    expect(main.getByText("Skills que coinciden")).toBeInTheDocument();
+    expect(main.getByText("Skills que podrías sumar")).toBeInTheDocument();
+    expect(main.getByText("aws")).toBeInTheDocument();
+  });
+
+  it("si el match falla, el detalle de la oferta sigue renderizando con aviso suave", async () => {
+    vi.mocked(getJobMatch).mockRejectedValue(new ApiClientError(500, "INTERNAL_ERROR", "stack interno secreto"));
+    renderWithSession();
+    // El detalle de la oferta se mantiene.
+    expect(await screen.findByRole("heading", { name: "Senior React Engineer" })).toBeInTheDocument();
+    expect(screen.getByText("Buscamos una persona con experiencia en React.")).toBeInTheDocument();
+    // El panel muestra un aviso suave sin filtrar el mensaje interno.
+    expect(await screen.findByText("No hemos podido calcular el match de esta oferta ahora.")).toBeInTheDocument();
+    expect(screen.queryByText(/stack interno secreto/i)).not.toBeInTheDocument();
+  });
+
+  it("el panel es honesto (sin claims de IA) y no expone el token", async () => {
+    renderWithSession();
+    await screen.findByText("Match con tu perfil");
+    await screen.findByText("Afinidad Buena");
+    expect(screen.getByText(/No usa IA avanzada/i)).toBeInTheDocument();
+    expect(screen.queryByText(/IA recomienda/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/algoritmo avanzado/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/predicción de contratación/i)).not.toBeInTheDocument();
+    expect(document.body.textContent).not.toContain("tok-detail");
   });
 });
