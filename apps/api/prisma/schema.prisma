@@ -181,6 +181,7 @@ enum JobSource {
   INTERNAL
   JOOBLE
   ADZUNA
+  GREENHOUSE
 }
 
 enum JobSeniority {

@@ -11,7 +11,7 @@ import { truncateTables } from "../tests/setup.js";
  *
  * Fijan el contrato público: list/detail deben servir un DTO público (sin
  * `externalId` ni `ingestedAt`, con `source`/`sourceUrl`) y soportar el filtro
- * `source=INTERNAL|JOOBLE`. Falla mientras la API devuelva la entidad Prisma
+ * `source=INTERNAL|JOOBLE|GREENHOUSE`. Falla mientras la API devuelva la entidad Prisma
  * completa y `source` no exista como query param. Sin red ni JOOBLE_API_KEY:
  * los fixtures se crean directamente con Prisma.
  */
@@ -169,6 +169,29 @@ describe("Jobs API external visibility policy", () => {
     expect(data.length).toBeGreaterThan(0);
     expect(data.every((j) => j.source === "JOOBLE")).toBe(true);
     expect(data.some((j) => j.source === "INTERNAL")).toBe(false);
+  });
+
+  // e2) Filtro source=GREENHOUSE (ATS curado)
+  it("filters by source=GREENHOUSE", async () => {
+    const { accessToken } = await registerUser("vis-filter-greenhouse@example.com");
+    await seedInternalAndJooble();
+    await createJob({
+      title: "Greenhouse Visibility Role",
+      source: "GREENHOUSE",
+      externalId: "greenhouse-visibility-1",
+      sourceUrl: "https://boards.greenhouse.io/example/jobs/1",
+      ingestedAt: new Date()
+    });
+
+    const res = await listJobs(accessToken, { source: "GREENHOUSE" });
+
+    expect(res.status).toBe(200);
+    const data = res.body.data as Array<{ source: string; sourceUrl: string | null }>;
+    expect(data.length).toBe(1);
+    expect(data.every((j) => j.source === "GREENHOUSE")).toBe(true);
+    expect(data[0]?.sourceUrl).toBe("https://boards.greenhouse.io/example/jobs/1");
+    expect(JSON.stringify(res.body)).not.toContain("externalId");
+    expect(JSON.stringify(res.body)).not.toContain("ingestedAt");
   });
 
   // f) source inválido → error de validación

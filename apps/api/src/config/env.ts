@@ -47,6 +47,32 @@ export const parseJoobleBaseUrl = (value: string | undefined): string => {
   return raw.replace(/\/+$/, "");
 };
 
+/** Host/base URL público por defecto del Job Board API de Greenhouse. */
+export const DEFAULT_GREENHOUSE_API_BASE_URL = "https://boards-api.greenhouse.io/v1/boards";
+
+/**
+ * Resuelve la base URL del Job Board API de Greenhouse desde `GREENHOUSE_API_BASE_URL`
+ * (opcional). Si falta o está vacío → default público. Debe ser una URL `http:`/`https:`
+ * válida; se normaliza sin barra final. **No es secreto** (el endpoint es público). Ante un
+ * valor inválido, falla de forma explícita (fail-fast, como `parseJoobleBaseUrl`).
+ */
+export const parseGreenhouseBaseUrl = (value: string | undefined): string => {
+  const raw = value?.trim();
+  if (!raw) {
+    return DEFAULT_GREENHOUSE_API_BASE_URL;
+  }
+  let parsed: URL;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    throw new Error("GREENHOUSE_API_BASE_URL must be a valid http(s) URL.");
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new Error("GREENHOUSE_API_BASE_URL must use http or https.");
+  }
+  return raw.replace(/\/+$/, "");
+};
+
 export const env = {
   NODE_ENV: process.env.NODE_ENV ?? "development",
   PORT: parsePort(process.env.PORT),
@@ -56,5 +82,8 @@ export const env = {
   JOOBLE_API_KEY: optionalString(process.env.JOOBLE_API_KEY),
   // Host de Jooble (opcional). Default global; regionales p. ej. https://es.jooble.org/api.
   // No es secreto, pero define contra qué host se ingiere.
-  JOOBLE_API_BASE_URL: parseJoobleBaseUrl(process.env.JOOBLE_API_BASE_URL)
+  JOOBLE_API_BASE_URL: parseJoobleBaseUrl(process.env.JOOBLE_API_BASE_URL),
+  // Base URL del Job Board API público de Greenhouse (opcional). No es secreto: el
+  // endpoint es público. La lista curada de empresas vive versionada en el código.
+  GREENHOUSE_API_BASE_URL: parseGreenhouseBaseUrl(process.env.GREENHOUSE_API_BASE_URL)
 };
