@@ -22,6 +22,8 @@ import type { NormalizedExternalJob } from "./jooble.types.js";
 
 export interface JoobleIngestDeps {
   apiKey?: string;
+  /** Host/base URL de Jooble. Si falta, usa `env.JOOBLE_API_BASE_URL` (configurable). */
+  baseUrl?: string;
   search?: typeof searchJoobleJobs;
   now?: () => Date;
 }
@@ -102,8 +104,11 @@ export async function ingestJoobleJobs(
     throw new JoobleConfigError();
   }
 
+  // Host configurable por entorno (regional para keys regionales). El cliente
+  // recibe la base URL inyectada; nunca se construye a partir de process.env aquí.
+  const baseUrl = deps.baseUrl ?? env.JOOBLE_API_BASE_URL;
   const search = deps.search ?? searchJoobleJobs;
-  const response = await search(params, { apiKey });
+  const response = await search(params, { apiKey, baseUrl });
 
   const ingestedAt = deps.now ? deps.now() : new Date();
   const summary: JoobleIngestSummary = {

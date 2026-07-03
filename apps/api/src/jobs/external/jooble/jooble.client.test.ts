@@ -141,4 +141,46 @@ describe("searchJoobleJobs", () => {
       )
     ).rejects.toBeInstanceOf(JoobleResponseError);
   });
+
+  // g) Base URL por defecto cuando no se inyecta (host global)
+  it("uses the default Jooble base URL when none is provided", async () => {
+    const fetchFn = vi.fn(async (_url: string, _init: RequestInit) => mockResponse(VALID_RESPONSE));
+
+    await searchJoobleJobs({ keywords: "node" }, { apiKey: API_KEY, fetchFn });
+
+    const [url] = fetchFn.mock.calls[0]!;
+    expect(url).toBe(`https://jooble.org/api/${API_KEY}`);
+  });
+
+  // h) Base URL regional inyectada, sin doble slash aunque termine en "/"
+  it("uses a regional base URL and avoids a double slash", async () => {
+    const fetchFn = vi.fn(async (_url: string, _init: RequestInit) => mockResponse(VALID_RESPONSE));
+
+    await searchJoobleJobs(
+      { keywords: "node" },
+      { apiKey: API_KEY, fetchFn, baseUrl: "https://es.jooble.org/api/" }
+    );
+
+    const [url] = fetchFn.mock.calls[0]!;
+    expect(url).toBe(`https://es.jooble.org/api/${API_KEY}`);
+  });
+
+  // i) 403 → fallo de proveedor (JoobleHttpError), no crash, sin filtrar la key
+  it("treats a 403 as a JoobleHttpError provider failure without leaking the key", async () => {
+    const fetchFn = vi.fn(async () => mockResponse({}, { ok: false, status: 403 }));
+
+    let error: unknown;
+    try {
+      await searchJoobleJobs(
+        { keywords: "node" },
+        { apiKey: API_KEY, fetchFn, baseUrl: BASE_URL }
+      );
+    } catch (err) {
+      error = err;
+    }
+
+    expect(error).toBeInstanceOf(JoobleHttpError);
+    expect((error as JoobleHttpError).status).toBe(403);
+    expect((error as Error).message).not.toContain(API_KEY);
+  });
 });

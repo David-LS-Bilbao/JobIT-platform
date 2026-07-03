@@ -105,7 +105,9 @@ export async function searchJoobleJobs(
     throw new JoobleConfigError();
   }
 
-  const url = `${baseUrl}/${apiKey}`;
+  // Normaliza la base (sin barra final) para no generar doble slash: base/{apiKey}.
+  const normalizedBase = baseUrl.replace(/\/+$/, "");
+  const url = `${normalizedBase}/${apiKey}`;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 

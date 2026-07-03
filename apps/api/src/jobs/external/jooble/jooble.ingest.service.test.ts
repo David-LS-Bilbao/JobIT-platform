@@ -1,5 +1,6 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { env } from "../../../config/env.js";
 import { prisma } from "../../../lib/prisma.js";
 import { truncateTables } from "../../../tests/setup.js";
 import { JoobleConfigError, type JoobleClientDeps, type JoobleSearchParams } from "./jooble.client.js";
@@ -138,5 +139,32 @@ describe("ingestJoobleJobs", () => {
 
     expect(error).toBeInstanceOf(Error);
     expect((error as Error).message).not.toContain(API_KEY);
+  });
+
+  // f) Enhebra la base URL inyectada por deps al cliente de búsqueda
+  it("passes the base URL from deps to the search client", async () => {
+    const search = searchReturning(payloadOf([rawJob()]));
+
+    await ingestJoobleJobs(
+      { keywords: "node" },
+      { apiKey: API_KEY, baseUrl: "https://es.jooble.org/api", search }
+    );
+
+    expect(search).toHaveBeenCalledWith(
+      expect.objectContaining({ keywords: "node" }),
+      expect.objectContaining({ apiKey: API_KEY, baseUrl: "https://es.jooble.org/api" })
+    );
+  });
+
+  // g) Sin baseUrl en deps → usa el configurado por entorno (env.JOOBLE_API_BASE_URL)
+  it("defaults the base URL from env when not provided in deps", async () => {
+    const search = searchReturning(payloadOf([rawJob()]));
+
+    await ingestJoobleJobs({ keywords: "node" }, { apiKey: API_KEY, search });
+
+    expect(search).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ baseUrl: env.JOOBLE_API_BASE_URL })
+    );
   });
 });
