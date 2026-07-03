@@ -60,17 +60,31 @@ no cambian. Cada fuente nueva es un valor más del enum `JobSource`.
 Pendiente al añadir fuentes (deuda técnica / decisiones futuras, fuera del alcance
 actual):
 
-- **Orquestación de ingesta**: hoy la ingesta es manual (script puntual). Con varias
-  fuentes convendrá un disparador controlado (comando/cron/endpoint admin), aún por
-  decidir. No hay scraping.
-- **Base URL regional de Jooble**: el cliente usa `https://jooble.org/api` por defecto.
-  Algunas API keys son **regionales** (p. ej. España responde en `https://es.jooble.org/api`;
-  el host global devuelve `403` para esas keys). Conviene hacer la base URL
-  **configurable por entorno** (p. ej. `JOOBLE_API_BASE_URL`) antes de depender de la
-  ingesta Jooble en un despliegue.
+- **Orquestación de ingesta**: hoy la ingesta es manual (script controlado, ver abajo).
+  Con varias fuentes convendrá un disparador programado (comando/cron/endpoint admin),
+  aún por decidir. No hay scraping.
+- **Sinónimos de ubicación**: Jooble usa nombres en español ("Vizcaya", no "Bizkaia");
+  buscar por el nombre en euskera no encuentra resultados. Análogo en otras lenguas
+  cooficiales. Futuro: normalización/mapa de sinónimos (Vizcaya↔Bizkaia, País
+  Vasco↔Euskadi…). No implementado aún.
 - **Búsqueda que dispara ingesta**: a futuro, una búsqueda por ubicación podría
   consultar las fuentes externas en vivo (además de la DB). Requiere diseño (caché,
   rate limits, deduplicación) y decisión de producto.
+
+## Ingesta controlada (dev/staging)
+
+JobIT **no** consulta Jooble en cada request: la búsqueda `GET /api/jobs` lee la **DB
+local**. Las ofertas externas se **ingieren** de forma controlada y quedan persistidas.
+
+- **Host configurable**: `JOOBLE_API_BASE_URL` (opcional; default `https://jooble.org/api`).
+  Algunas API keys son **regionales**: la de España responde en `https://es.jooble.org/api`
+  y el host global devuelve `403`. Se valida http/https y se normaliza sin barra final.
+- **Comando (backend-only, manual)**: `apps/api/src/jobs/scripts/ingest-jooble.ts`
+  (`tsx`), parametrizado por entorno (`ING_KEYWORDS`, `ING_LOCATION`, `ING_LIMIT`). No
+  expone endpoint, no borra seed, no crea usuarios; upsert idempotente por `(source, externalId)`.
+- **Estrategia recomendada por ubicación**: ingerir por plazas relevantes para cubrir el
+  MVP —p. ej. `Bilbao`, `Madrid`, `Barcelona`, `remoto` y `España` (general)— repitiendo
+  el comando con cada `ING_LOCATION`. La `JOOBLE_API_KEY` nunca se imprime.
 
 ## Seguridad y honestidad (recordatorio)
 
