@@ -204,8 +204,8 @@ describe("DashboardPage", () => {
     expect(links.some((l) => l.getAttribute("href")?.startsWith("/profile"))).toBe(true);
     expect(links.some((l) => l.getAttribute("href") === "/jobs")).toBe(true);
     expect(links.some((l) => l.getAttribute("href") === "/saved-jobs")).toBe(true);
-    // …pero Match sigue sin enlace.
-    expect(links.some((l) => l.getAttribute("href") === "/match")).toBe(false);
+    // …y Match también es enlace real desde el Sprint 15C.
+    expect(links.some((l) => l.getAttribute("href") === "/match")).toBe(true);
   });
 
   it("ante 401 limpia la sesión y redirige a /login", async () => {
