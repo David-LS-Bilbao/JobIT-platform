@@ -122,7 +122,7 @@ const PRIVATE_NAV: ReadonlyArray<PrivateNavItem> = [
   { label: "JobIT CV", href: "/profile", status: "available", icon: <IconDoc /> },
   { label: "JobIT Jobs", href: "/jobs", status: "available", icon: <IconWork /> },
   { label: "Guardadas", href: "/saved-jobs", status: "available", icon: <IconBookmark /> },
-  { label: "JobIT Match", href: "/match", status: "pending", icon: <IconTarget /> }
+  { label: "JobIT Match", href: "/match", status: "available", icon: <IconTarget /> }
 ];
 
 const activeNavClass =
