@@ -94,15 +94,27 @@ describe("POST /api/profile/me/avatar", () => {
     expect(res.body.error.code).toBe("UNSUPPORTED_MEDIA_TYPE");
   });
 
-  it("rejects a file larger than 2 MB", async () => {
+  it("rejects a file larger than 5 MB", async () => {
     const token = await registerUser("toolarge@example.com");
-    const big = Buffer.concat([PNG, Buffer.alloc(2 * 1024 * 1024)]);
+    const big = Buffer.concat([PNG, Buffer.alloc(5 * 1024 * 1024)]);
     const res = await request(app)
       .post("/api/profile/me/avatar")
       .set("Authorization", `Bearer ${token}`)
       .attach("avatar", big, { filename: "big.png", contentType: "image/png" });
     expect(res.status).toBe(413);
     expect(res.body.error.code).toBe("FILE_TOO_LARGE");
+  });
+
+  it("accepts a file between 2 MB and 5 MB (17C: former limit raised)", async () => {
+    const token = await registerUser("midsize@example.com");
+    // 3 MB: por encima del límite antiguo (2 MB) y por debajo del nuevo (5 MB).
+    const mid = Buffer.concat([PNG, Buffer.alloc(3 * 1024 * 1024)]);
+    const res = await request(app)
+      .post("/api/profile/me/avatar")
+      .set("Authorization", `Bearer ${token}`)
+      .attach("avatar", mid, { filename: "mid.png", contentType: "image/png" });
+    expect(res.status).toBe(200);
+    expect(res.body.avatarUrl).toMatch(/^\/uploads\/avatars\/.+\.png$/);
   });
 
   it.each([

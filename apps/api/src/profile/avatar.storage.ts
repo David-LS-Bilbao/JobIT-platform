@@ -13,8 +13,8 @@ export const AVATAR_DIR = join(UPLOADS_ROOT, "avatars");
 export const ALLOWED_AVATAR_MIME = ["image/jpeg", "image/png", "image/webp"] as const;
 export type AllowedAvatarMime = (typeof ALLOWED_AVATAR_MIME)[number];
 
-/** Tamaño máximo de avatar: 2 MB. */
-export const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
+/** Tamaño máximo de avatar: 5 MB (Sprint 17C; antes 2 MB). */
+export const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
 
 const MIME_EXTENSION: Record<AllowedAvatarMime, string> = {
   "image/jpeg": "jpg",

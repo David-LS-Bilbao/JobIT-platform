@@ -80,6 +80,15 @@ function checkPublishable(profile: ProfileWithRelations): { ok: boolean; missing
   return { ok: missing.length === 0, missing };
 }
 
+/**
+ * Regla real de publicabilidad (la misma que aplica `publishPortfolio`), expuesta
+ * solo para lectura (Sprint 17C: condición de `publish_portfolio` en el Dashboard).
+ * No crea ni modifica datos y no cambia el comportamiento de los endpoints.
+ */
+export function isPortfolioPublishable(profile: ProfileWithRelations): boolean {
+  return checkPublishable(profile).ok;
+}
+
 /** Publica el portfolio si el perfil cumple el mínimo publicable; si no, 400 accionable. */
 export async function publishPortfolio(userId: string): Promise<PortfolioSettings> {
   await getOrCreatePortfolioSettings(userId);
