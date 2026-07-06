@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { externalSourceCtaLabel, isSafeExternalUrl } from "./jobs-format";
+import { JOB_SOURCE_LABELS, externalSourceCtaLabel, isSafeExternalUrl } from "./jobs-format";
 
 describe("isSafeExternalUrl", () => {
   it("acepta http y https", () => {
@@ -29,7 +29,21 @@ describe("externalSourceCtaLabel", () => {
     expect(externalSourceCtaLabel("JOOBLE")).toBe("Abrir en Jooble");
   });
 
+  it("Greenhouse usa copy específico", () => {
+    expect(externalSourceCtaLabel("GREENHOUSE")).toBe("Abrir en Greenhouse");
+  });
+
   it("INTERNAL y otras fuentes usan copy genérico", () => {
     expect(externalSourceCtaLabel("INTERNAL")).toBe("Ver oferta original");
+  });
+});
+
+describe("JOB_SOURCE_LABELS", () => {
+  it("etiqueta todas las fuentes del contrato (sin 'undefined' en la UI)", () => {
+    expect(JOB_SOURCE_LABELS.INTERNAL).toBe("JobIT");
+    expect(JOB_SOURCE_LABELS.JOOBLE).toBe("Jooble");
+    // Sprint 17B: GREENHOUSE existe en la DB desde 16F.2; sin etiqueta la card
+    // mostraba "Fuente: undefined".
+    expect(JOB_SOURCE_LABELS.GREENHOUSE).toBe("Greenhouse");
   });
 });

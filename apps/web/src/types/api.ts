@@ -59,7 +59,7 @@ export interface LoginRequestDto {
 
 export type RemoteType = "REMOTE" | "HYBRID" | "ON_SITE" | "UNSPECIFIED";
 export type JobSeniority = "JUNIOR" | "MID" | "SENIOR" | "ANY";
-export type JobSource = "INTERNAL" | "JOOBLE";
+export type JobSource = "INTERNAL" | "JOOBLE" | "GREENHOUSE";
 export type JobStatus = "ACTIVE" | "CLOSED" | (string & {});
 
 export interface JobPublicDto {

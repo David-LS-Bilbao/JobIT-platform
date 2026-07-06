@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -168,9 +168,13 @@ describe("DashboardPage", () => {
     expect(prepare.length).toBeGreaterThan(0);
     prepare.forEach((link) => expect(link).toHaveAttribute("href", "/profile"));
     expect(screen.getByRole("link", { name: /añadir skills/i })).toHaveAttribute("href", "/profile#skills");
-    // Módulos aún no disponibles: siguen deshabilitados (sin rutas rotas)
-    expect(screen.getByRole("button", { name: /explorar ofertas/i })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /revisar matches/i })).toBeDisabled();
+    // Módulos operativos (Sprint 17B): las QuickActions enlazan a sus rutas reales
+    expect(screen.getByRole("link", { name: /explorar ofertas/i })).toHaveAttribute("href", "/jobs");
+    expect(screen.getByRole("link", { name: /revisar matches/i })).toHaveAttribute("href", "/match");
+
+    // Empty states accionables de la actividad (guardadas y matches a cero)
+    expect(screen.getByRole("link", { name: /buscar ofertas/i })).toHaveAttribute("href", "/jobs");
+    expect(screen.getByRole("link", { name: /completar perfil/i })).toHaveAttribute("href", "/profile");
   });
 
   it("muestra los módulos del MVP sin copy de dev ni enlaces rotos", async () => {
@@ -206,6 +210,89 @@ describe("DashboardPage", () => {
     expect(links.some((l) => l.getAttribute("href") === "/saved-jobs")).toBe(true);
     // …y Match también es enlace real desde el Sprint 15C.
     expect(links.some((l) => l.getAttribute("href") === "/match")).toBe(true);
+
+    // Sprint 17B: el CONTENIDO del hub también enlaza (QuickActions + ModuleCards),
+    // no solo la sidebar → al menos 2 enlaces por destino operativo.
+    expect(links.filter((l) => l.getAttribute("href") === "/jobs").length).toBeGreaterThanOrEqual(2);
+    expect(links.filter((l) => l.getAttribute("href") === "/saved-jobs").length).toBeGreaterThanOrEqual(2);
+    expect(links.filter((l) => l.getAttribute("href") === "/match").length).toBeGreaterThanOrEqual(2);
+
+    // Ningún módulo operativo aparece ya como "Pendiente"
+    expect(screen.queryByText("Pendiente")).not.toBeInTheDocument();
+  });
+
+  it("renderiza las guardadas recientes con enlace al detalle y CTA a /saved-jobs", async () => {
+    vi.mocked(getCandidateDashboard).mockResolvedValueOnce(fullDto);
+    renderWithSession();
+    await screen.findByText("Hola, Ana");
+
+    expect(screen.getByRole("link", { name: "Frontend Developer" })).toHaveAttribute(
+      "href",
+      "/jobs/j1"
+    );
+    expect(screen.getByText(/ACME/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /ver todas las guardadas/i })).toHaveAttribute(
+      "href",
+      "/saved-jobs"
+    );
+  });
+
+  it("renderiza los mejores matches con score, skills coincidentes y CTA a /match", async () => {
+    vi.mocked(getCandidateDashboard).mockResolvedValueOnce(fullDto);
+    renderWithSession();
+    await screen.findByText("Hola, Ana");
+
+    expect(screen.getByRole("link", { name: "React Engineer" })).toHaveAttribute(
+      "href",
+      "/jobs/j2"
+    );
+
+    // Score y skill coincidente, acotados a la sección (el 80% y "React" existen también fuera)
+    const section = screen.getByText("Tus mejores matches").closest("section");
+    expect(section).not.toBeNull();
+    expect(within(section as HTMLElement).getByText("80%")).toBeInTheDocument();
+    expect(within(section as HTMLElement).getByText("React")).toBeInTheDocument();
+
+    expect(screen.getByRole("link", { name: /ver todos los matches/i })).toHaveAttribute(
+      "href",
+      "/match"
+    );
+  });
+
+  it("renderiza nextActions conocidas como enlaces y tolera acciones desconocidas", async () => {
+    const dto: CandidateDashboardDto = {
+      ...fullDto,
+      nextActions: [
+        { action: "complete_profile", label: "Completa tu perfil profesional" },
+        { action: "explore_jobs", label: "Explora ofertas disponibles" },
+        { action: "future_action", label: "Acción futura" }
+      ]
+    };
+    vi.mocked(getCandidateDashboard).mockResolvedValueOnce(dto);
+    renderWithSession();
+    await screen.findByText("Hola, Ana");
+
+    expect(
+      screen.getByRole("link", { name: /completa tu perfil profesional/i })
+    ).toHaveAttribute("href", "/profile");
+    expect(screen.getByRole("link", { name: /explora ofertas disponibles/i })).toHaveAttribute(
+      "href",
+      "/jobs"
+    );
+    // Acción desconocida: visible pero sin enlace (no rompe la UI ni navega)
+    expect(screen.getByText("Acción futura")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /acción futura/i })).not.toBeInTheDocument();
+  });
+
+  it("muestra el CTA de Portfolio hacia /profile/portfolio", async () => {
+    vi.mocked(getCandidateDashboard).mockResolvedValueOnce(fullDto);
+    renderWithSession();
+    await screen.findByText("Hola, Ana");
+
+    expect(screen.getByRole("link", { name: /portfolio público/i })).toHaveAttribute(
+      "href",
+      "/profile/portfolio"
+    );
   });
 
   it("ante 401 limpia la sesión y redirige a /login", async () => {
