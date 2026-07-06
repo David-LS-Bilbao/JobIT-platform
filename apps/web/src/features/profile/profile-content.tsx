@@ -92,8 +92,8 @@ export function ProfileContent({ profile: initialProfile, token }: { profile: Ca
       setUploadError("Formato no permitido. Usa PNG, JPG o WebP.");
       return;
     }
-    if (file.size > 2 * 1024 * 1024) {
-      setUploadError("La imagen supera el máximo de 2 MB.");
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError("La imagen supera el máximo de 5 MB.");
       return;
     }
     setUploading(true);
@@ -319,7 +319,7 @@ export function ProfileContent({ profile: initialProfile, token }: { profile: Ca
                   />
                   {uploading ? <span className="text-xs text-slate-500">Subiendo…</span> : null}
                 </div>
-                <p className="text-xs text-slate-500">PNG, JPG o WebP · máximo 2 MB.</p>
+                <p className="text-xs text-slate-500">PNG, JPG o WebP · máximo 5 MB.</p>
                 {uploadError ? (
                   <p role="alert" className="text-xs font-medium text-red-600">
                     {uploadError}

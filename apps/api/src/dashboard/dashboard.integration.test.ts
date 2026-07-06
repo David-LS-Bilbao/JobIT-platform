@@ -145,6 +145,19 @@ describe("GET /api/dashboard/me", () => {
       expect(res.body).toHaveProperty("savedJobs");
       expect(res.body).toHaveProperty("matches");
       expect(res.body).toHaveProperty("nextActions");
+
+      // Contrato ampliado 17C (aditivo).
+      expect(res.body.profile).toHaveProperty("summary");
+      expect(res.body.profile).toHaveProperty("avatarUrl");
+      expect(res.body).toHaveProperty("cvSections");
+      expect(res.body.cvSections).toHaveProperty("basics");
+      expect(res.body.cvSections).toHaveProperty("skills");
+      expect(res.body.cvSections).toHaveProperty("experience");
+      expect(res.body.cvSections).toHaveProperty("education");
+      expect(res.body.cvSections).toHaveProperty("projects");
+      expect(res.body.cvSections).toHaveProperty("links");
+      expect(res.body.cvSections).toHaveProperty("preferences");
+      expect(res.body).toHaveProperty("portfolio");
     });
 
     it("exposes profile.completionPercentage (not completeness) as an integer 0..100", async () => {
@@ -367,6 +380,289 @@ describe("GET /api/dashboard/me", () => {
       const serialized = JSON.stringify(first.body.nextActions).toLowerCase();
       expect(serialized).not.toContain("recruiter");
       expect(serialized).not.toContain("ranking");
+    });
+
+    it("returns at most 3 actions with the approved priority for a fresh user", async () => {
+      const { accessToken } = await registerUser("dash-actions-priority@example.com");
+      const res = await getDashboard(accessToken);
+
+      expect(res.status).toBe(200);
+      const actions = res.body.nextActions.map((a: { action: string }) => a.action);
+      // Usuario recién creado: faltan básicos/skills, falta experiencia y no hay guardadas.
+      expect(actions).toEqual(["complete_profile", "add_experience", "explore_jobs"]);
+      expect(actions.length).toBeLessThanOrEqual(3);
+      // No publicable (sin nombre/headline/skills) → nunca publish_portfolio.
+      expect(actions).not.toContain("publish_portfolio");
+    });
+
+    it("emits only ONE missing-CV-section action per response", async () => {
+      const user = await registerUser("dash-actions-one-add@example.com");
+      await setBasicInfo(user.accessToken, { firstName: "Ana", lastName: "Pérez" });
+      await addSkill(user.accessToken, "TypeScript");
+
+      const res = await getDashboard(user.accessToken);
+
+      expect(res.status).toBe(200);
+      const actions = res.body.nextActions.map((a: { action: string }) => a.action);
+      // Básicos+skills completos → sin complete_profile; solo la PRIMERA sección faltante.
+      expect(actions).toEqual(["add_experience", "explore_jobs"]);
+      expect(actions).not.toContain("add_projects");
+      expect(actions).not.toContain("add_links");
+    });
+
+    it("suggests publish_portfolio only when the profile is publishable and not published", async () => {
+      const user = await registerUser("dash-actions-publish@example.com");
+      // Publicable: nombre + headline + ≥1 skill + ≥1 experiencia (regla real).
+      await setBasicInfo(user.accessToken, {
+        firstName: "Ana",
+        lastName: "Pérez",
+        headline: "Frontend Developer"
+      });
+      await addSkill(user.accessToken, "TypeScript");
+      const profile = await prisma.candidateProfile.findUniqueOrThrow({
+        where: { userId: user.userId },
+        select: { id: true }
+      });
+      await prisma.experience.create({
+        data: { profileId: profile.id, company: "Acme", role: "Dev", startDate: new Date("2024-01-01"), current: true }
+      });
+
+      const res = await getDashboard(user.accessToken);
+
+      expect(res.status).toBe(200);
+      const actions = res.body.nextActions.map((a: { action: string }) => a.action);
+      // Prioridad: add_projects (primera sección faltante) > publish_portfolio > explore_jobs.
+      expect(actions).toEqual(["add_projects", "publish_portfolio", "explore_jobs"]);
+    });
+
+    it("does not suggest publish_portfolio when the portfolio is already published", async () => {
+      const user = await registerUser("dash-actions-published@example.com");
+      await setBasicInfo(user.accessToken, {
+        firstName: "Ana",
+        lastName: "Pérez",
+        headline: "Frontend Developer"
+      });
+      await addSkill(user.accessToken, "TypeScript");
+      const profile = await prisma.candidateProfile.findUniqueOrThrow({
+        where: { userId: user.userId },
+        select: { id: true }
+      });
+      await prisma.experience.create({
+        data: { profileId: profile.id, company: "Acme", role: "Dev", startDate: new Date("2024-01-01"), current: true }
+      });
+      await prisma.portfolioSettings.create({
+        data: { userId: user.userId, slug: "ana-perez", isPublished: true, publishedAt: new Date() }
+      });
+
+      const res = await getDashboard(user.accessToken);
+
+      expect(res.status).toBe(200);
+      const actions = res.body.nextActions.map((a: { action: string }) => a.action);
+      expect(actions).not.toContain("publish_portfolio");
+      expect(actions).toEqual(["add_projects", "explore_jobs"]);
+    });
+
+    it("suggests review_matches when there are matches and at least one saved job", async () => {
+      const user = await seedCandidate("dash-actions-review@example.com");
+      const job = await createJob({ tags: ["typescript", "node.js"], remoteType: "REMOTE", seniority: "MID" });
+      await createSavedJob(user.userId, job.id);
+
+      const res = await getDashboard(user.accessToken);
+
+      expect(res.status).toBe(200);
+      const actions = res.body.nextActions.map((a: { action: string }) => a.action);
+      // seedCandidate no tiene nombre → complete_profile; sin experiencia → add_experience;
+      // con guardada + matches → review_matches (y NO explore_jobs).
+      expect(actions).toEqual(["complete_profile", "add_experience", "review_matches"]);
+      expect(actions).not.toContain("explore_jobs");
+    });
+  });
+
+  describe("Profile passthrough (17C)", () => {
+    it("returns summary and avatarUrl as null for a fresh profile", async () => {
+      const { accessToken } = await registerUser("dash-pass-null@example.com");
+      const res = await getDashboard(accessToken);
+
+      expect(res.status).toBe(200);
+      expect(res.body.profile.summary).toBeNull();
+      expect(res.body.profile.avatarUrl).toBeNull();
+    });
+
+    it("passes through the real summary and avatarUrl when present", async () => {
+      const user = await registerUser("dash-pass-values@example.com");
+      await setBasicInfo(user.accessToken, {
+        firstName: "Ana",
+        lastName: "Pérez",
+        summary: "Full-stack con foco en frontend."
+      });
+      // La imagen subida se persiste como ruta interna (patrón POST /me/avatar).
+      await prisma.candidateProfile.update({
+        where: { userId: user.userId },
+        data: { avatarUrl: "/uploads/avatars/test.png" }
+      });
+
+      const res = await getDashboard(user.accessToken);
+
+      expect(res.status).toBe(200);
+      expect(res.body.profile.summary).toBe("Full-stack con foco en frontend.");
+      expect(res.body.profile.avatarUrl).toBe("/uploads/avatars/test.png");
+    });
+  });
+
+  describe("cvSections (17C)", () => {
+    /** Coherencia: el % se deriva de los mismos flags (7 secciones). */
+    function expectCvSectionsCoherent(body: {
+      cvSections: Record<string, boolean>;
+      profile: { completionPercentage: number };
+    }): void {
+      expect(Object.keys(body.cvSections)).toHaveLength(7);
+      const trueCount = Object.values(body.cvSections).filter(Boolean).length;
+      expect(body.profile.completionPercentage).toBe(Math.round((trueCount / 7) * 100));
+    }
+
+    it("returns all-false flags (and 0%) for a fresh profile, coherently", async () => {
+      const { accessToken } = await registerUser("dash-cv-fresh@example.com");
+      const res = await getDashboard(accessToken);
+
+      expect(res.status).toBe(200);
+      expect(res.body.cvSections).toEqual({
+        basics: false,
+        skills: false,
+        experience: false,
+        education: false,
+        projects: false,
+        links: false,
+        preferences: false
+      });
+      expect(res.body.profile.completionPercentage).toBe(0);
+      expectCvSectionsCoherent(res.body);
+    });
+
+    it("reflects a partially completed CV and stays coherent with the percentage", async () => {
+      const user = await registerUser("dash-cv-partial@example.com");
+      await setBasicInfo(user.accessToken, { firstName: "Ana", lastName: "Pérez" });
+      await addSkill(user.accessToken, "TypeScript");
+      const profile = await prisma.candidateProfile.findUniqueOrThrow({
+        where: { userId: user.userId },
+        select: { id: true }
+      });
+      await prisma.experience.create({
+        data: { profileId: profile.id, company: "Acme", role: "Dev", startDate: new Date("2024-01-01"), current: true }
+      });
+
+      const res = await getDashboard(user.accessToken);
+
+      expect(res.status).toBe(200);
+      expect(res.body.cvSections).toEqual({
+        basics: true,
+        skills: true,
+        experience: true,
+        education: false,
+        projects: false,
+        links: false,
+        preferences: false
+      });
+      // 3/7 secciones → 43% (misma regla que calculateCompletionPercentage).
+      expect(res.body.profile.completionPercentage).toBe(43);
+      expectCvSectionsCoherent(res.body);
+    });
+
+    it("returns all-true flags (and 100%) for a fully completed CV", async () => {
+      const user = await registerUser("dash-cv-full@example.com");
+      await setBasicInfo(user.accessToken, { firstName: "Ana", lastName: "Pérez" });
+      await addSkill(user.accessToken, "TypeScript");
+      await setPreferences(user.accessToken, {
+        remotePreference: "REMOTE",
+        seniority: "MID",
+        preferredLocations: ["Bilbao"]
+      });
+      const profile = await prisma.candidateProfile.findUniqueOrThrow({
+        where: { userId: user.userId },
+        select: { id: true }
+      });
+      await prisma.experience.create({
+        data: { profileId: profile.id, company: "Acme", role: "Dev", startDate: new Date("2024-01-01"), current: true }
+      });
+      await prisma.education.create({
+        data: { profileId: profile.id, institution: "Uni", title: "CS" }
+      });
+      await prisma.project.create({
+        data: { profileId: profile.id, name: "Side Project", technologies: ["typescript"] }
+      });
+      await prisma.link.create({
+        data: { profileId: profile.id, type: "GITHUB", url: "https://github.com/ana" }
+      });
+
+      const res = await getDashboard(user.accessToken);
+
+      expect(res.status).toBe(200);
+      expect(res.body.cvSections).toEqual({
+        basics: true,
+        skills: true,
+        experience: true,
+        education: true,
+        projects: true,
+        links: true,
+        preferences: true
+      });
+      expect(res.body.profile.completionPercentage).toBe(100);
+      expectCvSectionsCoherent(res.body);
+    });
+  });
+
+  describe("Portfolio (17C)", () => {
+    it("returns portfolio null without creating PortfolioSettings on read", async () => {
+      const user = await seedCandidate("dash-portfolio-null@example.com");
+
+      const before = await prisma.portfolioSettings.count({ where: { userId: user.userId } });
+      expect(before).toBe(0);
+
+      const res = await getDashboard(user.accessToken);
+
+      expect(res.status).toBe(200);
+      expect(res.body.portfolio).toBeNull();
+
+      // Blindaje: la lectura del dashboard NUNCA crea el registro (no getOrCreate).
+      const after = await prisma.portfolioSettings.count({ where: { userId: user.userId } });
+      expect(after).toBe(0);
+    });
+
+    it("returns the unpublished portfolio status with slug and publicUrlPath", async () => {
+      const user = await seedCandidate("dash-portfolio-unpub@example.com");
+      await prisma.portfolioSettings.create({
+        data: { userId: user.userId, slug: "ana-dev" }
+      });
+
+      const res = await getDashboard(user.accessToken);
+
+      expect(res.status).toBe(200);
+      // toEqual exacto: además blinda que no se exponen publishedAt/show* internos.
+      expect(res.body.portfolio).toEqual({
+        isPublished: false,
+        slug: "ana-dev",
+        publicUrlPath: "/u/ana-dev"
+      });
+    });
+
+    it("returns the published portfolio status with slug and publicUrlPath", async () => {
+      const user = await seedCandidate("dash-portfolio-pub@example.com");
+      await prisma.portfolioSettings.create({
+        data: {
+          userId: user.userId,
+          slug: "ana-perez",
+          isPublished: true,
+          publishedAt: new Date()
+        }
+      });
+
+      const res = await getDashboard(user.accessToken);
+
+      expect(res.status).toBe(200);
+      expect(res.body.portfolio).toEqual({
+        isPublished: true,
+        slug: "ana-perez",
+        publicUrlPath: "/u/ana-perez"
+      });
     });
   });
 });

@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { locationLabel } from "@/features/jobs/jobs-format";
+import { ProfileAvatar } from "@/features/profile/profile-avatar";
 import type { CandidateDashboardDto } from "@/types/api";
 
 interface DashboardContentProps {
@@ -9,12 +10,17 @@ interface DashboardContentProps {
 }
 
 /**
- * Rutas de las `nextActions` conocidas del backend (mapeo mínimo, Sprint 17B).
+ * Rutas de las `nextActions` del catálogo aprobado (spec Dashboard 17C).
  * Una acción desconocida se muestra sin navegación (no rompe la UI).
  */
 const NEXT_ACTION_ROUTES: Record<string, string> = {
   complete_profile: "/profile",
-  explore_jobs: "/jobs"
+  add_experience: "/profile",
+  add_projects: "/profile",
+  add_links: "/profile",
+  publish_portfolio: "/profile/portfolio",
+  explore_jobs: "/jobs",
+  review_matches: "/match"
 };
 
 /* -------------------------------------------------------------------------- */
@@ -254,6 +260,61 @@ function ModuleCard({
   return <div className={`${base} border border-slate-200 opacity-80`}>{content}</div>;
 }
 
+/**
+ * Card de Portfolio con estado real (17C: sin configurar / sin publicar /
+ * publicado). No reutiliza el wrapper-Link de ModuleCard porque el estado
+ * "publicado" añade un segundo enlace (la página pública) y anidar links es
+ * HTML inválido: la gestión y la página pública son enlaces explícitos del pie.
+ */
+function PortfolioCard({ portfolio }: { portfolio: CandidateDashboardDto["portfolio"] }) {
+  const status = !portfolio ? "unset" : portfolio.isPublished ? "published" : "unpublished";
+  const badge =
+    status === "published"
+      ? { text: "Publicado", className: "bg-emerald-100 text-emerald-700" }
+      : status === "unpublished"
+        ? { text: "Sin publicar", className: "bg-slate-100 text-slate-600" }
+        : { text: "Sin configurar", className: "bg-slate-100 text-slate-500" };
+  const description =
+    status === "published"
+      ? "Tu JobIT CV está publicado como página pública con tu enlace y código QR."
+      : status === "unpublished"
+        ? "Portfolio configurado sin publicar. Publícalo para compartir tu enlace público."
+        : "Publica tu JobIT CV como página pública con tu enlace y código QR.";
+
+  return (
+    <div className="relative block overflow-hidden rounded-xl border-2 border-[#006591] bg-white p-6 shadow-sm">
+      <span
+        className={`absolute right-4 top-4 rounded px-2 py-1 text-xs font-bold ${badge.className}`}
+      >
+        {badge.text}
+      </span>
+      <div className="mb-4 flex items-center gap-3">
+        <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#eff4ff] text-[#006591]">
+          <IconGlobe />
+        </span>
+        <h4 className="text-lg font-semibold text-slate-900">Portfolio público</h4>
+      </div>
+      <p className="text-sm text-slate-600">{description}</p>
+      <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1">
+        <Link
+          href="/profile/portfolio"
+          className="text-sm font-medium text-[#006591] hover:underline"
+        >
+          Gestionar portfolio →
+        </Link>
+        {status === "published" && portfolio ? (
+          <Link
+            href={portfolio.publicUrlPath}
+            className="text-sm font-medium text-[#006591] hover:underline"
+          >
+            Ver página pública →
+          </Link>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 /** CTA principal "Preparar JobIT CV" → /profile (JobIT CV ya disponible). */
 function PrepareCvButton() {
   return (
@@ -269,17 +330,11 @@ function PrepareCvButton() {
 
 function ChecklistItem({ done, children }: { done: boolean; children: ReactNode }) {
   return (
-    <li className="flex items-center gap-2 text-sm text-slate-600">
+    <li data-done={done} className="flex items-center gap-2 text-sm text-slate-600">
       {done ? <IconCheckCircle /> : <IconCircle />}
       {children}
     </li>
   );
-}
-
-function initialsFrom(name: string): string {
-  const parts = name.trim().split(/\s+/).slice(0, 2);
-  const letters = parts.map((p) => p.charAt(0).toUpperCase()).join("");
-  return letters || "CT";
 }
 
 /* -------------------------------------------------------------------------- */
@@ -288,7 +343,7 @@ function initialsFrom(name: string): string {
 
 /** Canvas privado del candidato (bento): resumen, acciones y preview de CV. */
 export function DashboardContent({ dashboard }: DashboardContentProps) {
-  const { profile, skills, savedJobs, matches, nextActions } = dashboard;
+  const { profile, skills, savedJobs, matches, cvSections, portfolio, nextActions } = dashboard;
 
   const greetingName = profile.firstName?.trim() ? profile.firstName : "candidato tech";
   const pct = profile.completionPercentage;
@@ -298,8 +353,6 @@ export function DashboardContent({ dashboard }: DashboardContentProps) {
 
   const fullName = [profile.firstName, profile.lastName].filter(Boolean).join(" ").trim();
   const displayName = fullName || "Candidato tech";
-  const initials = initialsFrom(displayName);
-  const hasBasics = Boolean(profile.firstName?.trim());
   const hasSkills = skillsCount > 0;
 
   return (
@@ -522,11 +575,11 @@ export function DashboardContent({ dashboard }: DashboardContentProps) {
                 <div className="h-1.5 rounded-full bg-[#006591]" style={{ width: `${pct}%` }} />
               </div>
               <ul className="space-y-2">
-                <ChecklistItem done={hasBasics}>Datos profesionales</ChecklistItem>
-                <ChecklistItem done={hasSkills}>Skills</ChecklistItem>
-                <ChecklistItem done={false}>Experiencia</ChecklistItem>
-                <ChecklistItem done={false}>Proyectos</ChecklistItem>
-                <ChecklistItem done={false}>Enlaces</ChecklistItem>
+                <ChecklistItem done={cvSections.basics}>Datos profesionales</ChecklistItem>
+                <ChecklistItem done={cvSections.skills}>Skills</ChecklistItem>
+                <ChecklistItem done={cvSections.experience}>Experiencia</ChecklistItem>
+                <ChecklistItem done={cvSections.projects}>Proyectos</ChecklistItem>
+                <ChecklistItem done={cvSections.links}>Enlaces</ChecklistItem>
               </ul>
             </div>
           </div>
@@ -538,9 +591,12 @@ export function DashboardContent({ dashboard }: DashboardContentProps) {
         <h3 className="mb-4 text-xl font-semibold text-slate-900">Vista previa de JobIT CV</h3>
         <div className="rounded-xl border border-[#c8e6ff] border-t-4 border-t-[#006591] bg-white p-6 shadow-sm md:p-8">
           <div className="flex flex-col gap-6 md:flex-row md:gap-8">
-            <span className="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl bg-[#dce9ff] text-3xl font-bold text-[#004c6e]">
-              {initials}
-            </span>
+            <ProfileAvatar
+              name={displayName}
+              avatarUrl={profile.avatarUrl}
+              imgClassName="h-24 w-24 shrink-0 rounded-2xl object-cover"
+              fallbackClassName="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl bg-[#dce9ff] text-3xl font-bold text-[#004c6e]"
+            />
             <div className="flex-1 space-y-4">
               <div>
                 <h4 className="text-2xl font-bold text-slate-900">{displayName}</h4>
@@ -548,9 +604,13 @@ export function DashboardContent({ dashboard }: DashboardContentProps) {
                   {profile.headline?.trim() ? profile.headline : "Añade tu titular profesional (rol y stack)."}
                 </p>
               </div>
-              <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
-                Añade un resumen profesional destacando tu experiencia y objetivos.
-              </div>
+              {profile.summary?.trim() ? (
+                <p className="text-sm leading-relaxed text-slate-700">{profile.summary}</p>
+              ) : (
+                <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
+                  Añade un resumen profesional para destacar tu perfil.
+                </div>
+              )}
               {hasSkills ? (
                 <div className="flex flex-wrap gap-2">
                   {skills.map((skill) => (
@@ -567,14 +627,18 @@ export function DashboardContent({ dashboard }: DashboardContentProps) {
               )}
               <div className="flex items-center gap-2 border-t border-slate-100 pt-4 text-sm text-slate-600">
                 <IconFolder />
-                Añade tu primer proyecto destacado
+                {cvSections.projects
+                  ? "Proyectos añadidos a tu JobIT CV"
+                  : "Añade tu primer proyecto destacado"}
               </div>
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pt-2 text-sm font-medium text-slate-400">
-                <span>GitHub</span>
-                <span aria-hidden="true">·</span>
-                <span>LinkedIn</span>
-                <span aria-hidden="true">·</span>
-                <span>Portfolio</span>
+              <div
+                className={`pt-2 text-sm font-medium ${
+                  cvSections.links ? "text-[#006591]" : "text-slate-400"
+                }`}
+              >
+                {cvSections.links
+                  ? "Enlaces profesionales añadidos"
+                  : "Añade tus enlaces profesionales (GitHub, LinkedIn, portfolio)"}
               </div>
             </div>
           </div>
@@ -607,12 +671,7 @@ export function DashboardContent({ dashboard }: DashboardContentProps) {
           name="JobIT Match"
           description="Entiende por qué una oferta encaja con tu perfil."
         />
-        <ModuleCard
-          href="/profile/portfolio"
-          icon={<IconGlobe />}
-          name="Portfolio público"
-          description="Publica tu JobIT CV como página pública con tu enlace y código QR."
-        />
+        <PortfolioCard portfolio={portfolio} />
       </section>
     </div>
   );

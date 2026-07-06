@@ -9,14 +9,15 @@ import type { UserDto } from "@/types/api";
 
 import { SiteShell } from "./site-shell";
 
-// routerMock estable entre renders (como el useRouter real de Next).
-const { pushMock, routerMock } = vi.hoisted(() => {
+// routerMock estable entre renders (como el useRouter real de Next). El pathname
+// es parametrizable por test (17C: estados activos de la navegación privada).
+const { pushMock, routerMock, pathnameMock } = vi.hoisted(() => {
   const push = vi.fn();
-  return { pushMock: push, routerMock: { push } };
+  return { pushMock: push, routerMock: { push }, pathnameMock: { current: "/dashboard" } };
 });
 vi.mock("next/navigation", () => ({
   useRouter: () => routerMock,
-  usePathname: () => "/dashboard"
+  usePathname: () => pathnameMock.current
 }));
 vi.mock("next/link", () => ({
   default: ({ href, children, ...rest }: { href: string; children: ReactNode }) => (
@@ -56,6 +57,7 @@ function renderPrivate() {
 
 afterEach(() => {
   vi.clearAllMocks();
+  pathnameMock.current = "/dashboard";
 });
 
 describe("SiteShell navegación auth-aware", () => {
@@ -119,6 +121,31 @@ describe("SiteShell navegación auth-aware", () => {
     // Match ya está disponible (Sprint 15C): enlace real a /match, sin badge "Pendiente".
     expect(screen.getByRole("link", { name: "JobIT Match" })).toHaveAttribute("href", "/match");
     expect(screen.queryByText("Pendiente")).not.toBeInTheDocument();
+  });
+
+  it("muestra Portfolio en la navegación privada como enlace real (17C)", () => {
+    renderPrivate();
+    expect(screen.getByRole("link", { name: "Portfolio" })).toHaveAttribute(
+      "href",
+      "/profile/portfolio"
+    );
+  });
+
+  it("en /profile/portfolio activa Portfolio y NO JobIT CV (prefijo más largo gana)", () => {
+    pathnameMock.current = "/profile/portfolio";
+    renderPrivate();
+    expect(screen.getByRole("link", { name: "Portfolio" })).toHaveAttribute(
+      "aria-current",
+      "page"
+    );
+    expect(screen.getByRole("link", { name: "JobIT CV" })).not.toHaveAttribute("aria-current");
+  });
+
+  it("en /profile activa JobIT CV y no Portfolio", () => {
+    pathnameMock.current = "/profile";
+    renderPrivate();
+    expect(screen.getByRole("link", { name: "JobIT CV" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "Portfolio" })).not.toHaveAttribute("aria-current");
   });
 
   it("en móvil abre y cierra el drawer con el botón de menú", async () => {

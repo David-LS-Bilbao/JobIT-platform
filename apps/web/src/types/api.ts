@@ -157,6 +157,28 @@ export interface DashboardProfileDto {
   lastName: string | null;
   headline: string | null;
   completionPercentage: number; // 0..100
+  /** Resumen profesional del CV; null si no está escrito (17C). */
+  summary: string | null;
+  /** Avatar (URL pública o ruta `/uploads/...`); null si no hay (17C). */
+  avatarUrl: string | null;
+}
+
+/** Flags reales por sección del CV (17C); mismas reglas que completionPercentage. */
+export interface DashboardCvSectionsDto {
+  basics: boolean;
+  skills: boolean;
+  experience: boolean;
+  education: boolean;
+  projects: boolean;
+  links: boolean;
+  preferences: boolean;
+}
+
+/** Estado del portfolio en el hub (17C); null = sin configurar. */
+export interface DashboardPortfolioDto {
+  isPublished: boolean;
+  slug: string;
+  publicUrlPath: string; // relativo, p. ej. "/u/ana-perez"
 }
 
 export interface DashboardSavedJobsDto {
@@ -174,6 +196,8 @@ export interface CandidateDashboardDto {
   skills: string[];
   savedJobs: DashboardSavedJobsDto;
   matches: ProfileJobMatchDto[];
+  cvSections: DashboardCvSectionsDto;
+  portfolio: DashboardPortfolioDto | null;
   nextActions: DashboardNextActionDto[];
 }
 

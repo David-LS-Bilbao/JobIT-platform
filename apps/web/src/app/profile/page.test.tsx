@@ -327,11 +327,11 @@ describe("ProfilePage (/profile · JobIT CV)", () => {
     expect(screen.getByLabelText(/pega una URL de imagen/i)).toBeInTheDocument();
   });
 
-  it("muestra la ayuda de tipos y tamaño (PNG, JPG o WebP · 2 MB)", async () => {
+  it("muestra la ayuda de tipos y tamaño (PNG, JPG o WebP · 5 MB)", async () => {
     vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
     renderWithSession();
     await screen.findByText("Tu perfil tech vivo");
-    expect(screen.getByText(/PNG, JPG o WebP · máximo 2 MB/i)).toBeInTheDocument();
+    expect(screen.getByText(/PNG, JPG o WebP · máximo 5 MB/i)).toBeInTheDocument();
   });
 
   it("sube una imagen: llama a uploadProfileAvatar y refresca el perfil con la imagen", async () => {
@@ -353,7 +353,7 @@ describe("ProfilePage (/profile · JobIT CV)", () => {
   it("muestra un error si la subida de imagen falla", async () => {
     vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
     vi.mocked(uploadProfileAvatar).mockRejectedValueOnce(
-      new ApiClientError(413, "FILE_TOO_LARGE", "La imagen supera el máximo de 2 MB.")
+      new ApiClientError(413, "FILE_TOO_LARGE", "La imagen supera el máximo de 5 MB.")
     );
     const user = userEvent.setup();
     renderWithSession();
@@ -362,7 +362,7 @@ describe("ProfilePage (/profile · JobIT CV)", () => {
     const file = new File(["x"], "foto.png", { type: "image/png" });
     await user.upload(screen.getByLabelText("Subir imagen"), file);
 
-    expect(await screen.findByText("La imagen supera el máximo de 2 MB.")).toBeInTheDocument();
+    expect(await screen.findByText("La imagen supera el máximo de 5 MB.")).toBeInTheDocument();
   });
 
   it("guarda una URL de imagen externa válida vía PUT /api/profile/me", async () => {

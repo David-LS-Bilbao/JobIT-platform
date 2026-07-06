@@ -394,18 +394,37 @@ function hasMeaningfulPreferences(preferences: JobPreferences | null): boolean {
   );
 }
 
+/**
+ * Flags por sección del CV. Única fuente de las reglas de completitud: el
+ * porcentaje se deriva de estos mismos booleanos (coherencia garantizada), y el
+ * Dashboard los expone como `cvSections` (Sprint 17C).
+ */
+export interface ProfileSectionFlags {
+  basics: boolean;
+  skills: boolean;
+  experience: boolean;
+  education: boolean;
+  projects: boolean;
+  links: boolean;
+  preferences: boolean;
+}
+
+export function getProfileSectionFlags(profile: ProfileWithRelations): ProfileSectionFlags {
+  return {
+    basics: Boolean(profile.firstName) && Boolean(profile.lastName),
+    skills: profile.skills.length > 0,
+    experience: profile.experiences.length > 0,
+    education: profile.education.length > 0,
+    projects: profile.projects.length > 0,
+    links: profile.links.length > 0,
+    preferences: hasMeaningfulPreferences(profile.preferences)
+  };
+}
+
 export function calculateCompletionPercentage(
   profile: ProfileWithRelations
 ): number {
-  const completed = [
-    Boolean(profile.firstName) && Boolean(profile.lastName),
-    profile.skills.length > 0,
-    profile.experiences.length > 0,
-    profile.education.length > 0,
-    profile.projects.length > 0,
-    profile.links.length > 0,
-    hasMeaningfulPreferences(profile.preferences)
-  ].filter(Boolean).length;
+  const completed = Object.values(getProfileSectionFlags(profile)).filter(Boolean).length;
 
   return Math.round((completed / COMPLETION_SECTIONS) * 100);
 }

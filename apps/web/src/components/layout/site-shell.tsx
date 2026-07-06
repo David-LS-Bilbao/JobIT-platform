@@ -66,6 +66,18 @@ function IconTarget() {
     </svg>
   );
 }
+function IconGlobe() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.7" />
+      <path
+        d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9s1.3-6.4 3.8-9z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      />
+    </svg>
+  );
+}
 function IconSettings() {
   return (
     <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
@@ -120,6 +132,7 @@ interface PrivateNavItem {
 const PRIVATE_NAV: ReadonlyArray<PrivateNavItem> = [
   { label: "Dashboard", href: "/dashboard", status: "available", icon: <IconDashboard /> },
   { label: "JobIT CV", href: "/profile", status: "available", icon: <IconDoc /> },
+  { label: "Portfolio", href: "/profile/portfolio", status: "available", icon: <IconGlobe /> },
   { label: "JobIT Jobs", href: "/jobs", status: "available", icon: <IconWork /> },
   { label: "Guardadas", href: "/saved-jobs", status: "available", icon: <IconBookmark /> },
   { label: "JobIT Match", href: "/match", status: "available", icon: <IconTarget /> }
@@ -132,7 +145,14 @@ const inactiveNavClass =
 
 function isActive(pathname: string | null, href: string): boolean {
   if (!pathname) return false;
-  return pathname === href || pathname.startsWith(`${href}/`);
+  const matches = (candidate: string): boolean =>
+    pathname === candidate || pathname.startsWith(`${candidate}/`);
+  if (!matches(href)) return false;
+  // Prefijo más largo gana (17C): en /profile/portfolio se activa Portfolio y
+  // NO JobIT CV (/profile), evitando el doble activo. El resto no cambia.
+  return !PRIVATE_NAV.some(
+    (item) => item.href !== href && item.href.length > href.length && matches(item.href)
+  );
 }
 
 function StatusBadge({ status }: { status: Exclude<NavStatus, "available"> }) {

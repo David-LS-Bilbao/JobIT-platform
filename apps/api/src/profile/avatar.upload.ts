@@ -7,7 +7,7 @@ import { MAX_AVATAR_BYTES, isAllowedAvatarMime } from "./avatar.storage.js";
  *
  * - `memoryStorage`: bufferiza en memoria (tope `MAX_AVATAR_BYTES`) sin tocar
  *   disco hasta validar; evita ficheros parciales.
- * - `limits.fileSize`: multer aborta con `LIMIT_FILE_SIZE` si se supera 2 MB.
+ * - `limits.fileSize`: multer aborta con `LIMIT_FILE_SIZE` si se supera `MAX_AVATAR_BYTES`.
  * - `fileFilter`: rechaza MIME fuera del allowlist antes de leer el cuerpo.
  */
 export const avatarMulter = multer({

@@ -192,7 +192,7 @@ function handleAvatarUpload(req: Request, res: Response, next: NextFunction): vo
       if (err.code === "LIMIT_FILE_SIZE") {
         res
           .status(413)
-          .json({ error: { code: "FILE_TOO_LARGE", message: "La imagen supera el máximo de 2 MB." } });
+          .json({ error: { code: "FILE_TOO_LARGE", message: "La imagen supera el máximo de 5 MB." } });
         return;
       }
       res.status(400).json({ error: { code: "UPLOAD_ERROR", message: "No se ha podido procesar la imagen." } });

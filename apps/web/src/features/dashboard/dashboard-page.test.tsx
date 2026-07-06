@@ -54,7 +54,14 @@ function makeJob(id: string, title: string, company: string, location: string | 
 }
 
 const fullDto: CandidateDashboardDto = {
-  profile: { firstName: "Ana", lastName: "Pérez", headline: "Frontend dev", completionPercentage: 80 },
+  profile: {
+    firstName: "Ana",
+    lastName: "Pérez",
+    headline: "Frontend dev",
+    completionPercentage: 80,
+    summary: "Frontend con foco en producto.",
+    avatarUrl: null
+  },
   skills: ["React", "TypeScript"],
   savedJobs: {
     total: 2,
@@ -69,14 +76,41 @@ const fullDto: CandidateDashboardDto = {
       missingSkills: ["GraphQL"]
     }
   ],
+  cvSections: {
+    basics: true,
+    skills: true,
+    experience: true,
+    education: false,
+    projects: false,
+    links: false,
+    preferences: false
+  },
+  portfolio: null,
   nextActions: [{ action: "complete_profile", label: "Completa tu perfil profesional" }]
 };
 
 const emptyDto: CandidateDashboardDto = {
-  profile: { firstName: null, lastName: null, headline: null, completionPercentage: 0 },
+  profile: {
+    firstName: null,
+    lastName: null,
+    headline: null,
+    completionPercentage: 0,
+    summary: null,
+    avatarUrl: null
+  },
   skills: [],
   savedJobs: { total: 0, recent: [] },
   matches: [],
+  cvSections: {
+    basics: false,
+    skills: false,
+    experience: false,
+    education: false,
+    projects: false,
+    links: false,
+    preferences: false
+  },
+  portfolio: null,
   nextActions: []
 };
 
@@ -284,14 +318,128 @@ describe("DashboardPage", () => {
     expect(screen.queryByRole("link", { name: /acción futura/i })).not.toBeInTheDocument();
   });
 
-  it("muestra el CTA de Portfolio hacia /profile/portfolio", async () => {
+  it("muestra el CTA de gestión de Portfolio hacia /profile/portfolio", async () => {
     vi.mocked(getCandidateDashboard).mockResolvedValueOnce(fullDto);
     renderWithSession();
     await screen.findByText("Hola, Ana");
 
-    expect(screen.getByRole("link", { name: /portfolio público/i })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /gestionar portfolio/i })).toHaveAttribute(
       "href",
       "/profile/portfolio"
+    );
+  });
+
+  it("muestra el summary real en la preview del CV", async () => {
+    vi.mocked(getCandidateDashboard).mockResolvedValueOnce(fullDto);
+    renderWithSession();
+    await screen.findByText("Hola, Ana");
+
+    expect(screen.getByText("Frontend con foco en producto.")).toBeInTheDocument();
+    expect(screen.queryByText(/añade un resumen profesional/i)).not.toBeInTheDocument();
+  });
+
+  it("muestra placeholder honesto cuando summary es null", async () => {
+    vi.mocked(getCandidateDashboard).mockResolvedValueOnce(emptyDto);
+    renderWithSession();
+    await screen.findByText("Hola, candidato tech");
+
+    expect(screen.getByText(/añade un resumen profesional/i)).toBeInTheDocument();
+  });
+
+  it("el checklist refleja cvSections reales (no valores fijos)", async () => {
+    vi.mocked(getCandidateDashboard).mockResolvedValueOnce(fullDto);
+    renderWithSession();
+    await screen.findByText("Hola, Ana");
+
+    expect(screen.getByText("Datos profesionales").closest("li")).toHaveAttribute("data-done", "true");
+    expect(screen.getByText("Experiencia").closest("li")).toHaveAttribute("data-done", "true");
+    expect(screen.getByText("Proyectos").closest("li")).toHaveAttribute("data-done", "false");
+    expect(screen.getByText("Enlaces").closest("li")).toHaveAttribute("data-done", "false");
+  });
+
+  it("muestra la foto real cuando avatarUrl existe", async () => {
+    const dto: CandidateDashboardDto = {
+      ...fullDto,
+      profile: { ...fullDto.profile, avatarUrl: "/uploads/avatars/ana.png" }
+    };
+    vi.mocked(getCandidateDashboard).mockResolvedValueOnce(dto);
+    renderWithSession();
+    await screen.findByText("Hola, Ana");
+
+    const img = screen.getByRole("img", { name: "Ana Pérez" });
+    expect(img).toHaveAttribute("src", expect.stringContaining("/uploads/avatars/ana.png"));
+  });
+
+  it("portfolio sin configurar muestra CTA de gestión y ningún enlace público", async () => {
+    vi.mocked(getCandidateDashboard).mockResolvedValueOnce(fullDto); // portfolio: null
+    renderWithSession();
+    await screen.findByText("Hola, Ana");
+
+    expect(screen.getByText("Sin configurar")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /gestionar portfolio/i })).toHaveAttribute(
+      "href",
+      "/profile/portfolio"
+    );
+    expect(screen.queryByRole("link", { name: /ver página pública/i })).not.toBeInTheDocument();
+  });
+
+  it("portfolio configurado sin publicar muestra su estado sin enlace público", async () => {
+    const dto: CandidateDashboardDto = {
+      ...fullDto,
+      portfolio: { isPublished: false, slug: "ana-dev", publicUrlPath: "/u/ana-dev" }
+    };
+    vi.mocked(getCandidateDashboard).mockResolvedValueOnce(dto);
+    renderWithSession();
+    await screen.findByText("Hola, Ana");
+
+    expect(screen.getByText("Sin publicar")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /ver página pública/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /gestionar portfolio/i })).toHaveAttribute(
+      "href",
+      "/profile/portfolio"
+    );
+  });
+
+  it("portfolio publicado muestra el enlace público a /u/<slug>", async () => {
+    const dto: CandidateDashboardDto = {
+      ...fullDto,
+      portfolio: { isPublished: true, slug: "ana-perez", publicUrlPath: "/u/ana-perez" }
+    };
+    vi.mocked(getCandidateDashboard).mockResolvedValueOnce(dto);
+    renderWithSession();
+    await screen.findByText("Hola, Ana");
+
+    expect(screen.getByText("Publicado")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /ver página pública/i })).toHaveAttribute(
+      "href",
+      "/u/ana-perez"
+    );
+  });
+
+  it("mapea las nextActions nuevas del catálogo a sus rutas", async () => {
+    const dto: CandidateDashboardDto = {
+      ...fullDto,
+      nextActions: [
+        { action: "add_projects", label: "Añade proyectos destacados" },
+        { action: "publish_portfolio", label: "Publica tu portfolio" },
+        { action: "review_matches", label: "Revisa tus mejores matches" }
+      ]
+    };
+    vi.mocked(getCandidateDashboard).mockResolvedValueOnce(dto);
+    renderWithSession();
+    await screen.findByText("Hola, Ana");
+
+    expect(screen.getByRole("link", { name: "Añade proyectos destacados" })).toHaveAttribute(
+      "href",
+      "/profile"
+    );
+    expect(screen.getByRole("link", { name: "Publica tu portfolio" })).toHaveAttribute(
+      "href",
+      "/profile/portfolio"
+    );
+    expect(screen.getByRole("link", { name: "Revisa tus mejores matches" })).toHaveAttribute(
+      "href",
+      "/match"
     );
   });
 
