@@ -16,7 +16,8 @@ export const SENIORITY_LABELS: Record<JobSeniority, string> = {
 
 export const JOB_SOURCE_LABELS: Record<JobSource, string> = {
   INTERNAL: "JobIT",
-  JOOBLE: "Jooble"
+  JOOBLE: "Jooble",
+  GREENHOUSE: "Greenhouse"
 };
 
 // `contractType` llega como string libre; humanizamos los valores conocidos.
@@ -58,11 +59,13 @@ export function locationLabel(job: Pick<JobPublicDto, "location" | "remoteType">
 
 /**
  * Texto del CTA para abrir la oferta en su fuente original, según procedencia.
- * Jooble → "Abrir en Jooble"; el resto usa un copy genérico. No inventa fuentes
- * (el contrato solo define INTERNAL y JOOBLE).
+ * Jooble → "Abrir en Jooble"; Greenhouse → "Abrir en Greenhouse" (la oferta vive
+ * en el job board de la empresa alojado por Greenhouse); el resto usa un copy
+ * genérico. No inventa fuentes: solo los valores del contrato (`JobSource`).
  */
 export function externalSourceCtaLabel(source: JobSource): string {
   if (source === "JOOBLE") return "Abrir en Jooble";
+  if (source === "GREENHOUSE") return "Abrir en Greenhouse";
   return "Ver oferta original";
 }
 

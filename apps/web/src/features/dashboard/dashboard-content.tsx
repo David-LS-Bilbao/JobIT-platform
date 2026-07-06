@@ -1,11 +1,21 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { locationLabel } from "@/features/jobs/jobs-format";
 import type { CandidateDashboardDto } from "@/types/api";
 
 interface DashboardContentProps {
   dashboard: CandidateDashboardDto;
 }
+
+/**
+ * Rutas de las `nextActions` conocidas del backend (mapeo mínimo, Sprint 17B).
+ * Una acción desconocida se muestra sin navegación (no rompe la UI).
+ */
+const NEXT_ACTION_ROUTES: Record<string, string> = {
+  complete_profile: "/profile",
+  explore_jobs: "/jobs"
+};
 
 /* -------------------------------------------------------------------------- */
 /*  Iconos inline (sin fuentes/CDN externas, MVP-safe)                        */
@@ -124,6 +134,18 @@ function IconFolder() {
   return (
     <svg viewBox="0 0 24 24" fill="none" className="h-[18px] w-[18px]" aria-hidden="true">
       <path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function IconGlobe() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.7" />
+      <path
+        d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9s1.3-6.4 3.8-9z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      />
     </svg>
   );
 }
@@ -266,7 +288,7 @@ function initialsFrom(name: string): string {
 
 /** Canvas privado del candidato (bento): resumen, acciones y preview de CV. */
 export function DashboardContent({ dashboard }: DashboardContentProps) {
-  const { profile, skills, savedJobs, matches } = dashboard;
+  const { profile, skills, savedJobs, matches, nextActions } = dashboard;
 
   const greetingName = profile.firstName?.trim() ? profile.firstName : "candidato tech";
   const pct = profile.completionPercentage;
@@ -329,8 +351,151 @@ export function DashboardContent({ dashboard }: DashboardContentProps) {
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           <QuickAction icon={<IconEdit />} label="Preparar JobIT CV" href="/profile" />
           <QuickAction icon={<IconPlus />} label="Añadir skills" href="/profile#skills" />
-          <QuickAction icon={<IconSearch />} label="Explorar ofertas" />
-          <QuickAction icon={<IconTarget />} label="Revisar matches" />
+          <QuickAction icon={<IconSearch />} label="Explorar ofertas" href="/jobs" />
+          <QuickAction icon={<IconTarget />} label="Revisar matches" href="/match" />
+        </div>
+      </section>
+
+      {/* Sugerencias del backend (`nextActions`) mapeadas a rutas reales */}
+      {nextActions.length > 0 ? (
+        <section className="col-span-12">
+          <h3 className="mb-4 text-xl font-semibold text-slate-900">Sugerencias</h3>
+          <div className="flex flex-wrap gap-3">
+            {nextActions.map((next) => {
+              const route = NEXT_ACTION_ROUTES[next.action];
+              if (!route) {
+                // Acción desconocida: visible pero sin navegación (no rompe la UI).
+                return (
+                  <span
+                    key={next.action}
+                    className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-500"
+                  >
+                    {next.label}
+                  </span>
+                );
+              }
+              return (
+                <Link
+                  key={next.action}
+                  href={route}
+                  className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-[#006591] shadow-sm transition-colors hover:border-[#006591]"
+                >
+                  {next.label}
+                  <IconArrowRight />
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
+
+      {/* Actividad real: guardadas recientes (datos ya entregados por el DTO) */}
+      <section className="col-span-12 lg:col-span-6">
+        <h3 className="mb-4 text-xl font-semibold text-slate-900">Guardadas recientes</h3>
+        <div className="flex h-full flex-col rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          {savedJobs.recent.length > 0 ? (
+            <>
+              <ul className="space-y-3">
+                {savedJobs.recent.slice(0, 3).map((item) => (
+                  <li
+                    key={item.job.id}
+                    className="border-b border-slate-100 pb-3 last:border-b-0 last:pb-0"
+                  >
+                    <Link
+                      href={`/jobs/${item.job.id}`}
+                      className="text-sm font-semibold text-slate-900 hover:text-[#006591] hover:underline"
+                    >
+                      {item.job.title}
+                    </Link>
+                    <p className="mt-0.5 truncate text-xs text-slate-500">
+                      {item.job.company} · {locationLabel(item.job)}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href="/saved-jobs"
+                className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-[#006591] hover:underline"
+              >
+                Ver todas las guardadas
+                <IconArrowRight />
+              </Link>
+            </>
+          ) : (
+            <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
+              <p className="text-sm text-slate-600">Aún no has guardado ninguna oferta.</p>
+              <Link
+                href="/jobs"
+                className="mt-3 inline-block rounded-lg bg-[#006591] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#004c6e]"
+              >
+                Buscar ofertas
+              </Link>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Actividad real: mejores matches (score y skills del DTO, sin recalcular) */}
+      <section className="col-span-12 lg:col-span-6">
+        <h3 className="mb-4 text-xl font-semibold text-slate-900">Tus mejores matches</h3>
+        <div className="flex h-full flex-col rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          {matches.length > 0 ? (
+            <>
+              <ul className="space-y-3">
+                {matches.slice(0, 3).map((match) => (
+                  <li
+                    key={match.job.id}
+                    className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3 last:border-b-0 last:pb-0"
+                  >
+                    <div className="min-w-0">
+                      <Link
+                        href={`/jobs/${match.job.id}`}
+                        className="text-sm font-semibold text-slate-900 hover:text-[#006591] hover:underline"
+                      >
+                        {match.job.title}
+                      </Link>
+                      <p className="mt-0.5 truncate text-xs text-slate-500">{match.job.company}</p>
+                      {match.matchedSkills.length > 0 ? (
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {match.matchedSkills.slice(0, 3).map((skill) => (
+                            <span
+                              key={skill}
+                              className="rounded bg-[#eff4ff] px-1.5 py-0.5 text-[11px] font-medium text-[#006591]"
+                            >
+                              {skill}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                    <span className="shrink-0 rounded-md bg-[#eff4ff] px-2 py-1 text-xs font-bold text-[#006591]">
+                      {match.score}%
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href="/match"
+                className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-[#006591] hover:underline"
+              >
+                Ver todos los matches
+                <IconArrowRight />
+              </Link>
+            </>
+          ) : (
+            <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
+              <p className="text-sm text-slate-600">Todavía no hay matches para tu perfil.</p>
+              <p className="mt-1 text-xs text-slate-500">
+                Añade skills a tu JobIT CV para mejorar tus resultados.
+              </p>
+              <Link
+                href="/profile"
+                className="mt-3 inline-block rounded-lg bg-[#006591] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#004c6e]"
+              >
+                Completar perfil
+              </Link>
+            </div>
+          )}
         </div>
       </section>
 
@@ -424,16 +589,29 @@ export function DashboardContent({ dashboard }: DashboardContentProps) {
           name="JobIT CV"
           description="Perfil vivo con datos profesionales, skills, experiencia, educación, proyectos y enlaces."
         />
-        <ModuleCard icon={<IconWork />} name="JobIT Jobs" description="Buscador de ofertas tech con filtros básicos." />
         <ModuleCard
+          href="/jobs"
+          icon={<IconWork />}
+          name="JobIT Jobs"
+          description="Buscador de ofertas tech con filtros básicos."
+        />
+        <ModuleCard
+          href="/saved-jobs"
           icon={<IconBookmark className="h-5 w-5" />}
           name="Guardadas"
           description="Guarda oportunidades para revisarlas después."
         />
         <ModuleCard
+          href="/match"
           icon={<IconTarget />}
           name="JobIT Match"
           description="Entiende por qué una oferta encaja con tu perfil."
+        />
+        <ModuleCard
+          href="/profile/portfolio"
+          icon={<IconGlobe />}
+          name="Portfolio público"
+          description="Publica tu JobIT CV como página pública con tu enlace y código QR."
         />
       </section>
     </div>
