@@ -133,6 +133,10 @@ Antes de abrir PR, el agente debe aplicar `docs/agents/audit-quality-security-sk
 
 Si el resultado es `FAIL`, no se abre PR. Primero se corrige y se repite la auditoria.
 
+Para cierres Git, push y Pull Requests, aplicar siempre:
+
+`docs/agents/git-pr-skill.md`
+
 ## Resumen final obligatorio
 
 Al cerrar una tarea, el agente debe entregar:
