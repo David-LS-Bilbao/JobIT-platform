@@ -10,6 +10,22 @@
   --color-foreground: var(--foreground);
 }
 
+/*
+ * Tokens de marca JobIT (Sprint 17D). MISMOS valores que las clases arbitrarias
+ * `[#hex]` usadas hasta ahora (cambio visualmente neutro): generan utilidades
+ * `bg-jobit-brand`, `text-jobit-brand-dark`, `border-jobit-brand-border`, etc.
+ * La migración de `[#hex]` → token es incremental por fases (17D.1–17D.5).
+ */
+@theme {
+  --color-jobit-brand: #006591;
+  --color-jobit-brand-dark: #004c6e;
+  --color-jobit-brand-soft: #eff4ff;
+  --color-jobit-brand-muted: #dce9ff;
+  --color-jobit-brand-border: #c8e6ff;
+  --color-jobit-green: #006c49;
+  --color-jobit-surface: #f8f9ff;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;

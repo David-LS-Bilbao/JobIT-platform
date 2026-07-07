@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { SiteShell } from "@/components/layout/site-shell";
+import { ErrorState, LoadingState } from "@/components/ui/feedback";
 import { useAuth } from "@/features/auth/auth-context";
 import { getSavedJobs, saveJob, unsaveJob } from "@/features/saved-jobs/saved-jobs-api";
 import { isSessionExpiredError } from "@/lib/api-client";
@@ -28,6 +29,11 @@ export function MatchPage() {
   const [errored, setErrored] = useState(false);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [actionMsg, setActionMsg] = useState<{ kind: "success" | "error"; text: string } | null>(
+    null
+  );
+  // Reintento manual (17D.5): incrementarlo relanza el efecto de carga.
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     if (!accessToken) router.push("/login");
@@ -71,12 +77,19 @@ export function MatchPage() {
     return () => {
       cancelled = true;
     };
-  }, [accessToken, clearSession, router]);
+  }, [accessToken, reloadKey, clearSession, router]);
+
+  function handleRetry() {
+    setErrored(false);
+    setMatches(null);
+    setReloadKey((key) => key + 1);
+  }
 
   async function handleToggleSave(jobId: string) {
     if (!accessToken || savingId) return;
     const isSaved = savedIds.has(jobId);
     setSavingId(jobId);
+    setActionMsg(null);
     try {
       if (isSaved) {
         await unsaveJob(accessToken, jobId);
@@ -85,12 +98,20 @@ export function MatchPage() {
           next.delete(jobId);
           return next;
         });
+        setActionMsg({ kind: "success", text: "Oferta quitada de guardadas." });
       } else {
         await saveJob(accessToken, jobId);
         setSavedIds((prev) => new Set(prev).add(jobId));
+        setActionMsg({ kind: "success", text: "Oferta guardada." });
       }
     } catch {
-      // Silencioso: el estado no cambia si la operación falla.
+      // 17D.5: sin fallos silenciosos — se comunica el error (el estado no cambia).
+      setActionMsg({
+        kind: "error",
+        text: isSaved
+          ? "No se ha podido quitar la oferta. Inténtalo de nuevo."
+          : "No se ha podido guardar la oferta. Inténtalo de nuevo."
+      });
     } finally {
       setSavingId(null);
     }
@@ -100,11 +121,19 @@ export function MatchPage() {
     if (!accessToken) return <p className="text-sm text-slate-600">Redirigiendo al login…</p>;
     if (errored)
       return (
-        <p role="alert" className="text-sm text-red-600">
-          No se han podido calcular tus matches. Inténtalo de nuevo.
-        </p>
+        <ErrorState
+          title="No se han podido calcular tus matches."
+          description="Revisa tu conexión e inténtalo de nuevo."
+          onRetry={handleRetry}
+        />
       );
-    if (matches === null) return <p className="text-sm text-slate-600">Calculando tus matches…</p>;
+    if (matches === null)
+      return (
+        <LoadingState
+          title="Calculando tus matches"
+          description="Estamos calculando las ofertas que mejor encajan con tu perfil."
+        />
+      );
     if (matches.length === 0)
       return (
         <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
@@ -117,7 +146,7 @@ export function MatchPage() {
           <div className="mt-4 flex flex-wrap justify-center gap-2">
             <Link
               href="/profile"
-              className="inline-block rounded-lg bg-[#006591] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#004c6e]"
+              className="inline-block rounded-lg bg-jobit-brand px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-jobit-brand-dark"
             >
               Completar perfil
             </Link>
@@ -156,6 +185,17 @@ export function MatchPage() {
             No usa inteligencia artificial ni modelos opacos: es orientativa y no evalúa tu valía.
           </p>
         </div>
+        {actionMsg ? (
+          actionMsg.kind === "error" ? (
+            <p role="alert" className="text-sm font-medium text-red-600">
+              {actionMsg.text}
+            </p>
+          ) : (
+            <p role="status" className="text-sm font-medium text-emerald-700">
+              {actionMsg.text}
+            </p>
+          )
+        ) : null}
         {body}
       </div>
     </SiteShell>

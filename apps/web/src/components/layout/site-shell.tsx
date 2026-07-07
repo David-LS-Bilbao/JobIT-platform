@@ -78,22 +78,6 @@ function IconGlobe() {
     </svg>
   );
 }
-function IconSettings() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.7" />
-      <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
-}
-function IconHelp() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.7" />
-      <path d="M9.5 9.5a2.5 2.5 0 114 2c-1 .7-1.5 1.2-1.5 2.3M12 17h.01" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-    </svg>
-  );
-}
 function IconMenu() {
   return (
     <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" aria-hidden="true">
@@ -111,7 +95,7 @@ function IconClose() {
 
 function BrandMark() {
   return (
-    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-[#006591] to-[#006c49] text-sm font-bold text-white">
+    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-jobit-brand to-jobit-green text-sm font-bold text-white">
       J
     </span>
   );
@@ -139,7 +123,7 @@ const PRIVATE_NAV: ReadonlyArray<PrivateNavItem> = [
 ];
 
 const activeNavClass =
-  "flex items-center gap-3 rounded-lg border-r-4 border-[#006591] bg-[#eff4ff] px-3 py-2.5 font-semibold text-[#006591]";
+  "flex items-center gap-3 rounded-lg border-r-4 border-jobit-brand bg-jobit-brand-soft px-3 py-2.5 font-semibold text-jobit-brand";
 const inactiveNavClass =
   "flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-600 transition-colors hover:bg-slate-50";
 
@@ -159,7 +143,7 @@ function StatusBadge({ status }: { status: Exclude<NavStatus, "available"> }) {
   return (
     <span
       className={`rounded px-2 py-0.5 text-[10px] font-bold ${
-        status === "next" ? "bg-[#eff4ff] text-[#006591]" : "bg-slate-100 text-slate-500"
+        status === "next" ? "bg-jobit-brand-soft text-jobit-brand" : "bg-slate-100 text-slate-500"
       }`}
     >
       {status === "next" ? "Siguiente" : "Pendiente"}
@@ -212,7 +196,7 @@ function SidebarBrand() {
     <div className="mb-8 flex items-center gap-3 px-2">
       <BrandMark />
       <div>
-        <p className="text-lg font-extrabold tracking-tight text-[#004c6e]">JobIT</p>
+        <p className="text-lg font-extrabold tracking-tight text-jobit-brand-dark">JobIT</p>
         <p className="text-xs text-slate-500">Perfil tech vivo</p>
       </div>
     </div>
@@ -221,22 +205,15 @@ function SidebarBrand() {
 
 function SidebarBottom() {
   return (
-    <div className="mt-auto space-y-1 border-t border-slate-200 pt-4">
-      {/* CTA hacia JobIT CV (ya disponible) */}
+    <div className="mt-auto border-t border-slate-200 pt-4">
+      {/* CTA hacia JobIT CV (ya disponible). Los placeholders "Ajustes/Ayuda
+          (futuro)" se retiraron en 17D.1 (ruido no accionable). */}
       <Link
         href="/profile"
-        className="mb-3 flex w-full items-center justify-center rounded-lg bg-[#006591] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#004c6e]"
+        className="flex w-full items-center justify-center rounded-lg bg-jobit-brand px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-jobit-brand-dark"
       >
         Preparar JobIT CV
       </Link>
-      <div className="flex items-center gap-3 rounded-lg px-3 py-2 text-slate-500 opacity-70">
-        <IconSettings />
-        <span className="text-sm">Ajustes (futuro)</span>
-      </div>
-      <div className="flex items-center gap-3 rounded-lg px-3 py-2 text-slate-500 opacity-70">
-        <IconHelp />
-        <span className="text-sm">Ayuda (futuro)</span>
-      </div>
     </div>
   );
 }
@@ -297,7 +274,7 @@ export function SiteShell({
 
   // --- Shell privado (con sesión): sidebar desktop + drawer móvil ----------
   return (
-    <div className="min-h-dvh bg-[#f8f9ff] text-slate-900">
+    <div className="min-h-dvh bg-jobit-surface text-slate-900">
       {/* Sidebar desktop (ocultable) */}
       <aside
         id="app-sidebar"
@@ -375,12 +352,12 @@ export function SiteShell({
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <span className="hidden rounded-md bg-[#eff4ff] px-2.5 py-1 text-xs font-semibold text-[#006591] sm:inline-block">
+            <span className="hidden rounded-md bg-jobit-brand-soft px-2.5 py-1 text-xs font-semibold text-jobit-brand sm:inline-block">
               MVP candidate-first
             </span>
             <div className="hidden items-center gap-2 border-l border-slate-200 pl-3 sm:flex">
               <span className="text-sm font-medium text-slate-700">Candidato tech</span>
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#dce9ff] text-sm font-bold text-[#004c6e]">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-jobit-brand-muted text-sm font-bold text-jobit-brand-dark">
                 CT
               </span>
             </div>

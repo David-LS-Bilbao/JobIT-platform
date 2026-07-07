@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { SiteShell } from "@/components/layout/site-shell";
+import { ErrorState, LoadingState } from "@/components/ui/feedback";
 import { useAuth } from "@/features/auth/auth-context";
 import { JobMatchPanel } from "@/features/match/job-match-panel";
 import { getSavedJobs, saveJob, unsaveJob } from "@/features/saved-jobs/saved-jobs-api";
@@ -34,6 +35,11 @@ export function JobDetailPage({ id }: { id: string }) {
   const [loadError, setLoadError] = useState<LoadError | null>(null);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [actionMsg, setActionMsg] = useState<{ kind: "success" | "error"; text: string } | null>(
+    null
+  );
+  // Reintento manual (17D.3): incrementarlo relanza la carga de la oferta.
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     if (!accessToken) router.push("/login");
@@ -61,7 +67,13 @@ export function JobDetailPage({ id }: { id: string }) {
     return () => {
       cancelled = true;
     };
-  }, [accessToken, id, clearSession, router]);
+  }, [accessToken, id, reloadKey, clearSession, router]);
+
+  function handleRetry() {
+    setLoadError(null);
+    setJob(null);
+    setReloadKey((key) => key + 1);
+  }
 
   useEffect(() => {
     if (!accessToken) return;
@@ -81,16 +93,25 @@ export function JobDetailPage({ id }: { id: string }) {
   async function handleToggleSave() {
     if (!accessToken || saving) return;
     setSaving(true);
+    setActionMsg(null);
     try {
       if (saved) {
         await unsaveJob(accessToken, id);
         setSaved(false);
+        setActionMsg({ kind: "success", text: "Oferta quitada de guardadas." });
       } else {
         await saveJob(accessToken, id);
         setSaved(true);
+        setActionMsg({ kind: "success", text: "Oferta guardada." });
       }
     } catch {
-      // Silencioso.
+      // 17D.3: sin fallos silenciosos — se comunica el error (el estado no cambia).
+      setActionMsg({
+        kind: "error",
+        text: saved
+          ? "No se ha podido quitar la oferta. Inténtalo de nuevo."
+          : "No se ha podido guardar la oferta. Inténtalo de nuevo."
+      });
     } finally {
       setSaving(false);
     }
@@ -104,24 +125,31 @@ export function JobDetailPage({ id }: { id: string }) {
       <div className="rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm">
         <h1 className="text-xl font-bold text-slate-900">Oferta no disponible</h1>
         <p className="mt-2 text-sm text-slate-600">Esta oferta no existe o ya no está activa.</p>
-        <Link href="/jobs" className="mt-4 inline-block text-sm font-medium text-[#006591] hover:underline">
+        <Link href="/jobs" className="mt-4 inline-block text-sm font-medium text-jobit-brand hover:underline">
           ← Volver a ofertas
         </Link>
       </div>
     );
   } else if (loadError === "generic") {
     body = (
-      <p role="alert" className="text-sm text-red-600">
-        No se ha podido cargar la oferta. Inténtalo de nuevo.
-      </p>
+      <ErrorState
+        title="No se ha podido cargar la oferta."
+        description="Revisa tu conexión e inténtalo de nuevo."
+        onRetry={handleRetry}
+      />
     );
   } else if (!job) {
-    body = <p className="text-sm text-slate-600">Cargando oferta…</p>;
+    body = (
+      <LoadingState
+        title="Cargando oferta"
+        description="Estamos recuperando el detalle de la oportunidad."
+      />
+    );
   } else {
     const salary = formatSalary(job.salaryMin, job.salaryMax);
     body = (
       <div className="space-y-6">
-        <Link href="/jobs" className="text-sm font-medium text-[#006591] hover:underline">
+        <Link href="/jobs" className="text-sm font-medium text-jobit-brand hover:underline">
           ← Volver a ofertas
         </Link>
 
@@ -138,13 +166,25 @@ export function JobDetailPage({ id }: { id: string }) {
               aria-pressed={saved}
               className={`shrink-0 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-60 ${
                 saved
-                  ? "border-[#006591] bg-[#eff4ff] text-[#006591] hover:bg-[#dce9ff]"
+                  ? "border-jobit-brand bg-jobit-brand-soft text-jobit-brand hover:bg-jobit-brand-muted"
                   : "border-slate-200 text-slate-700 hover:bg-slate-100"
               }`}
             >
               {saving ? "…" : saved ? "Quitar de guardadas" : "Guardar oferta"}
             </button>
           </div>
+
+          {actionMsg ? (
+            actionMsg.kind === "error" ? (
+              <p role="alert" className="mt-2 text-sm font-medium text-red-600">
+                {actionMsg.text}
+              </p>
+            ) : (
+              <p role="status" className="mt-2 text-sm font-medium text-emerald-700">
+                {actionMsg.text}
+              </p>
+            )
+          ) : null}
 
           <p className="mt-2 text-sm text-slate-500">
             {locationLabel(job)} · {SENIORITY_LABELS[job.seniority]} · {formatContractType(job.contractType)}
@@ -191,7 +231,7 @@ export function JobDetailPage({ id }: { id: string }) {
               href={job.sourceUrl as string}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-6 inline-block rounded-lg bg-[#006591] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#004c6e]"
+              className="mt-6 inline-block rounded-lg bg-jobit-brand px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-jobit-brand-dark"
             >
               {externalSourceCtaLabel(job.source)}
             </a>

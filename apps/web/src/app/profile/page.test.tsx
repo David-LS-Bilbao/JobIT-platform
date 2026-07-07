@@ -200,9 +200,26 @@ describe("ProfilePage (/profile · JobIT CV)", () => {
       })
     );
     renderWithSession();
-    expect(await screen.findByText("Cargando tu JobIT CV…")).toBeInTheDocument();
+    expect(await screen.findByText("Cargando tu JobIT CV")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveAttribute("aria-busy", "true");
     resolve(emptyProfile);
-    await waitFor(() => expect(screen.queryByText("Cargando tu JobIT CV…")).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByText("Cargando tu JobIT CV")).not.toBeInTheDocument());
+  });
+
+  it("ante un error de carga muestra Reintentar y relanza la carga (17D.4)", async () => {
+    vi.mocked(getMyProfile)
+      .mockRejectedValueOnce(new Error("network down"))
+      .mockResolvedValueOnce(fullProfile);
+    const user = userEvent.setup();
+    renderWithSession();
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("No se ha podido cargar tu JobIT CV.");
+
+    await user.click(screen.getByRole("button", { name: "Reintentar" }));
+
+    expect(await screen.findByText("Tu perfil tech vivo")).toBeInTheDocument();
+    expect(getMyProfile).toHaveBeenCalledTimes(2);
   });
 
   it("con perfil completo renderiza cabecera, secciones, preview y datos reales", async () => {
@@ -348,6 +365,8 @@ describe("ProfilePage (/profile · JobIT CV)", () => {
     await waitFor(() => expect(uploadProfileAvatar).toHaveBeenCalledWith("tok-cv", expect.any(File)));
     const img = await screen.findByAltText("Ana Pérez");
     expect(img.getAttribute("src")).toContain("/uploads/avatars/u1_abc.png");
+    // 17D.4: el éxito de la subida se anuncia de forma accesible.
+    expect(screen.getByRole("status")).toHaveTextContent("Imagen actualizada.");
   });
 
   it("muestra un error si la subida de imagen falla", async () => {

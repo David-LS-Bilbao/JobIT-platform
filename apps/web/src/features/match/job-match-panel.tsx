@@ -161,7 +161,7 @@ export function JobMatchPanel({ jobId, token }: { jobId: string; token: string }
       {!hasSkillSignal ? (
         <p className="mt-4 text-xs text-slate-500">
           Añade skills y preferencias a tu{" "}
-          <Link href="/profile" className="font-medium text-[#006591] hover:underline">
+          <Link href="/profile" className="font-medium text-jobit-brand hover:underline">
             perfil
           </Link>{" "}
           para afinar el match.

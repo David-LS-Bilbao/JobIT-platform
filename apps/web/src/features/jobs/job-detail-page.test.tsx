@@ -145,6 +145,34 @@ describe("JobDetailPage (/jobs/[id])", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("No se ha podido cargar la oferta");
   });
 
+  it("ante un error genérico permite Reintentar y relanza la carga (17D.3)", async () => {
+    vi.mocked(getJobById).mockRejectedValueOnce(new ApiClientError(500, "INTERNAL_ERROR", "x"));
+    const user = userEvent.setup();
+    renderWithSession();
+
+    await screen.findByRole("alert");
+    await user.click(screen.getByRole("button", { name: "Reintentar" }));
+
+    expect(await screen.findByRole("heading", { name: "Senior React Engineer" })).toBeInTheDocument();
+    expect(getJobById).toHaveBeenCalledTimes(2);
+  });
+
+  it("si guardar falla muestra un error accesible y el botón no cambia (17D.3)", async () => {
+    vi.mocked(saveJob).mockRejectedValueOnce(new ApiClientError(500, "INTERNAL_ERROR", "x"));
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByRole("heading", { name: "Senior React Engineer" });
+
+    await user.click(screen.getByRole("button", { name: "Guardar oferta" }));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("No se ha podido guardar la oferta. Inténtalo de nuevo.");
+    expect(screen.getByRole("button", { name: "Guardar oferta" })).toHaveAttribute(
+      "aria-pressed",
+      "false"
+    );
+  });
+
   it("la oferta Jooble muestra 'Abrir en Jooble' con target/rel seguros y la fuente", async () => {
     renderWithSession();
     await screen.findByRole("heading", { name: "Senior React Engineer" });

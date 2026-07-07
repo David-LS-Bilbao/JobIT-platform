@@ -131,9 +131,82 @@ describe("JobsPage (/jobs)", () => {
       })
     );
     renderWithSession();
-    expect(await screen.findByText("Cargando ofertas…")).toBeInTheDocument();
+    // 17D.3: LoadingState accesible (role=status + aria-busy).
+    expect(await screen.findByText("Cargando ofertas")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveAttribute("aria-busy", "true");
     resolve(listOf([makeJob("j1", "Frontend Developer", "ACME")]));
-    await waitFor(() => expect(screen.queryByText("Cargando ofertas…")).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByText("Cargando ofertas")).not.toBeInTheDocument());
+  });
+
+  it("ante un error muestra Reintentar y relanza la carga (17D.3)", async () => {
+    vi.mocked(getJobs).mockRejectedValueOnce(new ApiClientError(500, "INTERNAL_ERROR", "x"));
+    const user = userEvent.setup();
+    renderWithSession();
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("No se han podido cargar las ofertas");
+
+    await user.click(screen.getByRole("button", { name: "Reintentar" }));
+
+    expect(await screen.findByText("Frontend Developer")).toBeInTheDocument();
+    expect(getJobs).toHaveBeenCalledTimes(2);
+  });
+
+  it("con filtros activos y 0 resultados ofrece Limpiar filtros y resetea (17D.3)", async () => {
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Frontend Developer");
+
+    // Buscar algo sin resultados → empty con filtros activos.
+    vi.mocked(getJobs).mockResolvedValueOnce(listOf([]));
+    await user.type(screen.getByLabelText("Buscar ofertas"), "cobol");
+    await user.click(screen.getByRole("button", { name: "Buscar" }));
+
+    expect(
+      await screen.findByText("No hay ofertas que coincidan con tu búsqueda.")
+    ).toBeInTheDocument();
+    const clear = screen.getByRole("button", { name: "Limpiar filtros" });
+
+    await user.click(clear);
+
+    // Resetea filtros (última llamada sin filtros) y limpia los inputs.
+    await waitFor(() => expect(getJobs).toHaveBeenLastCalledWith("tok-jobs", {}));
+    expect(await screen.findByText("Frontend Developer")).toBeInTheDocument();
+    expect(screen.getByLabelText("Buscar ofertas")).toHaveValue("");
+  });
+
+  it("sin filtros activos el estado vacío NO ofrece Limpiar filtros", async () => {
+    vi.mocked(getJobs).mockResolvedValue(listOf([]));
+    renderWithSession();
+    await screen.findByText("No hay ofertas que coincidan con tu búsqueda.");
+    expect(screen.queryByRole("button", { name: "Limpiar filtros" })).not.toBeInTheDocument();
+  });
+
+  it("si guardar falla muestra un error accesible y no marca la card (17D.3)", async () => {
+    vi.mocked(saveJob).mockRejectedValueOnce(new ApiClientError(500, "INTERNAL_ERROR", "x"));
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Frontend Developer");
+
+    const main = within(screen.getByRole("main"));
+    await user.click(main.getByRole("button", { name: "Guardar" }));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("No se ha podido guardar la oferta. Inténtalo de nuevo.");
+    // Sin cambio optimista que revertir: la card sigue sin marcar.
+    expect(main.getByRole("button", { name: "Guardar" })).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("guardar con éxito anuncia el estado con role=status (17D.3)", async () => {
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Frontend Developer");
+
+    const main = within(screen.getByRole("main"));
+    await user.click(main.getByRole("button", { name: "Guardar" }));
+
+    const status = await screen.findByRole("status");
+    expect(status).toHaveTextContent("Oferta guardada.");
   });
 
   it("muestra el estado vacío cuando no hay ofertas", async () => {

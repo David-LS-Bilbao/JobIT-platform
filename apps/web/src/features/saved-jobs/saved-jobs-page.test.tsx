@@ -130,6 +130,60 @@ describe("SavedJobsPage (/saved-jobs)", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("No se han podido cargar tus ofertas guardadas");
   });
 
+  it("muestra el estado de carga accesible mientras pide las guardadas (17D.3)", async () => {
+    let resolve: (v: SavedJobDto[]) => void = () => {};
+    vi.mocked(getSavedJobs).mockReturnValueOnce(
+      new Promise<SavedJobDto[]>((r) => {
+        resolve = r;
+      })
+    );
+    renderWithSession();
+    expect(await screen.findByText("Cargando ofertas guardadas")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveAttribute("aria-busy", "true");
+    resolve(savedOf([makeJob("j1", "Frontend Developer", "ACME")]));
+    await waitFor(() =>
+      expect(screen.queryByText("Cargando ofertas guardadas")).not.toBeInTheDocument()
+    );
+  });
+
+  it("ante un error muestra Reintentar y relanza la carga (17D.3)", async () => {
+    vi.mocked(getSavedJobs).mockRejectedValueOnce(new ApiClientError(500, "INTERNAL_ERROR", "x"));
+    const user = userEvent.setup();
+    renderWithSession();
+
+    await screen.findByRole("alert");
+    await user.click(screen.getByRole("button", { name: "Reintentar" }));
+
+    expect(await screen.findByText("Frontend Developer")).toBeInTheDocument();
+    expect(getSavedJobs).toHaveBeenCalledTimes(2);
+  });
+
+  it("si quitar falla muestra un error accesible y la oferta permanece (17D.3)", async () => {
+    vi.mocked(unsaveJob).mockRejectedValueOnce(new ApiClientError(500, "INTERNAL_ERROR", "x"));
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Frontend Developer");
+
+    const main = within(screen.getByRole("main"));
+    await user.click(main.getByRole("button", { name: "Quitar" }));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("No se ha podido quitar la oferta. Inténtalo de nuevo.");
+    expect(main.getByText("Frontend Developer")).toBeInTheDocument();
+  });
+
+  it("quitar con éxito anuncia el estado con role=status (17D.3)", async () => {
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Frontend Developer");
+
+    const main = within(screen.getByRole("main"));
+    await user.click(main.getByRole("button", { name: "Quitar" }));
+
+    const status = await screen.findByRole("status");
+    expect(status).toHaveTextContent("Oferta quitada de guardadas.");
+  });
+
   it("quitar una oferta llama a unsaveJob y la elimina de la lista", async () => {
     vi.mocked(getSavedJobs).mockResolvedValue(
       savedOf([makeJob("j1", "Frontend Developer", "ACME"), makeJob("j2", "Backend Developer", "Globex")])
