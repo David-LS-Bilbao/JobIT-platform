@@ -24,7 +24,7 @@ const AVAILABILITY_OPTIONS: ReadonlyArray<{ value: AvailabilityStatus; label: st
 ];
 
 const inputClass =
-  "w-full rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-900 outline-none transition-shadow focus:border-[#006591] focus:ring-2 focus:ring-[#006591]/40";
+  "w-full rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-900 outline-none transition-shadow focus:border-jobit-brand focus:ring-2 focus:ring-jobit-brand/40";
 const labelClass = "text-xs font-semibold uppercase tracking-wide text-slate-500";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
@@ -175,7 +175,7 @@ export function ProfileContent({ profile: initialProfile, token }: { profile: Ca
               aria-label="Completitud del perfil"
               value={pct}
               max={100}
-              className="h-2 flex-1 overflow-hidden rounded-full border-0 bg-slate-100 [&::-webkit-progress-bar]:rounded-full [&::-webkit-progress-bar]:bg-slate-100 [&::-webkit-progress-value]:rounded-full [&::-webkit-progress-value]:bg-[#006591] [&::-moz-progress-bar]:rounded-full [&::-moz-progress-bar]:bg-[#006591]"
+              className="h-2 flex-1 overflow-hidden rounded-full border-0 bg-slate-100 [&::-webkit-progress-bar]:rounded-full [&::-webkit-progress-bar]:bg-slate-100 [&::-webkit-progress-value]:rounded-full [&::-webkit-progress-value]:bg-jobit-brand [&::-moz-progress-bar]:rounded-full [&::-moz-progress-bar]:bg-jobit-brand"
             />
             <span className="text-sm font-semibold text-slate-600">{pct}%</span>
           </div>
@@ -184,15 +184,17 @@ export function ProfileContent({ profile: initialProfile, token }: { profile: Ca
           <button
             type="submit"
             disabled={saveState === "saving"}
-            className="w-full rounded-lg bg-[#006591] px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#004c6e] disabled:opacity-60 md:w-auto"
+            className="w-full rounded-lg bg-jobit-brand px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-jobit-brand-dark disabled:opacity-60 md:w-auto"
           >
             {saveState === "saving" ? "Guardando…" : "Guardar cambios"}
           </button>
-          <Link href="/profile/portfolio" className="text-xs font-medium text-[#006591] hover:underline">
+          <Link href="/profile/portfolio" className="text-xs font-medium text-jobit-brand hover:underline">
             Ver portfolio / imprimir CV
           </Link>
           {saveState === "saved" ? (
-            <span className="text-xs font-medium text-emerald-600">Cambios guardados</span>
+            <span role="status" className="text-xs font-medium text-emerald-600">
+              Cambios guardados
+            </span>
           ) : null}
           {saveState === "error" && errorMsg ? (
             <span role="alert" className="text-xs font-medium text-red-600">
@@ -280,7 +282,7 @@ export function ProfileContent({ profile: initialProfile, token }: { profile: Ca
                     type="checkbox"
                     checked={locationRemote}
                     onChange={(e) => setLocationRemote(e.target.checked)}
-                    className="h-4 w-4 rounded border-slate-300 text-[#006591] focus:ring-[#006591]"
+                    className="h-4 w-4 rounded border-slate-300 text-jobit-brand focus:ring-jobit-brand"
                   />
                   <span className="text-sm text-slate-700">Disponible para remoto</span>
                 </label>
@@ -305,7 +307,7 @@ export function ProfileContent({ profile: initialProfile, token }: { profile: Ca
                 <div className="flex flex-wrap items-center gap-3">
                   <label
                     htmlFor="pf-avatar-file"
-                    className="cursor-pointer rounded-lg border border-[#006591] px-4 py-2 text-sm font-semibold text-[#006591] transition-colors hover:bg-[#eff4ff]"
+                    className="cursor-pointer rounded-lg border border-jobit-brand px-4 py-2 text-sm font-semibold text-jobit-brand transition-colors hover:bg-jobit-brand-soft"
                   >
                     Subir imagen
                   </label>
@@ -317,7 +319,11 @@ export function ProfileContent({ profile: initialProfile, token }: { profile: Ca
                     onChange={(e) => handleAvatarUpload(e.target.files?.[0])}
                     className="sr-only"
                   />
-                  {uploading ? <span className="text-xs text-slate-500">Subiendo…</span> : null}
+                  {uploading ? (
+                    <span role="status" className="text-xs text-slate-500">
+                      Subiendo…
+                    </span>
+                  ) : null}
                 </div>
                 <p className="text-xs text-slate-500">PNG, JPG o WebP · máximo 5 MB.</p>
                 {uploadError ? (
@@ -325,7 +331,11 @@ export function ProfileContent({ profile: initialProfile, token }: { profile: Ca
                     {uploadError}
                   </p>
                 ) : null}
-                {uploadOk ? <p className="text-xs font-medium text-emerald-600">Imagen actualizada.</p> : null}
+                {uploadOk ? (
+                  <p role="status" className="text-xs font-medium text-emerald-600">
+                    Imagen actualizada.
+                  </p>
+                ) : null}
 
                 {/* Opción avanzada: URL externa directa a una imagen */}
                 <label htmlFor="pf-avatarUrl" className="mt-1 block text-xs font-medium text-slate-500">

@@ -15,10 +15,10 @@ import {
 import { PortfolioQrCard } from "./portfolio-qr-card";
 
 const inputClass =
-  "w-full rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-900 outline-none transition-shadow focus:border-[#006591] focus:ring-2 focus:ring-[#006591]/40";
+  "w-full rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-900 outline-none transition-shadow focus:border-jobit-brand focus:ring-2 focus:ring-jobit-brand/40";
 const labelClass = "text-xs font-semibold uppercase tracking-wide text-slate-500";
 const primaryBtn =
-  "rounded-lg bg-[#006591] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#004c6e] disabled:opacity-60";
+  "rounded-lg bg-jobit-brand px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-jobit-brand-dark disabled:opacity-60";
 const ghostBtn =
   "rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 disabled:opacity-60";
 
@@ -60,6 +60,7 @@ export function ProfilePortfolioSettings({
   const [saveOk, setSaveOk] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [busyPublish, setBusyPublish] = useState(false);
+  const [publishOk, setPublishOk] = useState<string | null>(null);
   const [publishError, setPublishError] = useState<string | null>(null);
   const [missingFields, setMissingFields] = useState<string[] | null>(null);
   const [copied, setCopied] = useState(false);
@@ -90,11 +91,13 @@ export function ProfilePortfolioSettings({
 
   async function handlePublish() {
     setPublishError(null);
+    setPublishOk(null);
     setMissingFields(null);
     setBusyPublish(true);
     try {
       const updated = await publishMyPortfolio(token);
       setSettings(updated);
+      setPublishOk("Portfolio publicado.");
     } catch (err) {
       if (err instanceof ApiClientError && err.code === "PORTFOLIO_NOT_READY") {
         setMissingFields(err.missingFields ?? []);
@@ -108,10 +111,12 @@ export function ProfilePortfolioSettings({
 
   async function handleUnpublish() {
     setPublishError(null);
+    setPublishOk(null);
     setBusyPublish(true);
     try {
       const updated = await unpublishMyPortfolio(token);
       setSettings(updated);
+      setPublishOk("Portfolio despublicado.");
     } catch (err) {
       setPublishError(err instanceof ApiClientError ? err.message : "No se ha podido despublicar el portfolio.");
     } finally {
@@ -170,7 +175,11 @@ export function ProfilePortfolioSettings({
             <button type="button" onClick={handleCopy} className={ghostBtn}>
               Copiar enlace
             </button>
-            {copied ? <span className="text-xs font-medium text-emerald-600">Enlace copiado</span> : null}
+            {copied ? (
+              <span role="status" className="text-xs font-medium text-emerald-600">
+                Enlace copiado
+              </span>
+            ) : null}
           </div>
           <p className="text-xs text-slate-500">Ruta pública: {settings.publicUrlPath}</p>
           {settings.isPublished ? (
@@ -182,6 +191,11 @@ export function ProfilePortfolioSettings({
           )}
         </div>
 
+        {publishOk ? (
+          <p role="status" className="mt-3 text-sm font-medium text-emerald-700">
+            {publishOk}
+          </p>
+        ) : null}
         {publishError ? (
           <p role="alert" className="mt-3 text-sm font-medium text-red-600">
             {publishError}
@@ -242,7 +256,7 @@ export function ProfilePortfolioSettings({
                   type="checkbox"
                   checked={flags[flag.key]}
                   onChange={(e) => setFlags((prev) => ({ ...prev, [flag.key]: e.target.checked }))}
-                  className="h-4 w-4 rounded border-slate-300 text-[#006591] focus:ring-[#006591]"
+                  className="h-4 w-4 rounded border-slate-300 text-jobit-brand focus:ring-jobit-brand"
                 />
                 <span className="text-sm text-slate-700">{flag.label}</span>
               </label>
@@ -254,7 +268,7 @@ export function ProfilePortfolioSettings({
           <button type="button" onClick={handleSave} disabled={saving} className={primaryBtn}>
             {saving ? "Guardando…" : "Guardar cambios"}
           </button>
-          <Link href="/profile/portfolio" className="text-sm font-medium text-[#006591] hover:underline">
+          <Link href="/profile/portfolio" className="text-sm font-medium text-jobit-brand hover:underline">
             Ver preview privada
           </Link>
           {saveOk ? <span className="text-xs font-medium text-emerald-600">Cambios guardados</span> : null}

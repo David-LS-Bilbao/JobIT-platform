@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { SiteShell } from "@/components/layout/site-shell";
+import { ErrorState, LoadingState } from "@/components/ui/feedback";
 import { useAuth } from "@/features/auth/auth-context";
 import { getMyPortfolioSettings } from "@/features/profile/profile-api";
 import { ProfilePortfolioSettings } from "@/features/profile/profile-portfolio-settings";
@@ -23,6 +24,8 @@ export function ProfilePortfolioSettingsPage() {
 
   const [settings, setSettings] = useState<PortfolioSettingsDto | null>(null);
   const [loadError, setLoadError] = useState<LoadError | null>(null);
+  // Reintento manual (17D.4): incrementarlo relanza el efecto de carga.
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     if (!accessToken) {
@@ -50,7 +53,13 @@ export function ProfilePortfolioSettingsPage() {
     return () => {
       cancelled = true;
     };
-  }, [accessToken, clearSession, router]);
+  }, [accessToken, reloadKey, clearSession, router]);
+
+  function handleRetry() {
+    setLoadError(null);
+    setSettings(null);
+    setReloadKey((key) => key + 1);
+  }
 
   let body: ReactNode;
   if (loadError === "expired") {
@@ -59,12 +68,19 @@ export function ProfilePortfolioSettingsPage() {
     body = <p className="text-sm text-slate-600">Redirigiendo al login…</p>;
   } else if (loadError === "generic") {
     body = (
-      <p role="alert" className="text-sm text-red-600">
-        No se ha podido cargar la publicación de tu portfolio. Inténtalo de nuevo.
-      </p>
+      <ErrorState
+        title="No se ha podido cargar la publicación de tu portfolio."
+        description="Revisa tu conexión e inténtalo de nuevo."
+        onRetry={handleRetry}
+      />
     );
   } else if (!settings) {
-    body = <p className="text-sm text-slate-600">Cargando la publicación de tu portfolio…</p>;
+    body = (
+      <LoadingState
+        title="Cargando la publicación de tu portfolio"
+        description="Estamos preparando el estado de tu página pública."
+      />
+    );
   } else {
     body = <ProfilePortfolioSettings settings={settings} token={accessToken} />;
   }

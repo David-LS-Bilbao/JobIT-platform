@@ -16,7 +16,7 @@ export const MATCH_LEVEL_LABELS: Record<MatchLevel, string> = {
 export const MATCH_LEVEL_BADGE_CLASS: Record<MatchLevel, string> = {
   VERY_LOW: "bg-slate-100 text-slate-600",
   LOW: "bg-amber-50 text-amber-700",
-  GOOD: "bg-[#eff4ff] text-[#006591]",
+  GOOD: "bg-jobit-brand-soft text-jobit-brand",
   VERY_GOOD: "bg-emerald-50 text-emerald-700"
 };
 
@@ -24,7 +24,7 @@ export const MATCH_LEVEL_BADGE_CLASS: Record<MatchLevel, string> = {
 export const MATCH_LEVEL_BAR_CLASS: Record<MatchLevel, string> = {
   VERY_LOW: "bg-slate-300",
   LOW: "bg-amber-400",
-  GOOD: "bg-[#006591]",
+  GOOD: "bg-jobit-brand",
   VERY_GOOD: "bg-emerald-500"
 };
 

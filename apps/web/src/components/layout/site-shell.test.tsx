@@ -123,6 +123,21 @@ describe("SiteShell navegación auth-aware", () => {
     expect(screen.queryByText("Pendiente")).not.toBeInTheDocument();
   });
 
+  it("sin placeholders 'futuro' y con las 6 rutas principales (17D.1)", () => {
+    renderPrivate();
+    // Retirados en 17D.1: ruido no accionable.
+    expect(screen.queryByText(/ajustes/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/ayuda/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/futuro/i)).not.toBeInTheDocument();
+    // Las 6 rutas principales siguen presentes.
+    expect(screen.getByRole("link", { name: "Dashboard" })).toHaveAttribute("href", "/dashboard");
+    expect(screen.getByRole("link", { name: "JobIT CV" })).toHaveAttribute("href", "/profile");
+    expect(screen.getByRole("link", { name: "Portfolio" })).toHaveAttribute("href", "/profile/portfolio");
+    expect(screen.getByRole("link", { name: "JobIT Jobs" })).toHaveAttribute("href", "/jobs");
+    expect(screen.getByRole("link", { name: "Guardadas" })).toHaveAttribute("href", "/saved-jobs");
+    expect(screen.getByRole("link", { name: "JobIT Match" })).toHaveAttribute("href", "/match");
+  });
+
   it("muestra Portfolio en la navegación privada como enlace real (17C)", () => {
     renderPrivate();
     expect(screen.getByRole("link", { name: "Portfolio" })).toHaveAttribute(

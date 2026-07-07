@@ -136,9 +136,11 @@ describe("MatchPage (/match)", () => {
       })
     );
     renderWithSession();
-    expect(await screen.findByText("Calculando tus matches…")).toBeInTheDocument();
+    // 17D.5: LoadingState accesible (role=status + aria-busy).
+    expect(await screen.findByText("Calculando tus matches")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveAttribute("aria-busy", "true");
     resolve([makeMatch("j1", "Frontend Developer", "ACME")]);
-    await waitFor(() => expect(screen.queryByText("Calculando tus matches…")).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByText("Calculando tus matches")).not.toBeInTheDocument());
   });
 
   it("muestra el score y el nivel de afinidad de cada match", async () => {
@@ -191,6 +193,44 @@ describe("MatchPage (/match)", () => {
     renderWithSession();
     expect(await screen.findByRole("alert")).toHaveTextContent("No se han podido calcular tus matches");
     expect(screen.queryByText(/stack trace interno/i)).not.toBeInTheDocument();
+  });
+
+  it("ante un error muestra Reintentar y relanza la carga (17D.5)", async () => {
+    vi.mocked(getJobMatches).mockRejectedValueOnce(new ApiClientError(500, "INTERNAL_ERROR", "x"));
+    const user = userEvent.setup();
+    renderWithSession();
+
+    await screen.findByRole("alert");
+    await user.click(screen.getByRole("button", { name: "Reintentar" }));
+
+    expect(await screen.findByText("Frontend Developer")).toBeInTheDocument();
+    expect(getJobMatches).toHaveBeenCalledTimes(2);
+  });
+
+  it("si guardar falla muestra un error accesible y la card no cambia (17D.5)", async () => {
+    vi.mocked(saveJob).mockRejectedValueOnce(new ApiClientError(500, "INTERNAL_ERROR", "x"));
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Frontend Developer");
+
+    const main = within(screen.getByRole("main"));
+    await user.click(main.getByRole("button", { name: "Guardar" }));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("No se ha podido guardar la oferta. Inténtalo de nuevo.");
+    expect(main.getByRole("button", { name: "Guardar" })).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("guardar con éxito anuncia el estado con role=status (17D.5)", async () => {
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByText("Frontend Developer");
+
+    const main = within(screen.getByRole("main"));
+    await user.click(main.getByRole("button", { name: "Guardar" }));
+
+    const status = await screen.findByRole("status");
+    expect(status).toHaveTextContent("Oferta guardada.");
   });
 
   it("'Ver oferta' enlaza al detalle /jobs/[id]", async () => {

@@ -43,9 +43,12 @@ export function JobCard({
           onClick={onToggleSave}
           disabled={saving}
           aria-pressed={saved}
+          // Durante la operación el texto visible es "…": damos nombre accesible
+          // real (17D.3); en reposo el nombre sale del texto visible.
+          aria-label={saving ? (saved ? "Quitando de guardadas" : "Guardando oferta") : undefined}
           className={`shrink-0 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-60 ${
             saved
-              ? "border-[#006591] bg-[#eff4ff] text-[#006591] hover:bg-[#dce9ff]"
+              ? "border-jobit-brand bg-jobit-brand-soft text-jobit-brand hover:bg-jobit-brand-muted"
               : "border-slate-200 text-slate-700 hover:bg-slate-100"
           }`}
         >
@@ -77,7 +80,7 @@ export function JobCard({
           Fuente: {JOB_SOURCE_LABELS[job.source]}
           {job.postedAt ? ` · ${formatPostedDate(job.postedAt)}` : ""}
         </span>
-        <Link href={`/jobs/${job.id}`} className="text-sm font-medium text-[#006591] hover:underline">
+        <Link href={`/jobs/${job.id}`} className="text-sm font-medium text-jobit-brand hover:underline">
           Ver detalle →
         </Link>
       </div>

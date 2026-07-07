@@ -19,7 +19,13 @@ const { pushMock, routerMock } = vi.hoisted(() => {
 });
 vi.mock("next/navigation", () => ({ useRouter: () => routerMock, usePathname: () => "/dashboard" }));
 vi.mock("next/link", () => ({
-  default: ({ href, children }: { href: string; children: ReactNode }) => <a href={href}>{children}</a>
+  // Propaga el resto de props (aria-label, className…) como el Link real:
+  // los nombres accesibles explícitos de 17D.2b dependen de ello.
+  default: ({ href, children, ...rest }: { href: string; children: ReactNode }) => (
+    <a href={href} {...rest}>
+      {children}
+    </a>
+  )
 }));
 vi.mock("@/features/dashboard/dashboard-api", () => ({ getCandidateDashboard: vi.fn() }));
 vi.mock("@/features/auth/auth-api", () => ({ logoutCandidate: vi.fn() }));
@@ -167,9 +173,27 @@ describe("DashboardPage", () => {
       })
     );
     renderWithSession();
-    expect(await screen.findByText("Cargando tu panel…")).toBeInTheDocument();
+    // 17D.2: LoadingState accesible (role=status + aria-busy) con skeleton.
+    expect(await screen.findByText("Cargando tu panel")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveAttribute("aria-busy", "true");
     resolvePromise(emptyDto);
-    await waitFor(() => expect(screen.queryByText("Cargando tu panel…")).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByText("Cargando tu panel")).not.toBeInTheDocument());
+  });
+
+  it("ante un error genérico muestra Reintentar y relanza la carga (17D.2)", async () => {
+    vi.mocked(getCandidateDashboard)
+      .mockRejectedValueOnce(new Error("network down"))
+      .mockResolvedValueOnce(fullDto);
+    const user = userEvent.setup();
+    renderWithSession();
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("No se ha podido cargar tu panel.");
+
+    await user.click(screen.getByRole("button", { name: "Reintentar" }));
+
+    expect(await screen.findByText("Hola, Ana")).toBeInTheDocument();
+    expect(getCandidateDashboard).toHaveBeenCalledTimes(2);
   });
 
   it("con sesión pide el dashboard con el token y renderiza el hub", async () => {
@@ -316,6 +340,43 @@ describe("DashboardPage", () => {
     // Acción desconocida: visible pero sin enlace (no rompe la UI ni navega)
     expect(screen.getByText("Acción futura")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /acción futura/i })).not.toBeInTheDocument();
+  });
+
+  it("las métricas del hub enlazan a su módulo (17D.2)", async () => {
+    vi.mocked(getCandidateDashboard).mockResolvedValueOnce(fullDto);
+    renderWithSession();
+    await screen.findByText("Hola, Ana");
+
+    // 17D.2b: nombres accesibles explícitos y legibles (aria-label), sin
+    // concatenaciones tipo "80%Perfil".
+    expect(screen.getByRole("link", { name: "Ver perfil: 80% completado" })).toHaveAttribute(
+      "href",
+      "/profile"
+    );
+    expect(screen.getByRole("link", { name: "Ver skills: 2" })).toHaveAttribute(
+      "href",
+      "/profile#skills"
+    );
+    expect(screen.getByRole("link", { name: "Ver ofertas guardadas: 2" })).toHaveAttribute(
+      "href",
+      "/saved-jobs"
+    );
+    expect(screen.getByRole("link", { name: "Ver matches: 1" })).toHaveAttribute("href", "/match");
+  });
+
+  it("el hero mantiene su CTA y 'Tu próximo paso' usa copy propio (dedupe 17D.2)", async () => {
+    vi.mocked(getCandidateDashboard).mockResolvedValueOnce(fullDto);
+    renderWithSession();
+    await screen.findByText("Hola, Ana");
+
+    expect(screen.getByRole("link", { name: /mejorar tu jobit cv/i })).toHaveAttribute(
+      "href",
+      "/profile"
+    );
+    // Comportamiento final real (17D.2b, nombres accesibles limpios): quedan
+    // exactamente 3 accesos con ese copy — hero, QuickAction compacta y sidebar.
+    // El bloque "Tu próximo paso" ya no lo repite (usa "Mejorar tu JobIT CV").
+    expect(screen.getAllByRole("link", { name: "Preparar JobIT CV" })).toHaveLength(3);
   });
 
   it("muestra el CTA de gestión de Portfolio hacia /profile/portfolio", async () => {

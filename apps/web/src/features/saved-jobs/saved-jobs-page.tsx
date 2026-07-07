@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { SiteShell } from "@/components/layout/site-shell";
+import { EmptyState, ErrorState, LoadingState } from "@/components/ui/feedback";
 import { useAuth } from "@/features/auth/auth-context";
 import { JobCard } from "@/features/jobs/job-card";
 import { isSessionExpiredError } from "@/lib/api-client";
@@ -20,6 +20,11 @@ export function SavedJobsPage() {
   const [items, setItems] = useState<SavedJobDto[] | null>(null);
   const [errored, setErrored] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [actionMsg, setActionMsg] = useState<{ kind: "success" | "error"; text: string } | null>(
+    null
+  );
+  // Reintento manual (17D.3): incrementarlo relanza el efecto de carga.
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     if (!accessToken) router.push("/login");
@@ -47,16 +52,28 @@ export function SavedJobsPage() {
     return () => {
       cancelled = true;
     };
-  }, [accessToken, clearSession, router]);
+  }, [accessToken, reloadKey, clearSession, router]);
+
+  function handleRetry() {
+    setErrored(false);
+    setItems(null);
+    setReloadKey((key) => key + 1);
+  }
 
   async function handleRemove(jobId: string) {
     if (!accessToken || removingId) return;
     setRemovingId(jobId);
+    setActionMsg(null);
     try {
       await unsaveJob(accessToken, jobId);
       setItems((prev) => (prev ? prev.filter((item) => item.job.id !== jobId) : prev));
+      setActionMsg({ kind: "success", text: "Oferta quitada de guardadas." });
     } catch {
-      // Silencioso: si falla, la oferta permanece en la lista.
+      // 17D.3: sin fallos silenciosos — la oferta permanece y se comunica el error.
+      setActionMsg({
+        kind: "error",
+        text: "No se ha podido quitar la oferta. Inténtalo de nuevo."
+      });
     } finally {
       setRemovingId(null);
     }
@@ -67,23 +84,26 @@ export function SavedJobsPage() {
     body = <p className="text-sm text-slate-600">Redirigiendo al login…</p>;
   } else if (errored) {
     body = (
-      <p role="alert" className="text-sm text-red-600">
-        No se han podido cargar tus ofertas guardadas. Inténtalo de nuevo.
-      </p>
+      <ErrorState
+        title="No se han podido cargar tus ofertas guardadas."
+        description="Revisa tu conexión e inténtalo de nuevo."
+        onRetry={handleRetry}
+      />
     );
   } else if (items === null) {
-    body = <p className="text-sm text-slate-600">Cargando ofertas guardadas…</p>;
+    body = (
+      <LoadingState
+        title="Cargando ofertas guardadas"
+        description="Estamos recuperando tus oportunidades seleccionadas."
+      />
+    );
   } else if (items.length === 0) {
     body = (
-      <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
-        <p className="text-sm text-slate-600">Aún no has guardado ninguna oferta.</p>
-        <Link
-          href="/jobs"
-          className="mt-4 inline-block rounded-lg bg-[#006591] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#004c6e]"
-        >
-          Explorar ofertas
-        </Link>
-      </div>
+      <EmptyState
+        title="Aún no has guardado ninguna oferta."
+        actionHref="/jobs"
+        actionLabel="Explorar ofertas"
+      />
     );
   } else {
     body = (
@@ -104,7 +124,20 @@ export function SavedJobsPage() {
 
   return (
     <SiteShell title="Ofertas guardadas" subtitle="Tus oportunidades favoritas.">
-      {body}
+      <div className="space-y-4">
+        {actionMsg ? (
+          actionMsg.kind === "error" ? (
+            <p role="alert" className="text-sm font-medium text-red-600">
+              {actionMsg.text}
+            </p>
+          ) : (
+            <p role="status" className="text-sm font-medium text-emerald-700">
+              {actionMsg.text}
+            </p>
+          )
+        ) : null}
+        {body}
+      </div>
     </SiteShell>
   );
 }

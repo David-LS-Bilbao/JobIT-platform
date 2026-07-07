@@ -291,4 +291,19 @@ describe("ProfilePortfolioPage (/profile/portfolio · Portfolio JobIT CV)", () =
     expect(screen.queryByText(/ai review|inteligencia artificial/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/pro plan|pricing|suscripción/i)).not.toBeInTheDocument();
   });
+
+  it("ante un error de carga muestra Reintentar y relanza la carga (17D.4)", async () => {
+    vi.mocked(getMyProfile)
+      .mockRejectedValueOnce(new Error("network down"))
+      .mockResolvedValueOnce(fullProfile);
+    renderWithSession();
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("No se ha podido cargar tu portfolio.");
+
+    fireEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+
+    expect(await screen.findByRole("heading", { name: "Ana Pérez" })).toBeInTheDocument();
+    expect(getMyProfile).toHaveBeenCalledTimes(2);
+  });
 });
