@@ -2,7 +2,7 @@
 
 JobIT es una plataforma fullstack modular de empleo tecnologico. Su objetivo es ayudar a profesionales tech a gestionar mejor su busqueda laboral, preparar su perfil y conectar con oportunidades relevantes.
 
-El repositorio ha superado la fase documental inicial y tiene en marcha la implementacion del backend MVP candidate-first (API en `apps/api`). Ya estan implementados los modulos de Auth, Candidate Profile & CV, Jobs (incluida la integracion backend-only con Jooble y la politica de visibilidad publica de la API), Saved Jobs, Match basico explicable y Candidate Dashboard. En el Sprint 07 se ha anadido una primera version del frontend candidate-first en `apps/web` (Next.js + TypeScript + Tailwind): partio del slice vertical landing -> login/registro -> dashboard privado y desde entonces se han anadido las UIs de Perfil/CV y Portfolio, Jobs, Saved Jobs y Match basico explicable. En el Sprint 08 se valido el entorno local real y el smoke HTTP del flujo `register -> login -> dashboard -> logout` (PASS_WITH_NOTES); el smoke visual en navegador y el despliegue dev/staging quedan planificados pero no ejecutados. La infraestructura de despliegue (Docker, CI/CD) sigue pendiente.
+El repositorio ha superado la fase documental inicial y tiene en marcha la implementacion del backend MVP candidate-first (API en `apps/api`). Ya estan implementados los modulos de Auth, Candidate Profile & CV, Jobs (incluida la integracion backend-only con Jooble y la politica de visibilidad publica de la API), Saved Jobs, Match basico explicable y Candidate Dashboard. En el Sprint 07 se ha anadido una primera version del frontend candidate-first en `apps/web` (Next.js + TypeScript + Tailwind): partio del slice vertical landing -> login/registro -> dashboard privado y desde entonces se han anadido las UIs de Perfil/CV y Portfolio, Jobs, Saved Jobs y Match basico explicable. En el Sprint 08 se valido el entorno local real y el smoke HTTP del flujo `register -> login -> dashboard -> logout` (PASS_WITH_NOTES); el smoke visual quedo cubierto despues por el smoke E2E de Playwright (Sprint 18). Desde el Sprint 19 el repositorio cuenta con CI basico en GitHub Actions (workflow `JobIT CI`) que verifica API y Web en cada PR. La infraestructura de despliegue (Docker, VPS) sigue pendiente.
 
 ## Vision modular
 
@@ -42,7 +42,7 @@ Queda fuera del MVP inicial:
 - Comunidad real o red social.
 - Aplicacion movil.
 - Integraciones externas no imprescindibles.
-- CI/CD, despliegue, Docker o configuracion de produccion.
+- Despliegue, Docker o configuracion de produccion (el CI basico de verificacion se anadio despues, en el Sprint 19).
 
 ## Stack previsto
 
@@ -138,13 +138,33 @@ Resultado del smoke local (PASS_WITH_NOTES):
 - Smoke visual en navegador: pendiente/BLOCKED por ausencia de navegador/Playwright en el entorno de agente (no es defecto de codigo).
 - Verificaciones: backend `278/278`, frontend `35/35`, typecheck/build/lint en verde.
 
-Pendiente: smoke visual con navegador; deploy dev/staging (requiere target y autorizacion); dominio/subdominio, DB staging y reverse proxy/SSL por decidir; ajuste de cookie cross-site/HTTPS para staging. Detalle en `docs/sprints/sprint-08-*`.
+Pendiente: deploy dev/staging (requiere target y autorizacion); dominio/subdominio, DB staging y reverse proxy/SSL por decidir; ajuste de cookie cross-site/HTTPS para staging. Detalle en `docs/sprints/sprint-08-*`. El smoke visual con navegador quedo cubierto por el smoke E2E de Playwright del Sprint 18 (`docs/specs/features/candidate-e2e-smoke.md`).
 
 Verificaciones del Sprint 07: `typecheck`, `test` (35/35), `build` y `lint` en verde; auditoria quality/security PASS_WITH_NOTES. El smoke manual contra el backend real queda **pendiente** de provisionar el entorno local (`apps/web/.env.local`, backend con base de datos migrada y puerto `:3000` libre).
 
 Pendiente del frontend: smoke real en entorno provisionado, UI completa de Jobs / Saved Jobs / Perfil-CV, navegacion segun sesion, posible `POST /api/auth/refresh` (backend) y despliegue dev/staging.
 
-Pendiente global: infraestructura de despliegue (Docker, CI/CD). Cada nuevo modulo se implementa con su spec previa y el flujo SDD + TDD + AI Audit.
+Pendiente global: infraestructura de despliegue (Docker, VPS). El CI basico de verificacion existe desde el Sprint 19 (ver la seccion de integracion continua). Cada nuevo modulo se implementa con su spec previa y el flujo SDD + TDD + AI Audit.
+
+### Integracion continua (Sprint 19)
+
+El workflow `JobIT CI` (`.github/workflows/ci.yml`) se ejecuta en cada PR hacia `dev`/`main`, en cada push a `dev` y bajo demanda (`workflow_dispatch`), con dos jobs separados e independientes:
+
+- **api**: PostgreSQL 16 como service efimero (la suite de integracion migra la base sola via `globalSetup`), `prisma generate` explicito, typecheck, tests (399) y build.
+- **web**: lint, typecheck, tests RTL con APIs mockeadas (291) y build de Next.
+
+El CI fija Node 20, resuelve pnpm desde el campo `packageManager` e instala con `--frozen-lockfile`. No usa secrets: solo variables dummy (`DATABASE_URL_TEST` del service efimero y `NEXT_PUBLIC_API_BASE_URL`, que es publica). Las ramas y PRs deben pasar ambos jobs antes del merge hacia `dev`.
+
+Comandos locales equivalentes (los mismos que ejecuta el CI):
+
+```bash
+pnpm install --frozen-lockfile
+pnpm --filter @jobit/api exec prisma generate
+pnpm --filter @jobit/api typecheck && pnpm --filter @jobit/api test && pnpm --filter @jobit/api build
+pnpm --filter @jobit/web lint && pnpm --filter @jobit/web typecheck && pnpm --filter @jobit/web test && pnpm --filter @jobit/web build
+```
+
+El smoke E2E de Playwright (Sprint 18) NO corre en CI: sigue siendo ejecucion local/manual (`pnpm --filter @jobit/web test:e2e` contra el stack local seedeado) y queda documentado como fase posterior con workflow manual. El Sprint 19 no anade deploy. Detalle: spec `docs/specs/features/ci-quality-gates.md` y plan `docs/sprints/sprint-19-ci-quality-gates-plan.md`.
 
 ## Estructura documental inicial
 

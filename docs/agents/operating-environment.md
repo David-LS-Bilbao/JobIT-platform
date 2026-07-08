@@ -118,3 +118,25 @@ pnpm --filter @jobit/api test
 pnpm --filter @jobit/api typecheck
 pnpm --filter @jobit/api build
 ```
+
+## Equivalente en CI (Sprint 19)
+
+El checklist local tiene equivalente automático en GitHub Actions: el workflow `JobIT CI`
+(`.github/workflows/ci.yml`) ejecuta los mismos comandos en cada PR hacia `dev`/`main`, en
+cada push a `dev` y bajo demanda (`workflow_dispatch`), con dos jobs separados:
+
+- **api**: service `postgres:16` con healthcheck. La suite de integración migra la base
+  efímera sola (`prisma migrate deploy` en el `globalSetup` de Vitest) usando la
+  `DATABASE_URL_TEST` dummy del service. `prisma generate` es paso explícito **antes** del
+  typecheck, igual que en local (no hay hook `postinstall`). Después: tests y build.
+- **web**: lint, typecheck, tests y build con `NEXT_PUBLIC_API_BASE_URL` dummy (variable
+  pública; el build no contacta ese host).
+
+El CI fija Node 20 y resuelve la versión de pnpm desde el campo `packageManager` del
+`package.json` raíz; instala siempre con `--frozen-lockfile`. No usa GitHub Secrets.
+
+Playwright E2E **no** corre en CI: sigue siendo ejecución local/manual conforme al
+Sprint 18, salvo que un sprint posterior autorice el workflow manual documentado en
+`docs/specs/features/ci-quality-gates.md`.
+
+Las PR hacia `dev` deben pasar ambos jobs del CI antes del merge.
