@@ -1,0 +1,103 @@
+# JobIT CI — quality gates mínimos para PRs (Sprint 19).
+# Spec: docs/specs/features/ci-quality-gates.md
+# Sin secrets: todas las variables son valores dummy de CI (ver spec, sección
+# "Variables dummy"). El E2E de Playwright NO corre aquí (fase posterior, manual).
+name: JobIT CI
+
+on:
+  pull_request:
+    branches: [dev, main]
+  push:
+    branches: [dev]
+  workflow_dispatch:
+
+# Una sola ejecución por rama: los pushes rápidos cancelan la run anterior.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api:
+    name: API (typecheck + test + build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      # Los tests de @jobit/api son de integración real: el globalSetup de Vitest
+      # ejecuta `prisma migrate deploy` contra DATABASE_URL_TEST (no hace falta
+      # paso de migración aparte). postgres:16 = paridad con el contenedor local.
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: jobit_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      # Dummy de CI (base efímera del service): no es un secreto real.
+      DATABASE_URL_TEST: postgresql://postgres:postgres@localhost:5432/jobit_test?schema=public
+    steps:
+      - uses: actions/checkout@v5
+
+      # Sin `version`: pnpm/action-setup lee `packageManager` del package.json raíz.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      # No hay hook postinstall que genere el cliente Prisma; sin este paso el
+      # typecheck falla con TS2305 (ver docs/agents/operating-environment.md).
+      - name: Generar cliente Prisma
+        run: pnpm --filter @jobit/api exec prisma generate
+
+      - name: Typecheck API
+        run: pnpm --filter @jobit/api typecheck
+
+      - name: Tests API (integración real contra PostgreSQL)
+        run: pnpm --filter @jobit/api test
+
+      - name: Build API
+        run: pnpm --filter @jobit/api build
+
+  web:
+    name: Web (lint + typecheck + test + build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Variable pública (no secreto). Los tests RTL mockean las APIs y el build
+      # de Next solo la necesita como valor presente; no se contacta ese host.
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:4000
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint web
+        run: pnpm --filter @jobit/web lint
+
+      - name: Typecheck web
+        run: pnpm --filter @jobit/web typecheck
+
+      - name: Tests web (Vitest + RTL, APIs mockeadas)
+        run: pnpm --filter @jobit/web test
+
+      - name: Build web
+        run: pnpm --filter @jobit/web build
