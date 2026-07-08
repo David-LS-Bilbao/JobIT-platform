@@ -42,7 +42,9 @@ Frontend candidate-first (Sprint 07): primera versión implementada en `apps/web
 
 Entorno y smoke (Sprint 08): entorno local real validado en WSL nativo (backend `:4000` + PostgreSQL `jobit_dev` + frontend `:3000`) y smoke HTTP del flujo `register → login → dashboard → logout` en **PASS_WITH_NOTES** (`register 201`, `login 200`, `dashboard 200`, `logout 204`, `me sin token 401`). El deploy dev/staging quedó **planificado, no ejecutado**.
 
-Pendientes: smoke visual en navegador (BLOCKED por falta de navegador/Playwright en el entorno de agente), UI completa de Jobs/Saved Jobs/Perfil-CV/Match, ajuste de cookie cross-site/HTTPS para staging, y despliegue/CI/CD.
+Cubierto en sprints posteriores: la UI candidate-first de Jobs/Saved Jobs/Perfil-CV/Match (Sprints 13–15), el smoke E2E local con Playwright del flujo candidato (Sprint 18, `docs/specs/features/candidate-e2e-smoke.md`) y el CI básico API/Web en GitHub Actions (Sprint 19, `docs/specs/features/ci-quality-gates.md`).
+
+Pendientes: despliegue (Docker/VPS), ajuste de cookie cross-site/HTTPS para staging, y E2E en CI (workflow manual/posterior y, si demuestra estabilidad, futuro required check).
 
 ## Módulos fuera del MVP inicial
 

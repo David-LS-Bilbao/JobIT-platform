@@ -137,6 +137,8 @@ Para cierres Git, push y Pull Requests, aplicar siempre:
 
 `docs/agents/git-pr-skill.md`
 
+Desde el Sprint 19, las PR hacia `dev` deben pasar ademas los quality gates automaticos del CI (workflow `JobIT CI`, jobs `api` y `web`) antes del merge.
+
 ## Resumen final obligatorio
 
 Al cerrar una tarea, el agente debe entregar:
