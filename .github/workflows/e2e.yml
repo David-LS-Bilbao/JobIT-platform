@@ -35,12 +35,14 @@ jobs:
           --health-retries 5
     env:
       # Dummies de CI (base efímera del service): no son secretos reales.
-      # NODE_ENV=production NO se define a nivel de job: haría que
-      # `pnpm install` omitiera las devDependencies (tsx, prisma, playwright);
-      # se aplica solo en el step que arranca la API.
+      # NODE_ENV=production y PORT=4000 NO se definen a nivel de job:
+      # - NODE_ENV=production haría que `pnpm install` omitiera las
+      #   devDependencies (tsx, prisma, playwright);
+      # - PORT la respeta también `next start`, que arrancaría en :4000 y
+      #   colisionaría con la API (EADDRINUSE, visto en la run 28959177676).
+      # Ambas se aplican solo en el step que arranca la API.
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/jobit_e2e?schema=public
       JWT_ACCESS_SECRET: e2e-ci-access-secret
-      PORT: 4000
       CORS_ORIGIN: http://localhost:3000
       NEXT_PUBLIC_API_BASE_URL: http://localhost:4000
     steps:
@@ -74,6 +76,7 @@ jobs:
       - name: Arrancar API en background
         env:
           NODE_ENV: production
+          PORT: 4000
         working-directory: apps/api
         run: |
           nohup node dist/server.js > "$RUNNER_TEMP/jobit-api.log" 2>&1 &
