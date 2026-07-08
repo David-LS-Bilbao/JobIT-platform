@@ -156,19 +156,26 @@ El CI no lleva tests propios (es infraestructura declarativa). Verificación en 
 
 ## Estrategia E2E
 
-**Documentada, manual y en fase posterior — NO automática en PR.**
+**Manual bajo demanda (Sprint 19B) — NO automática en PR ni push, NO required check.**
 
 - El smoke E2E (7 tests Playwright) exige stack completo: PostgreSQL migrado **y seedeado**,
   API real en `:4000` (el config de Playwright no la arranca), web en `:3000` y Chromium
   instalado. Su config actual es deliberadamente local-first (`reuseExistingServer: true`,
   `retries: 0`).
-- Camino de promoción aprobado: workflow manual (`workflow_dispatch`) en una fase posterior →
-  ejecución voluntaria en PRs relevantes → si demuestra estabilidad, promoción a check
-  automático no bloqueante → solo entonces, candidato a required check.
-- Hasta entonces, el E2E sigue ejecutándose en local según el Sprint 18
+- El Sprint 19B añade `.github/workflows/e2e.yml` (**JobIT E2E (manual)**), con trigger
+  único `workflow_dispatch`: monta el stack completo en el runner (service `postgres:16`
+  migrado y seedeado, API con `node dist/server.js`, web con `next build && next start`)
+  usando solo variables dummy, ejecuta el smoke y sube traces/logs como artifacts solo en
+  fallo. Gracias a `reuseExistingServer: true` no fue necesario tocar
+  `apps/web/playwright.config.ts`. Detalle:
+  `docs/sprints/sprint-19b-e2e-manual-workflow-plan.md`.
+- Camino de promoción por estabilidad: ejecución manual voluntaria en PRs relevantes →
+  si demuestra estabilidad, promoción a check automático no bloqueante → solo entonces,
+  candidato a required check. Cada salto es decisión explícita del operador.
+- El E2E sigue ejecutándose también en local según el Sprint 18
   (`pnpm --filter @jobit/web test:e2e` contra el stack local seedeado).
 - Adaptar `apps/web/playwright.config.ts` a CI (retries condicionales, reporter con
-  artefactos, arranque de servidores) requerirá autorización expresa en esa fase.
+  artefactos) seguirá requiriendo autorización expresa si alguna fase futura lo necesita.
 
 ## Fuera de alcance
 
