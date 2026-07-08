@@ -1,0 +1,143 @@
+# JobIT E2E (manual) — smoke Playwright bajo demanda (Sprint 19B).
+# Plan: docs/sprints/sprint-19b-e2e-manual-workflow-plan.md
+# NO corre en pull_request ni push y NO es required check: se lanza a mano
+# (UI de Actions o `gh workflow run e2e.yml --ref dev`). Sin secrets: todas
+# las variables son dummies de CI. No toca apps/web/playwright.config.ts:
+# el config ya tiene `reuseExistingServer: true`, así que reutiliza la API
+# y la web que este workflow arranca.
+name: JobIT E2E (manual)
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: E2E smoke (Playwright + stack completo)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: jobit_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      # Dummies de CI (base efímera del service): no son secretos reales.
+      # NODE_ENV=production NO se define a nivel de job: haría que
+      # `pnpm install` omitiera las devDependencies (tsx, prisma, playwright);
+      # se aplica solo en el step que arranca la API.
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/jobit_e2e?schema=public
+      JWT_ACCESS_SECRET: e2e-ci-access-secret
+      PORT: 4000
+      CORS_ORIGIN: http://localhost:3000
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:4000
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Generar cliente Prisma
+        run: pnpm --filter @jobit/api exec prisma generate
+
+      # Aquí no hay globalSetup de Vitest que migre: el deploy es explícito.
+      - name: Migrar base de datos E2E
+        run: pnpm --filter @jobit/api exec prisma migrate deploy
+
+      # Seed autónomo e idempotente (solo tabla Job); los journeys de jobs/match
+      # dependen de sus ofertas (la búsqueda E2E "Developer" casa con el seed).
+      - name: Sembrar ofertas de ejemplo
+        run: pnpm --filter @jobit/api exec tsx prisma/seed.ts
+
+      - name: Build API
+        run: pnpm --filter @jobit/api build
+
+      - name: Arrancar API en background
+        env:
+          NODE_ENV: production
+        working-directory: apps/api
+        run: |
+          nohup node dist/server.js > "$RUNNER_TEMP/jobit-api.log" 2>&1 &
+
+      - name: Esperar API (http://localhost:4000/health)
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:4000/health > /dev/null; then
+              echo "API viva tras $i intentos"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::La API no respondió en 60s"
+          cat "$RUNNER_TEMP/jobit-api.log"
+          exit 1
+
+      # Decisión del Director (Sprint 19B): build de producción + next start
+      # (sin compilación on-demand, menos flakiness que next dev en runner).
+      - name: Build web
+        run: pnpm --filter @jobit/web build
+
+      - name: Arrancar web en background (next start)
+        working-directory: apps/web
+        run: |
+          nohup pnpm start > "$RUNNER_TEMP/jobit-web.log" 2>&1 &
+
+      - name: Esperar web (http://localhost:3000)
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3000 > /dev/null; then
+              echo "Web viva tras $i intentos"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::La web no respondió en 60s"
+          cat "$RUNNER_TEMP/jobit-web.log"
+          exit 1
+
+      - name: Instalar Chromium de Playwright
+        run: pnpm --filter @jobit/web exec playwright install chromium --with-deps
+
+      # reuseExistingServer: true → Playwright detecta la web viva en :3000
+      # y no intenta levantar su propio dev server.
+      - name: Smoke E2E (Playwright)
+        run: pnpm --filter @jobit/web test:e2e
+
+      # El config genera traces solo en fallo (trace: retain-on-failure).
+      - name: Subir traces de Playwright (solo en fallo)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results
+          path: apps/web/test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
+      # Logs de los servidores para diagnóstico si algo falló.
+      - name: Subir logs de API/web (solo en fallo)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-logs
+          path: ${{ runner.temp }}/jobit-*.log
+          if-no-files-found: ignore
+          retention-days: 7
