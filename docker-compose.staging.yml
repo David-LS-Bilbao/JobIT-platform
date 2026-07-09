@@ -1,0 +1,136 @@
+# docker-compose.staging.yml — stack staging de JobIT (Sprint 20.2, ADR-0012).
+#
+# USO LOCAL DE VALIDACIÓN. Diferencias con el VPS real (manual en fase 20.5):
+# - Aquí API y Web publican puertos al host SOLO para el smoke local; en el
+#   VPS no se publicarían: Nginx Proxy Manager accede por la red interna.
+# - PostgreSQL NUNCA publica puertos, en ningún entorno (decisión estructural).
+# - Todos los valores sensibles de este archivo son DUMMIES de validación
+#   local ("change_me"); los valores reales de staging vivirán en el VPS,
+#   fuera del repo (plantillas env en fase 20.3).
+#
+# MIGRACIONES Y SEED: nunca automáticos (spec deploy-staging-readiness).
+# La imagen runtime de la API no incluye la CLI de Prisma (solo dependencias
+# de producción); migrar/seedear usa el stage `builder` del mismo Dockerfile,
+# sin modificar ningún archivo:
+#
+#   docker build --target builder -f apps/api/Dockerfile -t jobit-api:builder .
+#   docker run --rm --network jobit-staging \
+#     -e DATABASE_URL="postgresql://jobit_staging:jobit_staging_password_change_me@jobit-staging-db:5432/jobit_staging?schema=public" \
+#     jobit-api:builder pnpm --filter @jobit/api exec prisma migrate deploy
+#
+#   # Seed opcional (14 ofertas mock, idempotente):
+#   docker run --rm --network jobit-staging \
+#     -e DATABASE_URL="postgresql://jobit_staging:jobit_staging_password_change_me@jobit-staging-db:5432/jobit_staging?schema=public" \
+#     jobit-api:builder pnpm --filter @jobit/api exec tsx prisma/seed.ts
+
+name: jobit-staging
+
+services:
+  jobit-staging-db:
+    image: postgres:16
+    container_name: jobit-staging-db
+    environment:
+      POSTGRES_DB: jobit_staging
+      POSTGRES_USER: jobit_staging
+      POSTGRES_PASSWORD: jobit_staging_password_change_me
+    volumes:
+      - jobit-staging-db-data:/var/lib/postgresql/data
+    networks:
+      - jobit-staging
+    # Sin `ports:`: la DB jamás se expone fuera de la red interna (ADR-0012).
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jobit_staging -d jobit_staging"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  jobit-staging-api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    image: jobit-api:staging-local
+    container_name: jobit-staging-api
+    depends_on:
+      jobit-staging-db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: postgresql://jobit_staging:jobit_staging_password_change_me@jobit-staging-db:5432/jobit_staging?schema=public
+      JWT_ACCESS_SECRET: change-me-staging-jwt-access-secret
+      CORS_ORIGIN: http://localhost:3000
+    volumes:
+      # Único estado en disco de la API (avatares); incluido en backups (spec).
+      - jobit-staging-api-uploads:/repo/apps/api/uploads
+    networks:
+      - jobit-staging
+    # Publicado SOLO para el smoke local; en el VPS real este puerto no se
+    # publicaría (NPM llega a jobit-staging-api:4000 por la red interna).
+    ports:
+      - "4000:4000"
+    healthcheck:
+      # La imagen no trae curl; Node 20 tiene fetch global.
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4000/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  jobit-staging-web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        # Se INLINEA en el build de Next: en el VPS real sería la URL pública
+        # de la API (https://api-jobit-staging.davlos.es) y exigiría rebuild.
+        NEXT_PUBLIC_API_BASE_URL: http://localhost:4000
+    image: jobit-web:staging-local
+    container_name: jobit-staging-web
+    depends_on:
+      jobit-staging-api:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+    networks:
+      - jobit-staging
+    # Publicado SOLO para el smoke local; en el VPS real se conectaría según
+    # el manual de deploy (fase 20.5), sin puerto de host.
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  jobit-staging:
+    name: jobit-staging
+
+volumes:
+  jobit-staging-db-data:
+    name: jobit-staging-db-data
+  jobit-staging-api-uploads:
+    name: jobit-staging-api-uploads
