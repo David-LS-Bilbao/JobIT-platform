@@ -23,6 +23,8 @@ prisma/generated/
 .env
 .env.*
 !.env.example
+# Plantillas versionables con placeholders (p. ej. .env.staging.example)
+!.env.*.example
 
 # Logs
 *.log
