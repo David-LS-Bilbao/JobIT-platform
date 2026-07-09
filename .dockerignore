@@ -1,0 +1,30 @@
+# Contexto de build Docker (Sprint 20.1). Excluye todo lo que las imágenes no
+# necesitan o no deben contener. NUNCA quitar las exclusiones de .env*.
+.git
+.github
+
+# Dependencias y artefactos de build (se regeneran dentro de la imagen).
+**/node_modules
+**/.next
+**/dist
+**/coverage
+**/test-results
+**/playwright-report
+**/.turbo
+
+# Entornos locales: jamás dentro de una imagen.
+.env
+.env.*
+**/.env
+**/.env.*
+
+# Estado local de la API (avatares de dev): en staging es un volumen.
+apps/api/uploads
+
+# Documentación y ruido local (las imágenes no la usan).
+docs
+*.log
+**/*.log
+**/.DS_Store
+.vscode
+.idea
