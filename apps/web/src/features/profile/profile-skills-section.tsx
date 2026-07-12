@@ -23,7 +23,7 @@ const LEVEL_OPTIONS: ReadonlyArray<{ value: SkillLevel; label: string }> = [
 ];
 
 const inputClass =
-  "rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-sm text-slate-900 outline-none transition-shadow focus:border-[#006591] focus:ring-2 focus:ring-[#006591]/40";
+  "rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-sm text-slate-900 outline-none transition-shadow focus:border-jobit-brand focus:ring-2 focus:ring-jobit-brand/40";
 
 function errorMessage(err: unknown): string {
   if (err instanceof ApiClientError) {
@@ -111,7 +111,7 @@ export function ProfileSkillsSection({
                 key={skill.id}
                 className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-100 py-1.5 pl-3 pr-1.5 text-sm text-slate-700"
               >
-                <span className="h-1.5 w-1.5 rounded-full bg-[#006591]" aria-hidden="true" />
+                <span className="h-1.5 w-1.5 rounded-full bg-jobit-brand" aria-hidden="true" />
                 <span>{skill.name}</span>
                 {skill.level ? <span className="text-xs text-slate-500">· {SKILL_LEVEL_LABELS[skill.level]}</span> : null}
                 {skill.category ? <span className="text-xs text-slate-400">· {skill.category}</span> : null}
@@ -168,7 +168,7 @@ export function ProfileSkillsSection({
             type="button"
             onClick={() => void handleAdd()}
             disabled={adding}
-            className="w-full shrink-0 whitespace-nowrap rounded-lg bg-[#006591] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#004c6e] disabled:opacity-60 sm:w-auto"
+            className="w-full shrink-0 whitespace-nowrap rounded-lg bg-jobit-brand px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-jobit-brand-dark disabled:opacity-60 sm:w-auto"
           >
             {adding ? "Añadiendo…" : "Añadir skill"}
           </button>

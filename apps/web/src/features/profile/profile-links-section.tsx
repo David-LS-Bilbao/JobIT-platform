@@ -23,7 +23,7 @@ const TYPE_OPTIONS: ReadonlyArray<{ value: ProfileLinkType; label: string }> = [
 ];
 
 const controlClass =
-  "rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-sm text-slate-900 outline-none transition-shadow focus:border-[#006591] focus:ring-2 focus:ring-[#006591]/40";
+  "rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-sm text-slate-900 outline-none transition-shadow focus:border-jobit-brand focus:ring-2 focus:ring-jobit-brand/40";
 
 interface LinkRow {
   type: ProfileLinkType;
@@ -168,7 +168,7 @@ export function ProfileLinksSection({
           type="button"
           onClick={() => void handleSave()}
           disabled={saving}
-          className="rounded-lg bg-[#006591] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#004c6e] disabled:opacity-60"
+          className="rounded-lg bg-jobit-brand px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-jobit-brand-dark disabled:opacity-60"
         >
           {saving ? "Guardando…" : "Guardar enlaces"}
         </button>

@@ -17,6 +17,9 @@ function modulesToPath(matrix: boolean[][]): string {
   return d;
 }
 
+// Los fills del QR (aquí y en QrSvg) se mantienen como blanco/negro literales
+// (#ffffff/#000000): son contraste funcional de escaneo, no color de marca, y
+// no deben migrarse a tokens jobit-* (excepción documentada en Sprint 17E).
 function buildSvgString(matrix: boolean[][]): string {
   const total = matrix.length + QUIET * 2;
   return (

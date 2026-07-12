@@ -14,7 +14,7 @@ import {
 function CvSection({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="mt-5 break-inside-avoid">
-      <h2 className="mb-2 border-b border-slate-200 pb-1 text-[11px] font-bold uppercase tracking-[0.14em] text-[#006591]">
+      <h2 className="mb-2 border-b border-slate-200 pb-1 text-[11px] font-bold uppercase tracking-[0.14em] text-jobit-brand">
         {title}
       </h2>
       {children}
@@ -38,18 +38,18 @@ export function PublicPortfolioCv({ profile }: { profile: PublicPortfolioProfile
 
   return (
     <article className="rounded-xl border border-slate-200 bg-white p-6 text-slate-900 shadow-sm sm:p-8 print:rounded-none print:border-0 print:p-0 print:shadow-none">
-      <header className="flex items-center gap-4 border-b-2 border-[#006591] pb-5 sm:gap-5">
+      <header className="flex items-center gap-4 border-b-2 border-jobit-brand pb-5 sm:gap-5">
         <ProfileAvatar
           name={profile.name}
           avatarUrl={profile.avatarUrl}
           imgClassName="h-20 w-20 shrink-0 rounded-full object-cover ring-1 ring-slate-200"
-          fallbackClassName="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-[#dce9ff] text-2xl font-bold text-[#004c6e] ring-1 ring-[#b9d3f2] print:bg-white"
+          fallbackClassName="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-jobit-brand-muted text-2xl font-bold text-jobit-brand-dark ring-1 ring-jobit-brand-ring print:bg-white"
         />
         <div className="min-w-0">
           <h1 className="text-2xl font-bold leading-tight tracking-tight text-slate-900 sm:text-3xl">
             {profile.name}
           </h1>
-          {profile.headline ? <p className="mt-0.5 text-base font-medium text-[#006591]">{profile.headline}</p> : null}
+          {profile.headline ? <p className="mt-0.5 text-base font-medium text-jobit-brand">{profile.headline}</p> : null}
           {contactLine ? <p className="mt-1 text-xs text-slate-500">{contactLine}</p> : null}
         </div>
       </header>
@@ -138,7 +138,7 @@ export function PublicPortfolioCv({ profile }: { profile: PublicPortfolioProfile
                 {project.url || project.repoUrl ? (
                   <div className="flex flex-wrap gap-3 text-xs">
                     {project.url ? (
-                      <a href={project.url} target="_blank" rel="noopener noreferrer" className="break-all text-[#006591] underline">
+                      <a href={project.url} target="_blank" rel="noopener noreferrer" className="break-all text-jobit-brand underline">
                         {project.url}
                       </a>
                     ) : null}
@@ -147,7 +147,7 @@ export function PublicPortfolioCv({ profile }: { profile: PublicPortfolioProfile
                         href={project.repoUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="break-all text-[#006591] underline"
+                        className="break-all text-jobit-brand underline"
                       >
                         {project.repoUrl}
                       </a>
@@ -166,7 +166,7 @@ export function PublicPortfolioCv({ profile }: { profile: PublicPortfolioProfile
             {profile.links.map((link, i) => (
               <li key={`${link.url}-${i}`} className="text-sm">
                 <span className="font-medium text-slate-700">{LINK_TYPE_LABELS[link.type]}: </span>
-                <a href={link.url} target="_blank" rel="noopener noreferrer" className="break-all text-[#006591] underline">
+                <a href={link.url} target="_blank" rel="noopener noreferrer" className="break-all text-jobit-brand underline">
                   {link.url}
                 </a>
               </li>

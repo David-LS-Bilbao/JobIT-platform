@@ -8,12 +8,12 @@ export function ProfilePrintActions() {
     <div className="mb-6 print:hidden">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-4">
-          <Link href="/profile" className="text-sm font-medium text-[#006591] hover:underline">
+          <Link href="/profile" className="text-sm font-medium text-jobit-brand hover:underline">
             ← Volver a editar
           </Link>
           <Link
             href="/profile/portfolio/settings"
-            className="text-sm font-medium text-[#006591] hover:underline"
+            className="text-sm font-medium text-jobit-brand hover:underline"
           >
             Gestionar publicación
           </Link>
@@ -21,7 +21,7 @@ export function ProfilePrintActions() {
         <button
           type="button"
           onClick={() => window.print()}
-          className="rounded-lg bg-[#006591] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#004c6e]"
+          className="rounded-lg bg-jobit-brand px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-jobit-brand-dark"
         >
           Imprimir / Guardar PDF
         </button>

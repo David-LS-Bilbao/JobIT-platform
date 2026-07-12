@@ -34,7 +34,7 @@ const CONTRACT_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
 ];
 
 const inputClass =
-  "w-full rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-sm text-slate-900 outline-none transition-shadow focus:border-[#006591] focus:ring-2 focus:ring-[#006591]/40";
+  "w-full rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-sm text-slate-900 outline-none transition-shadow focus:border-jobit-brand focus:ring-2 focus:ring-jobit-brand/40";
 const labelClass = "text-xs font-semibold uppercase tracking-wide text-slate-500";
 
 /** "Frontend, Frontend , Backend," → ["Frontend","Backend"] (trim, sin vacíos, sin duplicados exactos). */
@@ -247,7 +247,7 @@ export function ProfilePreferencesSection({
                 type="checkbox"
                 checked={contractTypes.includes(o.value)}
                 onChange={() => toggleContract(o.value)}
-                className="h-4 w-4 rounded border-slate-300 text-[#006591] focus:ring-[#006591]"
+                className="h-4 w-4 rounded border-slate-300 text-jobit-brand focus:ring-jobit-brand"
               />
               {o.label}
             </label>
@@ -260,7 +260,7 @@ export function ProfilePreferencesSection({
           type="button"
           onClick={() => void handleSave()}
           disabled={saving}
-          className="rounded-lg bg-[#006591] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#004c6e] disabled:opacity-60"
+          className="rounded-lg bg-jobit-brand px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-jobit-brand-dark disabled:opacity-60"
         >
           {saving ? "Guardando…" : "Guardar preferencias"}
         </button>

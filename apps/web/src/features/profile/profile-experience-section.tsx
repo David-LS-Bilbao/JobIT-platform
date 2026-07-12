@@ -25,7 +25,7 @@ function IconPencil() {
 }
 
 const inputClass =
-  "w-full min-w-0 rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-sm text-slate-900 outline-none transition-shadow focus:border-[#006591] focus:ring-2 focus:ring-[#006591]/40";
+  "w-full min-w-0 rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-sm text-slate-900 outline-none transition-shadow focus:border-jobit-brand focus:ring-2 focus:ring-jobit-brand/40";
 const labelClass = "text-xs font-semibold uppercase tracking-wide text-slate-500";
 
 interface ExperienceFormValues {
@@ -195,7 +195,7 @@ function ExperienceFields({
             type="checkbox"
             checked={values.current}
             onChange={(e) => onPatch({ current: e.target.checked, ...(e.target.checked ? { endDate: "" } : {}) })}
-            className="h-4 w-4 rounded border-slate-300 text-[#006591] focus:ring-[#006591]"
+            className="h-4 w-4 rounded border-slate-300 text-jobit-brand focus:ring-jobit-brand"
           />
           <span className="text-sm text-slate-700">Actualmente trabajo aquí</span>
         </label>
@@ -316,7 +316,7 @@ export function ProfileExperienceSection({
         <ul className="space-y-4">
           {experiences.map((exp) =>
             editingId === exp.id ? (
-              <li key={exp.id} className="border-l-2 border-[#006591] pl-4">
+              <li key={exp.id} className="border-l-2 border-jobit-brand pl-4">
                 <div role="group" aria-label={`Editar experiencia en ${exp.company}`} className="space-y-3">
                   <ExperienceFields values={editValues} onPatch={patchEdit} idPrefix={`exp-edit-${exp.id}`} />
                   {editError ? (
@@ -337,7 +337,7 @@ export function ProfileExperienceSection({
                       type="button"
                       onClick={() => void handleSaveEdit()}
                       disabled={savingEdit}
-                      className="rounded-lg bg-[#006591] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#004c6e] disabled:opacity-60"
+                      className="rounded-lg bg-jobit-brand px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-jobit-brand-dark disabled:opacity-60"
                     >
                       {savingEdit ? "Guardando…" : "Guardar"}
                     </button>
@@ -362,7 +362,7 @@ export function ProfileExperienceSection({
                       onClick={() => startEdit(exp)}
                       disabled={busy}
                       aria-label={`Editar ${exp.role} en ${exp.company}`}
-                      className="flex h-6 w-6 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-[#006591] disabled:opacity-50"
+                      className="flex h-6 w-6 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-jobit-brand disabled:opacity-50"
                     >
                       <IconPencil />
                     </button>
@@ -392,7 +392,7 @@ export function ProfileExperienceSection({
             type="button"
             onClick={() => void handleAdd()}
             disabled={adding}
-            className="w-full whitespace-nowrap rounded-lg bg-[#006591] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#004c6e] disabled:opacity-60 sm:w-auto"
+            className="w-full whitespace-nowrap rounded-lg bg-jobit-brand px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-jobit-brand-dark disabled:opacity-60 sm:w-auto"
           >
             {adding ? "Añadiendo…" : "Añadir experiencia"}
           </button>
