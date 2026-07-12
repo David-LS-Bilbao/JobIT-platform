@@ -24,7 +24,7 @@ function IconPencil() {
 }
 
 const inputClass =
-  "w-full min-w-0 rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-sm text-slate-900 outline-none transition-shadow focus:border-[#006591] focus:ring-2 focus:ring-[#006591]/40";
+  "w-full min-w-0 rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-sm text-slate-900 outline-none transition-shadow focus:border-jobit-brand focus:ring-2 focus:ring-jobit-brand/40";
 const labelClass = "text-xs font-semibold uppercase tracking-wide text-slate-500";
 
 const URL_CLEAR_BLOCKED =
@@ -342,7 +342,7 @@ export function ProfileProjectsSection({
                       type="button"
                       onClick={() => void handleSaveEdit()}
                       disabled={savingEdit}
-                      className="rounded-lg bg-[#006591] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#004c6e] disabled:opacity-60"
+                      className="rounded-lg bg-jobit-brand px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-jobit-brand-dark disabled:opacity-60"
                     >
                       {savingEdit ? "Guardando…" : "Guardar"}
                     </button>
@@ -376,7 +376,7 @@ export function ProfileProjectsSection({
                             href={project.url}
                             target="_blank"
                             rel="noreferrer noopener"
-                            className="font-medium text-[#006591] hover:underline"
+                            className="font-medium text-jobit-brand hover:underline"
                           >
                             Demo
                           </a>
@@ -386,7 +386,7 @@ export function ProfileProjectsSection({
                             href={project.repoUrl}
                             target="_blank"
                             rel="noreferrer noopener"
-                            className="font-medium text-[#006591] hover:underline"
+                            className="font-medium text-jobit-brand hover:underline"
                           >
                             Repositorio
                           </a>
@@ -400,7 +400,7 @@ export function ProfileProjectsSection({
                       onClick={() => startEdit(project)}
                       disabled={busy}
                       aria-label={`Editar proyecto ${project.name}`}
-                      className="flex h-6 w-6 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-[#006591] disabled:opacity-50"
+                      className="flex h-6 w-6 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-jobit-brand disabled:opacity-50"
                     >
                       <IconPencil />
                     </button>
@@ -430,7 +430,7 @@ export function ProfileProjectsSection({
             type="button"
             onClick={() => void handleAdd()}
             disabled={adding}
-            className="w-full whitespace-nowrap rounded-lg bg-[#006591] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#004c6e] disabled:opacity-60 sm:w-auto"
+            className="w-full whitespace-nowrap rounded-lg bg-jobit-brand px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-jobit-brand-dark disabled:opacity-60 sm:w-auto"
           >
             {adding ? "Añadiendo…" : "Añadir proyecto"}
           </button>

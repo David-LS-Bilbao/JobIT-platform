@@ -25,11 +25,11 @@ export function ProfilePreview({ profile }: { profile: CandidateProfileDto }) {
           name={name}
           avatarUrl={profile.avatarUrl}
           imgClassName="h-14 w-14 shrink-0 rounded-full border-2 border-white object-cover shadow-sm"
-          fallbackClassName="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-white bg-gradient-to-br from-[#006591] to-[#004c6e] text-lg font-bold text-white shadow-sm"
+          fallbackClassName="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-white bg-gradient-to-br from-jobit-brand to-jobit-brand-dark text-lg font-bold text-white shadow-sm"
         />
         <div className="min-w-0">
           <h4 className="truncate text-lg font-bold text-slate-900">{name}</h4>
-          <p className="truncate text-sm font-medium text-[#006591]">
+          <p className="truncate text-sm font-medium text-jobit-brand">
             {profile.headline?.trim() ? profile.headline : "Añade tu titular profesional"}
           </p>
           <p className="mt-1 flex items-center gap-1 text-xs text-slate-500">
@@ -88,7 +88,7 @@ export function ProfilePreview({ profile }: { profile: CandidateProfileDto }) {
       ) : null}
 
       {profile.links.length > 0 ? (
-        <div className="mt-4 border-t border-slate-100 pt-4 text-sm font-medium text-[#006591]">
+        <div className="mt-4 border-t border-slate-100 pt-4 text-sm font-medium text-jobit-brand">
           <div className="flex flex-wrap gap-x-3 gap-y-1">
             {profile.links.map((link) => (
               <span key={link.id}>{link.type.charAt(0) + link.type.slice(1).toLowerCase()}</span>
