@@ -28,6 +28,19 @@ export const MATCH_LEVEL_BAR_CLASS: Record<MatchLevel, string> = {
   VERY_GOOD: "bg-emerald-500"
 };
 
+/**
+ * Humaniza la `explanation` del backend sustituyendo los enums de nivel por su
+ * etiqueta legible (JOBS-03). Coincidencia por token completo: el alternado
+ * prueba primero los tokens compuestos (VERY_*) y los límites de palabra
+ * impiden tocar "GOODNESS", "LOWER" o "VERY_GOODS". El resto de la frase queda
+ * intacto; no se recalcula nada ni se toca el DTO.
+ */
+const MATCH_LEVEL_TOKEN_RE = /\b(VERY_LOW|VERY_GOOD|LOW|GOOD)\b/g;
+
+export function humanizeMatchExplanation(text: string): string {
+  return text.replace(MATCH_LEVEL_TOKEN_RE, (token) => MATCH_LEVEL_LABELS[token as MatchLevel]);
+}
+
 /** Score acotado a 0..100 por seguridad (el backend ya lo garantiza). */
 export function clampScore(score: number): number {
   if (!Number.isFinite(score)) return 0;

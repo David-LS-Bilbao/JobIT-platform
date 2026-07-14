@@ -203,7 +203,8 @@ describe("DashboardPage", () => {
     expect(getCandidateDashboard).toHaveBeenCalledWith("tok-dash");
     // App shell privado
     expect(screen.getByText("Perfil tech vivo")).toBeInTheDocument();
-    expect(screen.getByText("MVP candidate-first")).toBeInTheDocument();
+    // VIS-09 (21A): el badge interno de desarrollo ya no aparece en el header privado.
+    expect(screen.queryByText("MVP candidate-first")).not.toBeInTheDocument();
     expect(screen.getAllByText("Dashboard").length).toBeGreaterThan(0);
     // Secciones del hub
     expect(screen.getByText("Acciones rápidas")).toBeInTheDocument();

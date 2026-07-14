@@ -161,7 +161,11 @@ export function MatchPage() {
       );
     return (
       <div className="space-y-4">
-        <p className="text-xs text-slate-500">{matches.length} ofertas ordenadas por afinidad</p>
+        <p className="text-xs text-slate-500">
+          {matches.length === 1
+            ? "1 oferta ordenada por afinidad"
+            : `${matches.length} ofertas ordenadas por afinidad`}
+        </p>
         {matches.map((match) => (
           <MatchCard
             key={match.job.id}

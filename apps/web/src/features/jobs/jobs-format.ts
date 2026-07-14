@@ -11,7 +11,7 @@ export const SENIORITY_LABELS: Record<JobSeniority, string> = {
   JUNIOR: "Junior",
   MID: "Mid",
   SENIOR: "Senior",
-  ANY: "Cualquiera"
+  ANY: "Cualquier nivel"
 };
 
 export const JOB_SOURCE_LABELS: Record<JobSource, string> = {
@@ -27,7 +27,8 @@ const CONTRACT_TYPE_LABELS: Record<string, string> = {
   CONTRACT: "Contrato",
   FREELANCE: "Freelance",
   INTERNSHIP: "Prácticas",
-  TEMPORARY: "Temporal"
+  TEMPORARY: "Temporal",
+  UNSPECIFIED: "Sin especificar"
 };
 
 export function formatContractType(value: string): string {
@@ -55,6 +56,25 @@ export function formatPostedDate(iso: string): string {
 export function locationLabel(job: Pick<JobPublicDto, "location" | "remoteType">): string {
   const remote = REMOTE_TYPE_LABELS[job.remoteType];
   return job.location?.trim() ? `${job.location} · ${remote}` : remote;
+}
+
+/**
+ * Línea compacta de metadatos de una oferta (cards y detalle): solo dimensiones
+ * con dato útil, unidas por " · ". Modalidad y contrato `UNSPECIFIED` se omiten
+ * (son "sin dato" de ingesta); seniority se muestra siempre — `ANY` es
+ * información real ("Cualquier nivel"), no un desconocido.
+ */
+export function jobMetadataLabel(
+  job: Pick<JobPublicDto, "location" | "remoteType" | "seniority" | "contractType">
+): string {
+  const parts: string[] = [];
+  const location = job.location?.trim();
+  if (location) parts.push(location);
+  if (job.remoteType !== "UNSPECIFIED") parts.push(REMOTE_TYPE_LABELS[job.remoteType]);
+  parts.push(SENIORITY_LABELS[job.seniority]);
+  const contract = job.contractType?.trim();
+  if (contract && contract.toUpperCase() !== "UNSPECIFIED") parts.push(formatContractType(contract));
+  return parts.join(" · ");
 }
 
 /**

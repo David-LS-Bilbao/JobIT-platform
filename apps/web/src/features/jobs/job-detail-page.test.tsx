@@ -265,7 +265,9 @@ describe("JobDetailPage (/jobs/[id])", () => {
   it("muestra la explicación y el desglose de factores del backend", async () => {
     renderWithSession();
     await screen.findByText("Match con tu perfil");
-    expect(await screen.findByText("Afinidad GOOD con una puntuación de 72/100.")).toBeInTheDocument();
+    // JOBS-03: la explanation del backend llega con el enum crudo (fixture) y la
+    // UI debe mostrarla humanizada con el nivel legible.
+    expect(await screen.findByText("Afinidad Buena con una puntuación de 72/100.")).toBeInTheDocument();
     // Factores con su estado legible (coincide / no coincide / sin datos).
     expect(screen.getByText("Skills")).toBeInTheDocument();
     expect(screen.getByText("Seniority")).toBeInTheDocument();

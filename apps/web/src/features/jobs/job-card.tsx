@@ -4,14 +4,7 @@ import Link from "next/link";
 
 import type { JobPublicDto } from "@/types/api";
 
-import {
-  JOB_SOURCE_LABELS,
-  SENIORITY_LABELS,
-  formatContractType,
-  formatPostedDate,
-  formatSalary,
-  locationLabel
-} from "./jobs-format";
+import { JOB_SOURCE_LABELS, formatPostedDate, formatSalary, jobMetadataLabel } from "./jobs-format";
 
 /** Tarjeta de oferta para el listado. El toggle de guardado lo gestiona el padre. */
 export function JobCard({
@@ -31,7 +24,7 @@ export function JobCard({
     <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="truncate text-base font-bold text-slate-900">
+          <h3 className="line-clamp-2 text-base font-bold text-slate-900">
             <Link href={`/jobs/${job.id}`} className="hover:underline">
               {job.title}
             </Link>
@@ -56,9 +49,7 @@ export function JobCard({
         </button>
       </div>
 
-      <p className="mt-2 text-xs text-slate-500">
-        {locationLabel(job)} · {SENIORITY_LABELS[job.seniority]} · {formatContractType(job.contractType)}
-      </p>
+      <p className="mt-2 text-xs text-slate-500">{jobMetadataLabel(job)}</p>
 
       {salary ? <p className="mt-1 text-sm font-medium text-slate-700">{salary}</p> : null}
 

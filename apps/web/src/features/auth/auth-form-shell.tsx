@@ -15,7 +15,7 @@ interface AuthFormShellProps {
 }
 
 const PANEL_MODULES: ReadonlyArray<{ name: string; description: string }> = [
-  { name: "JobIT Talent", description: "Tu panel de candidato" },
+  { name: "Dashboard", description: "Tu panel de candidato" },
   { name: "JobIT CV", description: "Tu perfil tech vivo" },
   { name: "JobIT Jobs", description: "Ofertas y guardados" },
   { name: "JobIT Match", description: "Encaje explicable" }
@@ -44,10 +44,7 @@ export function AuthFormShell({ title, subtitle, children, footer }: AuthFormShe
         </Link>
 
         <div className="relative max-w-md">
-          <span className="inline-flex rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-medium text-sky-300">
-            MVP candidate-first
-          </span>
-          <h2 className="mt-5 text-3xl font-bold leading-tight tracking-tight">
+          <h2 className="text-3xl font-bold leading-tight tracking-tight">
             Tu perfil tech vivo, en un solo lugar.
           </h2>
           <p className="mt-3 text-sm text-slate-300">
@@ -81,8 +78,7 @@ export function AuthFormShell({ title, subtitle, children, footer }: AuthFormShe
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">{title}</h1>
             {subtitle ? <p className="mt-2 text-sm text-slate-600">{subtitle}</p> : null}
             <div className="mt-6">{children}</div>
-            <p className="mt-6 text-center text-xs text-slate-400">Acceso con Google: próximamente.</p>
-            <div className="mt-4 border-t border-slate-100 pt-4 text-center text-sm text-slate-600">{footer}</div>
+            <div className="mt-6 border-t border-slate-100 pt-4 text-center text-sm text-slate-600">{footer}</div>
           </div>
 
           <p className="mt-6 text-center text-sm">

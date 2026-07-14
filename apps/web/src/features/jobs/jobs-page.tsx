@@ -172,7 +172,7 @@ export function JobsPage() {
       );
     return (
       <div className="space-y-4">
-        <p className="text-xs text-slate-500">{total} ofertas</p>
+        <p className="text-xs text-slate-500">{total === 1 ? "1 oferta" : `${total} ofertas`}</p>
         {jobs.map((job) => (
           <JobCard
             key={job.id}
