@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 
-import { SENIORITY_LABELS, formatContractType, locationLabel } from "@/features/jobs/jobs-format";
+import { jobMetadataLabel } from "@/features/jobs/jobs-format";
 import type { ProfileJobMatchDto } from "@/types/api";
 
 import { MATCH_LEVEL_BADGE_CLASS, MATCH_LEVEL_BAR_CLASS, MATCH_LEVEL_LABELS, clampScore } from "./match-format";
@@ -33,7 +33,7 @@ export function MatchCard({
     <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="truncate text-base font-bold text-slate-900">
+          <h3 className="line-clamp-2 text-base font-bold text-slate-900">
             <Link href={`/jobs/${job.id}`} className="hover:underline">
               {job.title}
             </Link>
@@ -57,9 +57,7 @@ export function MatchCard({
         </button>
       </div>
 
-      <p className="mt-2 text-xs text-slate-500">
-        {locationLabel(job)} · {SENIORITY_LABELS[job.seniority]} · {formatContractType(job.contractType)}
-      </p>
+      <p className="mt-2 text-xs text-slate-500">{jobMetadataLabel(job)}</p>
 
       {/* Score básico explicable: nivel + puntuación + barra (sin recálculo en cliente). */}
       <div className="mt-3">

@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { JOB_SOURCE_LABELS, externalSourceCtaLabel, isSafeExternalUrl } from "./jobs-format";
+import {
+  JOB_SOURCE_LABELS,
+  externalSourceCtaLabel,
+  formatContractType,
+  isSafeExternalUrl,
+  jobMetadataLabel
+} from "./jobs-format";
 
 describe("isSafeExternalUrl", () => {
   it("acepta http y https", () => {
@@ -35,6 +41,79 @@ describe("externalSourceCtaLabel", () => {
 
   it("INTERNAL y otras fuentes usan copy genérico", () => {
     expect(externalSourceCtaLabel("INTERNAL")).toBe("Ver oferta original");
+  });
+});
+
+describe("formatContractType", () => {
+  it("traduce UNSPECIFIED como 'Sin especificar' (JOBS-02: nada de 'Unspecified' en inglés)", () => {
+    expect(formatContractType("UNSPECIFIED")).toBe("Sin especificar");
+  });
+
+  it("mantiene los contratos conocidos humanizados", () => {
+    expect(formatContractType("FULL_TIME")).toBe("Jornada completa");
+    expect(formatContractType("FREELANCE")).toBe("Freelance");
+  });
+});
+
+/**
+ * JOBS-02 — Línea compacta de metadatos de una oferta (cards y detalle).
+ * Contrato: solo dimensiones con dato útil, separadas por " · ".
+ * - remoteType UNSPECIFIED → se omite.
+ * - contractType UNSPECIFIED → se omite (aunque formatContractType sepa traducirlo).
+ * - seniority ANY → se mantiene visible como "Cualquier nivel" (no es dato desconocido).
+ * - sin separadores iniciales, finales ni duplicados; sin "Unspecified" en inglés.
+ */
+describe("jobMetadataLabel (JOBS-02)", () => {
+  const base = {
+    location: "Madrid",
+    remoteType: "REMOTE",
+    seniority: "MID",
+    contractType: "FULL_TIME"
+  } as const;
+
+  it("conserva todas las dimensiones conocidas separadas por ' · '", () => {
+    expect(jobMetadataLabel(base)).toBe("Madrid · Remoto · Mid · Jornada completa");
+  });
+
+  it("omite la modalidad UNSPECIFIED", () => {
+    expect(jobMetadataLabel({ ...base, remoteType: "UNSPECIFIED" })).toBe(
+      "Madrid · Mid · Jornada completa"
+    );
+  });
+
+  it("omite el contrato UNSPECIFIED", () => {
+    expect(jobMetadataLabel({ ...base, contractType: "UNSPECIFIED" })).toBe("Madrid · Remoto · Mid");
+  });
+
+  it("mantiene seniority ANY visible como 'Cualquier nivel'", () => {
+    expect(jobMetadataLabel({ ...base, seniority: "ANY" })).toBe(
+      "Madrid · Remoto · Cualquier nivel · Jornada completa"
+    );
+  });
+
+  it("con remote y contrato desconocidos y seniority ANY muestra únicamente 'Cualquier nivel'", () => {
+    expect(
+      jobMetadataLabel({
+        location: null,
+        remoteType: "UNSPECIFIED",
+        seniority: "ANY",
+        contractType: "UNSPECIFIED"
+      })
+    ).toBe("Cualquier nivel");
+  });
+
+  it("no genera separadores sobrantes ni texto 'Unspecified'", () => {
+    const label = jobMetadataLabel({
+      location: "Madrid",
+      remoteType: "UNSPECIFIED",
+      seniority: "ANY",
+      contractType: "UNSPECIFIED"
+    });
+    expect(label).toBe("Madrid · Cualquier nivel");
+    expect(label).not.toMatch(/Unspecified/);
+    expect(label).not.toMatch(/^\s*·/);
+    expect(label).not.toMatch(/·\s*$/);
+    expect(label).not.toMatch(/·\s*·/);
   });
 });
 

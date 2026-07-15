@@ -48,4 +48,16 @@ describe("RegisterPage", () => {
     expect(screen.queryByRole("button", { name: /google/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /github/i })).not.toBeInTheDocument();
   });
+
+  it("no muestra meta-copy interna ni anuncios no accionables (21A: VIS-09 / AUTH-01 / LAND-01)", () => {
+    renderPage();
+    // VIS-09: el badge interno de desarrollo no aparece en Auth.
+    expect(screen.queryByText("MVP candidate-first")).not.toBeInTheDocument();
+    // AUTH-01: sin anuncio de Google "próximamente" (no accionable).
+    expect(screen.queryByText(/acceso con google/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/próximamente/i)).not.toBeInTheDocument();
+    // LAND-01 (parte Auth): el módulo usa el naming real del producto.
+    expect(screen.queryByText("JobIT Talent")).not.toBeInTheDocument();
+    expect(screen.getByText("Dashboard")).toBeInTheDocument();
+  });
 });

@@ -15,13 +15,11 @@ import type { JobPublicDto } from "@/types/api";
 import { getJobById } from "./jobs-api";
 import {
   JOB_SOURCE_LABELS,
-  SENIORITY_LABELS,
   externalSourceCtaLabel,
-  formatContractType,
   formatPostedDate,
   formatSalary,
   isSafeExternalUrl,
-  locationLabel
+  jobMetadataLabel
 } from "./jobs-format";
 
 type LoadError = "notfound" | "generic";
@@ -186,9 +184,7 @@ export function JobDetailPage({ id }: { id: string }) {
             )
           ) : null}
 
-          <p className="mt-2 text-sm text-slate-500">
-            {locationLabel(job)} · {SENIORITY_LABELS[job.seniority]} · {formatContractType(job.contractType)}
-          </p>
+          <p className="mt-2 text-sm text-slate-500">{jobMetadataLabel(job)}</p>
           {salary ? <p className="mt-1 text-base font-semibold text-slate-800">{salary}</p> : null}
           <p className="mt-1 text-xs text-slate-400">
             Fuente: {JOB_SOURCE_LABELS[job.source]}

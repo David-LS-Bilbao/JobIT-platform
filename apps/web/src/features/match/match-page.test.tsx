@@ -125,7 +125,18 @@ describe("MatchPage (/match)", () => {
     renderWithSession();
     expect(await screen.findByText("Frontend Developer")).toBeInTheDocument();
     expect(getJobMatches).toHaveBeenCalledWith("tok-match");
-    expect(within(screen.getByRole("main")).getByText("1 ofertas ordenadas por afinidad")).toBeInTheDocument();
+    // VIS-04: concordancia singular del contador (antes fijaba "1 ofertas…").
+    expect(within(screen.getByRole("main")).getByText("1 oferta ordenada por afinidad")).toBeInTheDocument();
+  });
+
+  it("pluraliza el contador con más de un match (VIS-04)", async () => {
+    vi.mocked(getJobMatches).mockResolvedValue([
+      makeMatch("j1", "Frontend Developer", "ACME"),
+      makeMatch("j2", "Backend Developer", "Globex")
+    ]);
+    renderWithSession();
+    await screen.findByText("Frontend Developer");
+    expect(within(screen.getByRole("main")).getByText("2 ofertas ordenadas por afinidad")).toBeInTheDocument();
   });
 
   it("muestra el estado de carga mientras calcula los matches", async () => {

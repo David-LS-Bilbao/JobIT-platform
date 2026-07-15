@@ -12,6 +12,7 @@ import {
   MATCH_LEVEL_BAR_CLASS,
   MATCH_LEVEL_LABELS,
   clampScore,
+  humanizeMatchExplanation,
   matchFactorState
 } from "./match-format";
 
@@ -102,8 +103,10 @@ export function JobMatchPanel({ jobId, token }: { jobId: string; token: string }
         </div>
       </div>
 
-      {/* Explicación básica que devuelve el backend. */}
-      {match.explanation ? <p className="mt-3 text-sm text-slate-700">{match.explanation}</p> : null}
+      {/* Explicación básica del backend, humanizada (sin enums crudos, JOBS-03). */}
+      {match.explanation ? (
+        <p className="mt-3 text-sm text-slate-700">{humanizeMatchExplanation(match.explanation)}</p>
+      ) : null}
 
       {/* Desglose por factores, si el backend los devuelve. */}
       {factors.length > 0 ? (

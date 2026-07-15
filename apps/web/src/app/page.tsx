@@ -58,8 +58,8 @@ const MODULES: ReadonlyArray<{
 }> = [
   {
     icon: <IconUser />,
-    name: "JobIT Talent",
-    description: "Tu centro de mando como candidato.",
+    name: "Dashboard",
+    description: "Tu panel de candidato.",
     points: ["Estado del perfil y preferencias", "Ofertas guardadas y recomendaciones"],
     accent: "text-sky-700 bg-sky-50 ring-sky-100"
   },

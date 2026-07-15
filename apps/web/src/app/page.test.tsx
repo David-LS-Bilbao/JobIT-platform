@@ -31,9 +31,13 @@ describe("Landing pública candidate-first", () => {
     expect(screen.getByRole("link", { name: /crear cuenta/i })).toHaveAttribute("href", "/register");
   });
 
-  it("presenta los cuatro módulos del MVP", () => {
+  it("presenta los cuatro módulos del MVP con el naming real del producto", () => {
     render(<Home />);
-    expect(screen.getByText("JobIT Talent")).toBeInTheDocument();
+    // LAND-01 (21A): el hub se llama Dashboard también en la landing; "JobIT
+    // Talent" era un nombre que no existía dentro del producto.
+    expect(screen.getByText("Dashboard")).toBeInTheDocument();
+    expect(screen.getByText("Tu panel de candidato.")).toBeInTheDocument();
+    expect(screen.queryByText("JobIT Talent")).not.toBeInTheDocument();
     expect(screen.getByText("JobIT CV")).toBeInTheDocument();
     expect(screen.getByText("JobIT Jobs")).toBeInTheDocument();
     expect(screen.getByText("JobIT Match")).toBeInTheDocument();

@@ -352,9 +352,6 @@ export function SiteShell({
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <span className="hidden rounded-md bg-jobit-brand-soft px-2.5 py-1 text-xs font-semibold text-jobit-brand sm:inline-block">
-              MVP candidate-first
-            </span>
             <div className="hidden items-center gap-2 border-l border-slate-200 pl-3 sm:flex">
               <span className="text-sm font-medium text-slate-700">Candidato tech</span>
               <span className="flex h-9 w-9 items-center justify-center rounded-full bg-jobit-brand-muted text-sm font-bold text-jobit-brand-dark">

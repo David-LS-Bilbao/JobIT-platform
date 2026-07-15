@@ -117,6 +117,13 @@ describe("SavedJobsPage (/saved-jobs)", () => {
     expect(main.getByText("Backend Developer")).toBeInTheDocument();
   });
 
+  it("usa singular en el contador con una sola guardada (VIS-04)", async () => {
+    vi.mocked(getSavedJobs).mockResolvedValue(savedOf([makeJob("j1", "Frontend Developer", "ACME")]));
+    renderWithSession();
+    await screen.findByText("Frontend Developer");
+    expect(within(screen.getByRole("main")).getByText("1 guardada")).toBeInTheDocument();
+  });
+
   it("con la lista vacía muestra el estado vacío con CTA a /jobs", async () => {
     vi.mocked(getSavedJobs).mockResolvedValue([]);
     renderWithSession();

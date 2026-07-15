@@ -108,7 +108,9 @@ export function SavedJobsPage() {
   } else {
     body = (
       <div className="space-y-4">
-        <p className="text-xs text-slate-500">{items.length} guardadas</p>
+        <p className="text-xs text-slate-500">
+          {items.length === 1 ? "1 guardada" : `${items.length} guardadas`}
+        </p>
         {items.map((item) => (
           <JobCard
             key={item.job.id}

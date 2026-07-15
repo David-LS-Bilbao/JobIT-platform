@@ -114,7 +114,17 @@ describe("JobsPage (/jobs)", () => {
     renderWithSession();
     expect(await screen.findByText("Frontend Developer")).toBeInTheDocument();
     expect(getJobs).toHaveBeenCalledWith("tok-jobs", {});
-    expect(within(screen.getByRole("main")).getByText("1 ofertas")).toBeInTheDocument();
+    // VIS-04: concordancia singular del contador.
+    expect(within(screen.getByRole("main")).getByText("1 oferta")).toBeInTheDocument();
+  });
+
+  it("pluraliza el contador de resultados con más de una oferta (VIS-04)", async () => {
+    vi.mocked(getJobs).mockResolvedValue(
+      listOf([makeJob("j1", "Frontend Developer", "ACME"), makeJob("j2", "Backend Developer", "Globex")])
+    );
+    renderWithSession();
+    await screen.findByText("Frontend Developer");
+    expect(within(screen.getByRole("main")).getByText("2 ofertas")).toBeInTheDocument();
   });
 
   it("las cards muestran la fuente de la oferta", async () => {
