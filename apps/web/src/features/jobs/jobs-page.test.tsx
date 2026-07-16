@@ -60,8 +60,25 @@ function makeJob(id: string, title: string, company: string): JobPublicDto {
   };
 }
 
-function listOf(jobs: JobPublicDto[]): JobsListResponse {
-  return { data: jobs, total: jobs.length, page: 1, limit: 20 };
+function listOf(
+  jobs: JobPublicDto[],
+  meta: { total?: number; page?: number; limit?: number } = {}
+): JobsListResponse {
+  return {
+    data: jobs,
+    total: meta.total ?? jobs.length,
+    page: meta.page ?? 1,
+    limit: meta.limit ?? 20
+  };
+}
+
+/** Mock de getJobs que hace eco de la página pedida (multipágina, JOBS-01). */
+function mockPagedJobs(total: number) {
+  vi.mocked(getJobs).mockImplementation((_token, filters = {}) =>
+    Promise.resolve(
+      listOf([makeJob("j1", "Frontend Developer", "ACME")], { total, page: filters.page ?? 1 })
+    )
+  );
 }
 
 function SeedSessionButton() {
@@ -309,5 +326,282 @@ describe("JobsPage (/jobs)", () => {
     renderWithSession();
     await screen.findByText("Frontend Developer");
     expect(screen.getByRole("link", { name: "JobIT Jobs" })).toHaveAttribute("href", "/jobs");
+  });
+
+  /**
+   * JOBS-01 — Paginación UI (Sprint 21B, mini-spec aprobada).
+   * Contrato: nav "Paginación de ofertas" bajo el listado con «Anterior»,
+   * «Página X de Y» y «Siguiente»; totalPages = ceil(total/limit); solo se
+   * renderiza con más de una página; cambiar de página conserva los filtros;
+   * los filtros reinician a page 1; el retry rehace la misma página.
+   */
+  describe("paginación (JOBS-01)", () => {
+    it("con varias páginas muestra la navegación con su estado inicial", async () => {
+      mockPagedJobs(56); // 56/20 → 3 páginas
+      renderWithSession();
+      await screen.findByText("Frontend Developer");
+
+      const nav = screen.getByRole("navigation", { name: "Paginación de ofertas" });
+      expect(within(nav).getByText("Página 1 de 3")).toBeInTheDocument();
+      expect(within(nav).getByRole("button", { name: /anterior/i })).toBeDisabled();
+      expect(within(nav).getByRole("button", { name: /siguiente/i })).toBeEnabled();
+    });
+
+    it("pulsar Siguiente pide la página 2 conservando los filtros activos", async () => {
+      mockPagedJobs(56);
+      const user = userEvent.setup();
+      renderWithSession();
+      await screen.findByText("Frontend Developer");
+
+      // Filtro real por UI (q) → página 1 filtrada.
+      await user.type(screen.getByLabelText("Buscar ofertas"), "react");
+      await user.click(screen.getByRole("button", { name: "Buscar" }));
+      await waitFor(() =>
+        expect(getJobs).toHaveBeenLastCalledWith("tok-jobs", expect.objectContaining({ q: "react", page: 1 }))
+      );
+      await screen.findByText("Frontend Developer");
+
+      await user.click(screen.getByRole("button", { name: /siguiente/i }));
+      await waitFor(() =>
+        expect(getJobs).toHaveBeenLastCalledWith("tok-jobs", expect.objectContaining({ q: "react", page: 2 }))
+      );
+    });
+
+    it("en la última página Siguiente queda deshabilitado y Anterior habilitado", async () => {
+      mockPagedJobs(56);
+      const user = userEvent.setup();
+      renderWithSession();
+      await screen.findByText("Frontend Developer");
+
+      await user.click(screen.getByRole("button", { name: /siguiente/i }));
+      await waitFor(() =>
+        expect(getJobs).toHaveBeenLastCalledWith("tok-jobs", expect.objectContaining({ page: 2 }))
+      );
+      await screen.findByText("Frontend Developer");
+
+      await user.click(screen.getByRole("button", { name: /siguiente/i }));
+      await waitFor(() =>
+        expect(getJobs).toHaveBeenLastCalledWith("tok-jobs", expect.objectContaining({ page: 3 }))
+      );
+      await screen.findByText("Frontend Developer");
+
+      const nav = screen.getByRole("navigation", { name: "Paginación de ofertas" });
+      expect(within(nav).getByText("Página 3 de 3")).toBeInTheDocument();
+      expect(within(nav).getByRole("button", { name: /anterior/i })).toBeEnabled();
+      expect(within(nav).getByRole("button", { name: /siguiente/i })).toBeDisabled();
+    });
+
+    it("con una sola página no muestra la navegación (blindaje)", async () => {
+      renderWithSession(); // default del beforeEach: 1 oferta, total 1
+      await screen.findByText("Frontend Developer");
+      expect(screen.queryByRole("navigation", { name: "Paginación de ofertas" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /siguiente/i })).not.toBeInTheDocument();
+    });
+
+    it("con 0 resultados conserva el EmptyState y no muestra paginación (blindaje)", async () => {
+      vi.mocked(getJobs).mockResolvedValue(listOf([], { total: 0 }));
+      renderWithSession();
+      await screen.findByText("No hay ofertas que coincidan con tu búsqueda.");
+      expect(screen.queryByRole("navigation", { name: "Paginación de ofertas" })).not.toBeInTheDocument();
+    });
+
+    it("aplicar un filtro desde una página posterior reinicia a page 1", async () => {
+      mockPagedJobs(56);
+      const user = userEvent.setup();
+      renderWithSession();
+      await screen.findByText("Frontend Developer");
+
+      await user.click(screen.getByRole("button", { name: /siguiente/i }));
+      await waitFor(() =>
+        expect(getJobs).toHaveBeenLastCalledWith("tok-jobs", expect.objectContaining({ page: 2 }))
+      );
+      await screen.findByText("Frontend Developer");
+
+      await user.selectOptions(screen.getByLabelText("Modalidad"), "REMOTE");
+      await waitFor(() =>
+        expect(getJobs).toHaveBeenLastCalledWith("tok-jobs", expect.objectContaining({ remote: "REMOTE", page: 1 }))
+      );
+    });
+
+    it("deriva totalPages del limit real de la respuesta (blindaje: nada de 20 hardcodeado)", async () => {
+      vi.mocked(getJobs).mockResolvedValue(
+        listOf([makeJob("j1", "Frontend Developer", "ACME")], { total: 12, limit: 5 })
+      );
+      renderWithSession();
+      await screen.findByText("Frontend Developer");
+      const nav = screen.getByRole("navigation", { name: "Paginación de ofertas" });
+      expect(within(nav).getByText("Página 1 de 3")).toBeInTheDocument();
+    });
+
+    it("los límites no generan peticiones fuera de rango (blindaje)", async () => {
+      mockPagedJobs(56);
+      const user = userEvent.setup();
+      renderWithSession();
+      await screen.findByText("Frontend Developer");
+      expect(getJobs).toHaveBeenCalledTimes(1);
+
+      // «Anterior» en página 1 está disabled: no dispara petición alguna.
+      await user.click(screen.getByRole("button", { name: /anterior/i }));
+      expect(getJobs).toHaveBeenCalledTimes(1);
+
+      // Hasta la última página (2 navegaciones) y «Siguiente» queda inerte.
+      await user.click(screen.getByRole("button", { name: /siguiente/i }));
+      await screen.findByText("Frontend Developer");
+      await user.click(screen.getByRole("button", { name: /siguiente/i }));
+      await screen.findByText("Frontend Developer");
+      expect(getJobs).toHaveBeenCalledTimes(3);
+
+      await user.click(screen.getByRole("button", { name: /siguiente/i }));
+      expect(getJobs).toHaveBeenCalledTimes(3);
+      expect(getJobs).not.toHaveBeenCalledWith("tok-jobs", expect.objectContaining({ page: 4 }));
+    });
+
+    it("al paginar muestra el LoadingState inmediato y retira la navegación durante la carga", async () => {
+      mockPagedJobs(56);
+      const user = userEvent.setup();
+      renderWithSession();
+      await screen.findByText("Frontend Developer");
+
+      // La petición de la página 2 queda diferida para observar la transición.
+      let resolvePage2: (res: JobsListResponse) => void = () => {};
+      vi.mocked(getJobs).mockReturnValueOnce(
+        new Promise<JobsListResponse>((r) => {
+          resolvePage2 = r;
+        })
+      );
+
+      await user.click(screen.getByRole("button", { name: /siguiente/i }));
+
+      expect(await screen.findByText("Cargando ofertas")).toBeInTheDocument();
+      expect(screen.getByRole("status")).toHaveAttribute("aria-busy", "true");
+      expect(
+        screen.queryByRole("navigation", { name: "Paginación de ofertas" })
+      ).not.toBeInTheDocument();
+
+      resolvePage2(listOf([makeJob("j2", "Backend Developer", "Globex")], { total: 56, page: 2 }));
+      expect(await screen.findByText("Backend Developer")).toBeInTheDocument();
+      const nav = screen.getByRole("navigation", { name: "Paginación de ofertas" });
+      expect(within(nav).getByText("Página 2 de 3")).toBeInTheDocument();
+    });
+
+    it("anuncia la página actual con un live region accesible (21B.4)", async () => {
+      mockPagedJobs(56);
+      renderWithSession();
+      await screen.findByText("Frontend Developer");
+
+      const nav = screen.getByRole("navigation", { name: "Paginación de ofertas" });
+      const status = within(nav).getByText("Página 1 de 3");
+      expect(status).toHaveAttribute("role", "status");
+      expect(status).toHaveAttribute("aria-live", "polite");
+      expect(status).toHaveAttribute("aria-atomic", "true");
+    });
+
+    it("mantiene la semántica y el orden de los controles (blindaje 21B.4)", async () => {
+      mockPagedJobs(56);
+      renderWithSession();
+      await screen.findByText("Frontend Developer");
+
+      const nav = screen.getByRole("navigation", { name: "Paginación de ofertas" });
+      const buttons = within(nav).getAllByRole("button");
+      expect(buttons).toHaveLength(2);
+      expect(buttons[0]).toHaveTextContent(/anterior/i);
+      expect(buttons[1]).toHaveTextContent(/siguiente/i);
+      buttons.forEach((b) => expect(b).toHaveAttribute("type", "button"));
+
+      // Orden DOM: Anterior → estado de página → Siguiente.
+      const status = within(nav).getByRole("status");
+      expect(
+        buttons[0].compareDocumentPosition(status) & Node.DOCUMENT_POSITION_FOLLOWING
+      ).toBeTruthy();
+      expect(
+        status.compareDocumentPosition(buttons[1]) & Node.DOCUMENT_POSITION_FOLLOWING
+      ).toBeTruthy();
+    });
+
+    it("hace scroll al inicio de resultados solo tras una paginación exitosa", async () => {
+      // Mock local de scrollIntoView (jsdom no lo implementa); se restaura al final.
+      const proto = Element.prototype as { scrollIntoView?: (options?: ScrollIntoViewOptions) => void };
+      const hadOwn = Object.prototype.hasOwnProperty.call(proto, "scrollIntoView");
+      const originalScroll = proto.scrollIntoView;
+      const scrollSpy = vi.fn();
+      proto.scrollIntoView = scrollSpy;
+      try {
+        mockPagedJobs(56);
+        const user = userEvent.setup();
+        renderWithSession();
+        await screen.findByText("Frontend Developer");
+        const main = within(screen.getByRole("main"));
+        // Carga inicial: sin scroll automático y sin foco en el contador (21B.4).
+        expect(scrollSpy).not.toHaveBeenCalled();
+        expect(main.getByText("56 ofertas")).not.toBe(document.activeElement);
+
+        // Aplicar un filtro tampoco desplaza ni enfoca.
+        await user.selectOptions(screen.getByLabelText("Modalidad"), "REMOTE");
+        await waitFor(() =>
+          expect(getJobs).toHaveBeenLastCalledWith("tok-jobs", expect.objectContaining({ remote: "REMOTE", page: 1 }))
+        );
+        await screen.findByText("Frontend Developer");
+        expect(scrollSpy).not.toHaveBeenCalled();
+        expect(main.getByText("56 ofertas")).not.toBe(document.activeElement);
+
+        // Paginación exitosa: foco en el contador (contexto de teclado) y
+        // exactamente un scroll tras renderizar la página nueva.
+        await user.click(screen.getByRole("button", { name: /siguiente/i }));
+        await waitFor(() =>
+          expect(getJobs).toHaveBeenLastCalledWith("tok-jobs", expect.objectContaining({ page: 2 }))
+        );
+        await screen.findByText("Frontend Developer");
+        await waitFor(() => expect(scrollSpy).toHaveBeenCalledTimes(1));
+        expect(scrollSpy).toHaveBeenCalledWith({ behavior: "auto", block: "start" });
+        expect(document.activeElement).toBe(within(screen.getByRole("main")).getByText("56 ofertas"));
+      } finally {
+        if (hadOwn) proto.scrollIntoView = originalScroll;
+        else delete proto.scrollIntoView;
+      }
+    });
+
+    it("si falla el cambio de página, Reintentar rehace esa misma página con los filtros", async () => {
+      // Spy local de scroll (restaurado al final): el fallo no desplaza; el
+      // retry exitoso completa el retorno al listado exactamente una vez.
+      const proto = Element.prototype as { scrollIntoView?: (options?: ScrollIntoViewOptions) => void };
+      const hadOwn = Object.prototype.hasOwnProperty.call(proto, "scrollIntoView");
+      const originalScroll = proto.scrollIntoView;
+      const scrollSpy = vi.fn();
+      proto.scrollIntoView = scrollSpy;
+      try {
+        mockPagedJobs(56);
+        const user = userEvent.setup();
+        renderWithSession();
+        await screen.findByText("Frontend Developer");
+
+        await user.type(screen.getByLabelText("Buscar ofertas"), "react");
+        await user.click(screen.getByRole("button", { name: "Buscar" }));
+        await waitFor(() =>
+          expect(getJobs).toHaveBeenLastCalledWith("tok-jobs", expect.objectContaining({ q: "react", page: 1 }))
+        );
+        await screen.findByText("Frontend Developer");
+
+        // La petición de la página 2 falla una vez; después vuelve el eco normal.
+        vi.mocked(getJobs).mockRejectedValueOnce(new ApiClientError(500, "INTERNAL_ERROR", "x"));
+        await user.click(screen.getByRole("button", { name: /siguiente/i }));
+        const alert = await screen.findByRole("alert");
+        expect(alert).toHaveTextContent("No se han podido cargar las ofertas");
+        expect(scrollSpy).not.toHaveBeenCalled();
+        // El ErrorState no roba el foco hacia el contador (que ni existe aquí).
+        expect(document.activeElement).not.toBe(document.querySelector("main p"));
+
+        await user.click(screen.getByRole("button", { name: "Reintentar" }));
+        await waitFor(() =>
+          expect(getJobs).toHaveBeenLastCalledWith("tok-jobs", expect.objectContaining({ q: "react", page: 2 }))
+        );
+        expect(await screen.findByText("Frontend Developer")).toBeInTheDocument();
+        await waitFor(() => expect(scrollSpy).toHaveBeenCalledTimes(1));
+        // El retry exitoso completa también la restauración de contexto (21B.4).
+        expect(document.activeElement).toBe(within(screen.getByRole("main")).getByText("56 ofertas"));
+      } finally {
+        if (hadOwn) proto.scrollIntoView = originalScroll;
+        else delete proto.scrollIntoView;
+      }
+    });
   });
 });

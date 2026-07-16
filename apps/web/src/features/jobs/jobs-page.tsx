@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type SyntheticEvent } from "react";
+import { useEffect, useRef, useState, type SyntheticEvent } from "react";
 
 import { SiteShell } from "@/components/layout/site-shell";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/feedback";
@@ -29,12 +29,20 @@ export function JobsPage() {
   const [locationInput, setLocationInput] = useState("");
   const [jobs, setJobs] = useState<JobPublicDto[] | null>(null);
   const [total, setTotal] = useState(0);
+  // Página/limit confirmados por la última respuesta (JOBS-01): el limit lo
+  // decide la API (no se hardcodea) y la página se protege a 1..totalPages.
+  const [pageInfo, setPageInfo] = useState({ page: 1, limit: 0 });
   const [errored, setErrored] = useState(false);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [savingId, setSavingId] = useState<string | null>(null);
   const [actionMsg, setActionMsg] = useState<ActionMsg | null>(null);
   // Reintento manual (17D.3): incrementarlo relanza el efecto de carga.
   const [reloadKey, setReloadKey] = useState(0);
+  // Inicio de resultados (contador) para el retorno tras paginar (21B.3).
+  const resultsStartRef = useRef<HTMLParagraphElement | null>(null);
+  // Navegación paginada pendiente de retorno al listado. No es estado React:
+  // no afecta al render, solo al efecto de scroll post-respuesta.
+  const pendingPaginationScrollRef = useRef(false);
 
   useEffect(() => {
     if (!accessToken) router.push("/login");
@@ -65,6 +73,7 @@ export function JobsPage() {
         if (cancelled) return;
         setJobs(res.data);
         setTotal(res.total);
+        setPageInfo({ page: res.page, limit: res.limit });
         setErrored(false);
       })
       .catch((err: unknown) => {
@@ -88,6 +97,8 @@ export function JobsPage() {
   }
 
   function applyFilter(patch: Partial<JobFilters>) {
+    // Cambiar filtros no desplaza: se anula cualquier retorno paginado pendiente.
+    pendingPaginationScrollRef.current = false;
     setFilters((prev) => ({ ...prev, ...patch, page: 1 }));
   }
 
@@ -95,7 +106,41 @@ export function JobsPage() {
     filters.q || filters.location || filters.remote || filters.seniority || filters.contractType
   );
 
+  // Derivados de paginación (JOBS-01). safeLimit evita divisiones inválidas si
+  // la API devolviera un limit no positivo; nunca se hardcodea el 20 por defecto.
+  const safeLimit = pageInfo.limit > 0 ? pageInfo.limit : 1;
+  const totalPages = Math.max(1, Math.ceil(total / safeLimit));
+  const currentPage = Math.min(Math.max(pageInfo.page, 1), totalPages);
+
+  function handlePageChange(requested: number) {
+    const bounded = Math.min(Math.max(requested, 1), totalPages);
+    if (bounded === currentPage) return;
+    // Feedback inmediato: LoadingState (jobs === null) retira listado y nav
+    // durante la transición, con lo que las pulsaciones repetidas son inocuas.
+    pendingPaginationScrollRef.current = true;
+    setJobs(null);
+    // Solo cambia `page`; el efecto centralizado relanza la petición con todos
+    // los filtros intactos (y el retry conserva la página por el mismo motivo).
+    setFilters((previous) => ({ ...previous, page: bounded }));
+  }
+
+  // Retorno al inicio de resultados tras una paginación exitosa (21B.3/21B.4):
+  // solo cuando hay navegación pendiente y la página nueva ya está renderizada.
+  // Restaura el contexto del usuario de teclado (los controles desaparecieron
+  // durante el LoadingState) enfocando el contador sin desplazar, y después
+  // ejecuta el retorno visual. Un fallo conserva el pendiente (el retry exitoso
+  // completa ambos efectos); los handlers de filtros lo limpian. Sin smooth.
+  useEffect(() => {
+    if (jobs === null) return;
+    if (!pendingPaginationScrollRef.current) return;
+    pendingPaginationScrollRef.current = false;
+    const node = resultsStartRef.current;
+    node?.focus({ preventScroll: true });
+    node?.scrollIntoView?.({ behavior: "auto", block: "start" });
+  }, [jobs]);
+
   function handleClearFilters() {
+    pendingPaginationScrollRef.current = false;
     setQInput("");
     setLocationInput("");
     setJobs(null);
@@ -172,7 +217,10 @@ export function JobsPage() {
       );
     return (
       <div className="space-y-4">
-        <p className="text-xs text-slate-500">{total === 1 ? "1 oferta" : `${total} ofertas`}</p>
+        {/* Foco programático tras paginar (21B.4): fuera de la tabulación normal. */}
+        <p ref={resultsStartRef} tabIndex={-1} className="text-xs text-slate-500">
+          {total === 1 ? "1 oferta" : `${total} ofertas`}
+        </p>
         {jobs.map((job) => (
           <JobCard
             key={job.id}
@@ -182,6 +230,32 @@ export function JobsPage() {
             onToggleSave={() => handleToggleSave(job.id)}
           />
         ))}
+        {totalPages > 1 ? (
+          <nav
+            aria-label="Paginación de ofertas"
+            className="flex flex-wrap items-center justify-center gap-3 pt-2"
+          >
+            <button
+              type="button"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage <= 1}
+              className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white"
+            >
+              ← Anterior
+            </button>
+            <span role="status" aria-live="polite" aria-atomic="true" className="text-sm text-slate-600">
+              Página {currentPage} de {totalPages}
+            </span>
+            <button
+              type="button"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage >= totalPages}
+              className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white"
+            >
+              Siguiente →
+            </button>
+          </nav>
+        ) : null}
       </div>
     );
   })();
