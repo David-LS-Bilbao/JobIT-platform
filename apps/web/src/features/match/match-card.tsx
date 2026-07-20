@@ -27,7 +27,6 @@ export function MatchCard({
   const { job, level, matchedSkills, missingSkills } = match;
   const score = clampScore(match.score);
   const levelLabel = MATCH_LEVEL_LABELS[level];
-  const hasSkillSignal = matchedSkills.length > 0 || missingSkills.length > 0;
 
   return (
     <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
@@ -109,12 +108,6 @@ export function MatchCard({
             ))}
           </ul>
         </div>
-      ) : null}
-
-      {!hasSkillSignal ? (
-        <p className="mt-3 text-xs text-slate-500">
-          El backend ordena esta oferta por una puntuación básica; añade skills a tu perfil para afinar el match.
-        </p>
       ) : null}
 
       <div className="mt-4 flex items-center justify-end">

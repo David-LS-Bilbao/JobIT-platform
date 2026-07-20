@@ -7,9 +7,10 @@ import { useEffect, useState } from "react";
 import { SiteShell } from "@/components/layout/site-shell";
 import { ErrorState, LoadingState } from "@/components/ui/feedback";
 import { useAuth } from "@/features/auth/auth-context";
+import { getMyProfile } from "@/features/profile/profile-api";
 import { getSavedJobs, saveJob, unsaveJob } from "@/features/saved-jobs/saved-jobs-api";
 import { isSessionExpiredError } from "@/lib/api-client";
-import type { ProfileJobMatchDto } from "@/types/api";
+import type { CandidateProfileDto, ProfileJobMatchDto } from "@/types/api";
 
 import { getJobMatches } from "./match-api";
 import { MatchCard } from "./match-card";
@@ -25,6 +26,7 @@ export function MatchPage() {
   const router = useRouter();
   const { accessToken, clearSession } = useAuth();
 
+  const [profile, setProfile] = useState<CandidateProfileDto | null>(null);
   const [matches, setMatches] = useState<ProfileJobMatchDto[] | null>(null);
   const [errored, setErrored] = useState(false);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
@@ -55,15 +57,37 @@ export function MatchPage() {
     };
   }, [accessToken]);
 
-  // Matches. El estado de carga se deriva de `matches === null`.
+  // Perfil y matches son necesarios para decidir la presentación (guía vs lista):
+  // se cargan en paralelo (dos efectos) y el estado de carga se deriva de que
+  // cualquiera siga en `null`. Un fallo de cualquiera marca `errored`; "Reintentar"
+  // relanza ambos (reloadKey). No se muestra la lista si el perfil se desconoce.
+  useEffect(() => {
+    if (!accessToken) return;
+    let cancelled = false;
+    getMyProfile(accessToken)
+      .then((data) => {
+        if (!cancelled) setProfile(data);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        if (isSessionExpiredError(err)) {
+          clearSession();
+          router.push("/login");
+          return;
+        }
+        setErrored(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken, reloadKey, clearSession, router]);
+
   useEffect(() => {
     if (!accessToken) return;
     let cancelled = false;
     getJobMatches(accessToken)
       .then((data) => {
-        if (cancelled) return;
-        setMatches(data);
-        setErrored(false);
+        if (!cancelled) setMatches(data);
       })
       .catch((err: unknown) => {
         if (cancelled) return;
@@ -81,6 +105,7 @@ export function MatchPage() {
 
   function handleRetry() {
     setErrored(false);
+    setProfile(null);
     setMatches(null);
     setReloadKey((key) => key + 1);
   }
@@ -127,12 +152,33 @@ export function MatchPage() {
           onRetry={handleRetry}
         />
       );
-    if (matches === null)
+    if (profile === null || matches === null)
       return (
         <LoadingState
           title="Calculando tus matches"
           description="Estamos calculando las ofertas que mejor encajan con tu perfil."
         />
+      );
+    // MATCH-01: sin skills en el perfil, el backend igualmente puntúa ofertas a
+    // 0/100; en vez de listarlas, se guía a completar el perfil.
+    if (profile.skills.length === 0)
+      return (
+        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+          <h2 className="text-base font-semibold text-slate-800">
+            Añade skills para calcular tu afinidad
+          </h2>
+          <p className="mt-1 text-sm text-slate-600">
+            El match usa las skills de tu JobIT CV. Añádelas para ordenar las ofertas por afinidad.
+          </p>
+          <div className="mt-4 flex justify-center">
+            <Link
+              href="/profile"
+              className="inline-block rounded-lg bg-jobit-brand px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-jobit-brand-dark"
+            >
+              Añadir skills al JobIT CV
+            </Link>
+          </div>
+        </div>
       );
     if (matches.length === 0)
       return (
@@ -185,8 +231,11 @@ export function MatchPage() {
         <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600 shadow-sm">
           <p>
             <span className="font-semibold text-slate-800">Match básico y explicable.</span> Ordenamos las
-            ofertas con una puntuación basada en reglas visibles (skills, modalidad, seniority y ubicación).
-            No usa inteligencia artificial ni modelos opacos: es orientativa y no evalúa tu valía.
+            ofertas con una ponderación básica y fija, sin IA: reglas visibles (skills, seniority, modalidad
+            y ubicación). No usa inteligencia artificial ni modelos opacos: es orientativa y no evalúa tu valía.
+          </p>
+          <p className="mt-2 font-medium text-slate-700">
+            Skills 50% · Seniority 20% · Modalidad 20% · Ubicación 10%
           </p>
         </div>
         {actionMsg ? (

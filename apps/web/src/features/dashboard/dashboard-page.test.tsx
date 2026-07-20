@@ -532,4 +532,35 @@ describe("DashboardPage", () => {
     await screen.findByText("Hola, candidato tech");
     expect(setItem).not.toHaveBeenCalled();
   });
+
+  it("DASH-01: skills vacío con matches poblados muestra 0 y la guía, sin cards al 0%", async () => {
+    const zeroMatch = (id: string, title: string): CandidateDashboardDto["matches"][number] => ({
+      job: makeJob(id, title, "ACME", null),
+      score: 0,
+      level: "VERY_LOW",
+      matchedSkills: [],
+      missingSkills: []
+    });
+    const dto: CandidateDashboardDto = {
+      ...fullDto,
+      skills: [],
+      matches: [zeroMatch("m1", "Backend Zero"), zeroMatch("m2", "Frontend Zero"), zeroMatch("m3", "Data Zero")]
+    };
+    vi.mocked(getCandidateDashboard).mockResolvedValueOnce(dto);
+    renderWithSession();
+    await screen.findByText("Hola, Ana");
+
+    // Métrica presentada a 0 (no el recuento crudo de 3 ofertas a 0/100).
+    expect(screen.getByRole("link", { name: "Ver matches: 0" })).toHaveAttribute("href", "/match");
+
+    // La sección de mejores matches muestra la guía y NO las tarjetas a 0%.
+    const section = screen.getByText("Tus mejores matches").closest("section") as HTMLElement;
+    expect(within(section).getByRole("link", { name: /completar perfil/i })).toHaveAttribute(
+      "href",
+      "/profile"
+    );
+    expect(within(section).queryByText("Backend Zero")).not.toBeInTheDocument();
+    expect(within(section).queryByText("Frontend Zero")).not.toBeInTheDocument();
+    expect(within(section).queryByText("Data Zero")).not.toBeInTheDocument();
+  });
 });

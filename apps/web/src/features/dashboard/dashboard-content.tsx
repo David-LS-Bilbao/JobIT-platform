@@ -383,11 +383,14 @@ export function DashboardContent({ dashboard }: DashboardContentProps) {
   const pct = profile.completionPercentage;
   const skillsCount = skills.length;
   const savedCount = savedJobs.total;
-  const matchesCount = matches.length;
+  const hasSkills = skillsCount > 0;
+  // DASH-01: sin skills el backend aún puntúa ofertas a 0/100; no se presentan
+  // como "matches" (umbral de presentación en frontend, sin tocar el DTO).
+  const presentableMatches = hasSkills ? matches : [];
+  const matchesCount = presentableMatches.length;
 
   const fullName = [profile.firstName, profile.lastName].filter(Boolean).join(" ").trim();
   const displayName = fullName || "Candidato tech";
-  const hasSkills = skillsCount > 0;
 
   return (
     <div className="grid grid-cols-12 gap-6">
@@ -550,10 +553,10 @@ export function DashboardContent({ dashboard }: DashboardContentProps) {
       <section className="col-span-12 lg:col-span-6">
         <h3 className="mb-4 text-xl font-semibold text-slate-900">Tus mejores matches</h3>
         <div className="flex h-full flex-col rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          {matches.length > 0 ? (
+          {presentableMatches.length > 0 ? (
             <>
               <ul className="space-y-3">
-                {matches.slice(0, 3).map((match) => (
+                {presentableMatches.slice(0, 3).map((match) => (
                   <li
                     key={match.job.id}
                     className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3 last:border-b-0 last:pb-0"

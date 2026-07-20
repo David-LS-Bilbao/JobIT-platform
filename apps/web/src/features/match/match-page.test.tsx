@@ -5,9 +5,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AuthProvider, useAuth } from "@/features/auth/auth-context";
 import { getJobMatches } from "@/features/match/match-api";
+import { getMyProfile } from "@/features/profile/profile-api";
 import { getSavedJobs, saveJob, unsaveJob } from "@/features/saved-jobs/saved-jobs-api";
 import { ApiClientError } from "@/lib/api-client";
-import type { JobPublicDto, MatchLevel, ProfileJobMatchDto, SavedJobDto, UserDto } from "@/types/api";
+import type {
+  CandidateProfileDto,
+  JobPublicDto,
+  MatchLevel,
+  ProfileJobMatchDto,
+  ProfileSkillDto,
+  SavedJobDto,
+  UserDto
+} from "@/types/api";
 
 import { MatchPage } from "./match-page";
 
@@ -30,6 +39,12 @@ vi.mock("@/features/saved-jobs/saved-jobs-api", () => ({
   unsaveJob: vi.fn()
 }));
 vi.mock("@/features/auth/auth-api", () => ({ logoutCandidate: vi.fn() }));
+// Sprint 21C: MatchPage necesitará el nº de skills del perfil (getMyProfile). Se
+// preservan los demás exports reales (los usa el SiteShell) y solo se stubbea getMyProfile.
+vi.mock("@/features/profile/profile-api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/features/profile/profile-api")>();
+  return { ...actual, getMyProfile: vi.fn() };
+});
 
 const sessionUser: UserDto = {
   id: "u1",
@@ -75,6 +90,32 @@ function makeMatch(
   };
 }
 
+const ONE_SKILL: ProfileSkillDto[] = [{ id: "s1", name: "TypeScript", level: null, category: null }];
+
+function makeProfile(skills: ProfileSkillDto[] = ONE_SKILL): CandidateProfileDto {
+  return {
+    id: "p1",
+    userId: "u1",
+    firstName: "Ana",
+    lastName: "Pérez",
+    headline: null,
+    summary: null,
+    location: null,
+    locationRemote: false,
+    availabilityStatus: "ACTIVE",
+    avatarUrl: null,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+    completionPercentage: 40,
+    skills,
+    experiences: [],
+    education: [],
+    projects: [],
+    links: [],
+    preferences: null
+  };
+}
+
 function SeedSessionButton() {
   const { setSession } = useAuth();
   return (
@@ -102,6 +143,8 @@ function renderWithSession() {
 beforeEach(() => {
   vi.mocked(getSavedJobs).mockResolvedValue([]);
   vi.mocked(getJobMatches).mockResolvedValue([makeMatch("j1", "Frontend Developer", "ACME")]);
+  // Default: perfil con ≥1 skill ⇒ estado poblado, preservando los tests previos.
+  vi.mocked(getMyProfile).mockResolvedValue(makeProfile(ONE_SKILL));
   vi.mocked(saveJob).mockResolvedValue(undefined);
   vi.mocked(unsaveJob).mockResolvedValue(undefined);
 });
@@ -180,14 +223,18 @@ describe("MatchPage (/match)", () => {
     expect(screen.getByText("aws")).toBeInTheDocument();
   });
 
-  it("sin skills comparables muestra copy honesto sobre la puntuación básica", async () => {
+  it("perfil sin skills: no repite el aviso de puntuación básica por tarjeta (muestra la guía)", async () => {
+    // Contrato MATCH-01: el escenario de N tarjetas a 0/100 con aviso repetido se
+    // sustituye por una guía única; no debe legitimarse el disclaimer ×20.
+    vi.mocked(getMyProfile).mockResolvedValue(makeProfile([]));
     vi.mocked(getJobMatches).mockResolvedValue([
-      makeMatch("j1", "DevOps", "ACME", { matchedSkills: [], missingSkills: [] })
+      makeMatch("j1", "DevOps", "ACME", { score: 0, level: "VERY_LOW", matchedSkills: [], missingSkills: [] }),
+      makeMatch("j2", "SRE", "Globex", { score: 0, level: "VERY_LOW", matchedSkills: [], missingSkills: [] })
     ]);
     renderWithSession();
-    await screen.findByText("DevOps");
-    expect(screen.getByText(/puntuación básica/i)).toBeInTheDocument();
-    expect(screen.queryByText("Skills que coinciden")).not.toBeInTheDocument();
+    await screen.findByText("Añade skills para calcular tu afinidad", undefined, { timeout: 2000 });
+    expect(screen.queryByText(/puntuación básica/i)).not.toBeInTheDocument();
+    expect(screen.queryByText("DevOps")).not.toBeInTheDocument();
   });
 
   it("muestra el estado vacío cuando no hay matches", async () => {
@@ -300,5 +347,163 @@ describe("MatchPage (/match)", () => {
     renderWithSession();
     await screen.findByText("Frontend Developer");
     expect(document.body.textContent).not.toContain("tok-match");
+  });
+});
+
+describe("MatchPage · Sprint 21C — perfil incompleto (RED)", () => {
+  it("carga conjunta: pide el perfil y los matches con el token", async () => {
+    renderWithSession();
+    await screen.findByText("Frontend Developer");
+    expect(getJobMatches).toHaveBeenCalledWith("tok-match");
+    await waitFor(() => expect(getMyProfile).toHaveBeenCalledWith("tok-match"), { timeout: 2000 });
+  });
+
+  it("perfil sin skills muestra la guía y ninguna oferta", async () => {
+    vi.mocked(getMyProfile).mockResolvedValue(makeProfile([]));
+    vi.mocked(getJobMatches).mockResolvedValue([
+      makeMatch("j1", "Frontend Developer", "ACME", { score: 0, level: "VERY_LOW", matchedSkills: [], missingSkills: [] }),
+      makeMatch("j2", "Backend Developer", "Globex", { score: 0, level: "VERY_LOW", matchedSkills: [], missingSkills: [] })
+    ]);
+    renderWithSession();
+    const heading = await screen.findByText("Añade skills para calcular tu afinidad", undefined, {
+      timeout: 2000
+    });
+    expect(heading).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Añadir skills al JobIT CV" })).toHaveAttribute(
+      "href",
+      "/profile"
+    );
+    expect(screen.queryByText("Frontend Developer")).not.toBeInTheDocument();
+    expect(screen.queryByText("Backend Developer")).not.toBeInTheDocument();
+    expect(screen.queryByText(/ordenadas por afinidad/i)).not.toBeInTheDocument();
+  });
+
+  it("perfil con skills conserva el listado poblado (regresión)", async () => {
+    renderWithSession();
+    expect(await screen.findByText("Frontend Developer")).toBeInTheDocument();
+    expect(within(screen.getByRole("main")).getByText("1 oferta ordenada por afinidad")).toBeInTheDocument();
+  });
+
+  it("muestra los pesos del match una sola vez con perfil poblado (MATCH-02)", async () => {
+    renderWithSession();
+    await screen.findByText("Frontend Developer");
+    const weights = await screen.findByText(
+      "Skills 50% · Seniority 20% · Modalidad 20% · Ubicación 10%",
+      undefined,
+      { timeout: 2000 }
+    );
+    expect(weights).toBeInTheDocument();
+    expect(
+      screen.getAllByText("Skills 50% · Seniority 20% · Modalidad 20% · Ubicación 10%")
+    ).toHaveLength(1);
+    expect(screen.getByText(/ponderación básica y fija/i)).toBeInTheDocument();
+    expect(screen.getByText(/sin IA/i)).toBeInTheDocument();
+  });
+
+  it("muestra los pesos también en el estado guía (perfil sin skills)", async () => {
+    vi.mocked(getMyProfile).mockResolvedValue(makeProfile([]));
+    renderWithSession();
+    expect(
+      await screen.findByText("Skills 50% · Seniority 20% · Modalidad 20% · Ubicación 10%", undefined, {
+        timeout: 2000
+      })
+    ).toBeInTheDocument();
+  });
+
+  it("error al cargar el perfil muestra ErrorState y ni cards ni guía", async () => {
+    vi.mocked(getMyProfile).mockRejectedValue(new ApiClientError(500, "INTERNAL_ERROR", "x"));
+    renderWithSession();
+    expect(await screen.findByRole("alert", undefined, { timeout: 2000 })).toHaveTextContent(
+      "No se han podido calcular tus matches"
+    );
+    expect(screen.queryByText("Frontend Developer")).not.toBeInTheDocument();
+    expect(screen.queryByText("Añade skills para calcular tu afinidad")).not.toBeInTheDocument();
+  });
+
+  it("Reintentar vuelve a solicitar perfil y matches", async () => {
+    vi.mocked(getMyProfile)
+      .mockRejectedValueOnce(new ApiClientError(500, "INTERNAL_ERROR", "x"))
+      .mockResolvedValue(makeProfile(ONE_SKILL));
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByRole("alert", undefined, { timeout: 2000 });
+    await user.click(screen.getByRole("button", { name: "Reintentar" }));
+    await waitFor(() => {
+      expect(getMyProfile).toHaveBeenCalledTimes(2);
+      expect(getJobMatches).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it("con el perfil pendiente mantiene LoadingState y no pinta lista parcial", async () => {
+    let resolveProfile: (p: CandidateProfileDto) => void = () => {};
+    vi.mocked(getMyProfile).mockReturnValueOnce(
+      new Promise<CandidateProfileDto>((resolve) => {
+        resolveProfile = resolve;
+      })
+    );
+    vi.mocked(getJobMatches).mockResolvedValue([makeMatch("j1", "Frontend Developer", "ACME")]);
+    renderWithSession();
+    await waitFor(() => expect(getJobMatches).toHaveBeenCalledWith("tok-match"));
+    await waitFor(() => expect(screen.getByText("Calculando tus matches")).toBeInTheDocument(), {
+      timeout: 2000
+    });
+    expect(screen.queryByText("Frontend Developer")).not.toBeInTheDocument();
+    resolveProfile(makeProfile(ONE_SKILL));
+  });
+});
+
+describe("MatchPage · Sprint 21C — robustez (21C.4)", () => {
+  it("401 de Profile limpia la sesión, redirige a /login y no muestra guía ni listado", async () => {
+    vi.mocked(getMyProfile).mockRejectedValue(new ApiClientError(401, "UNAUTHORIZED", "x"));
+    renderWithSession();
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/login"));
+    expect(screen.queryByText("Añade skills para calcular tu afinidad")).not.toBeInTheDocument();
+    expect(screen.queryByText("Frontend Developer")).not.toBeInTheDocument();
+  });
+
+  it("Reintentar tras fallo de Match vuelve a solicitar perfil y matches", async () => {
+    vi.mocked(getJobMatches)
+      .mockRejectedValueOnce(new ApiClientError(500, "INTERNAL_ERROR", "x"))
+      .mockResolvedValue([makeMatch("j1", "Frontend Developer", "ACME")]);
+    const user = userEvent.setup();
+    renderWithSession();
+    await screen.findByRole("alert");
+    await user.click(screen.getByRole("button", { name: "Reintentar" }));
+    await screen.findByText("Frontend Developer");
+    await waitFor(() => {
+      expect(getMyProfile).toHaveBeenCalledTimes(2);
+      expect(getJobMatches).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it("con varias cards la explicación de pesos aparece una sola vez y sin copy metodológico por tarjeta", async () => {
+    vi.mocked(getJobMatches).mockResolvedValue([
+      makeMatch("j1", "Frontend Developer", "ACME", { matchedSkills: ["ts"], missingSkills: [] }),
+      makeMatch("j2", "Backend Developer", "Globex", { matchedSkills: [], missingSkills: [] }),
+      makeMatch("j3", "SRE", "Initech", { matchedSkills: [], missingSkills: ["aws"] })
+    ]);
+    renderWithSession();
+    await screen.findByText("Frontend Developer");
+    expect(
+      screen.getAllByText("Skills 50% · Seniority 20% · Modalidad 20% · Ubicación 10%")
+    ).toHaveLength(1);
+    // El disclaimer metodológico por tarjeta se retiró: no se repite por card.
+    expect(screen.queryByText(/puntuación básica/i)).not.toBeInTheDocument();
+  });
+
+  it("la guía sin skills expone un heading accesible y el CTA como enlace a /profile", async () => {
+    vi.mocked(getMyProfile).mockResolvedValue(makeProfile([]));
+    renderWithSession();
+    expect(
+      await screen.findByRole(
+        "heading",
+        { name: "Añade skills para calcular tu afinidad" },
+        { timeout: 2000 }
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Añadir skills al JobIT CV" })).toHaveAttribute(
+      "href",
+      "/profile"
+    );
   });
 });
