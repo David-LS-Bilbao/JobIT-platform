@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import type { JobMatchDto } from "@/types/api";
@@ -163,11 +162,7 @@ export function JobMatchPanel({ jobId, token }: { jobId: string; token: string }
 
       {!hasSkillSignal ? (
         <p className="mt-4 text-xs text-slate-500">
-          Añade skills y preferencias a tu{" "}
-          <Link href="/profile" className="font-medium text-jobit-brand hover:underline">
-            perfil
-          </Link>{" "}
-          para afinar el match.
+          La oferta no especifica skills; este factor no puede evaluarse.
         </p>
       ) : null}
     </section>
