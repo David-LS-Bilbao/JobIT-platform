@@ -29,6 +29,7 @@ vi.mock("next/link", () => ({
 }));
 vi.mock("@/features/dashboard/dashboard-api", () => ({ getCandidateDashboard: vi.fn() }));
 vi.mock("@/features/auth/auth-api", () => ({ logoutCandidate: vi.fn() }));
+vi.mock("@/features/auth/auth-identity", () => ({ loadCandidateIdentity: vi.fn(() => new Promise(() => {})) }));
 
 const sessionUser: UserDto = {
   id: "u1",
@@ -159,9 +160,9 @@ afterEach(() => {
 });
 
 describe("DashboardPage", () => {
-  it("sin sesión redirige a /login y no pide el dashboard", async () => {
+  it("sin sesión redirige a /login?reason=required y no pide el dashboard (FLOW-02)", async () => {
     renderWithoutSession();
-    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/login"));
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/login?reason=required"));
     expect(getCandidateDashboard).not.toHaveBeenCalled();
   });
 
@@ -374,10 +375,29 @@ describe("DashboardPage", () => {
       "href",
       "/profile"
     );
-    // Comportamiento final real (17D.2b, nombres accesibles limpios): quedan
-    // exactamente 3 accesos con ese copy — hero, QuickAction compacta y sidebar.
-    // El bloque "Tu próximo paso" ya no lo repite (usa "Mejorar tu JobIT CV").
-    expect(screen.getAllByRole("link", { name: "Preparar JobIT CV" })).toHaveLength(3);
+    // 21D (NAV-01): tras retirar el CTA de pie del sidebar y el QuickAction duplicado,
+    // "Preparar JobIT CV" queda una sola vez — el CTA primario del hero.
+    // "Tu próximo paso" usa "Mejorar tu JobIT CV" (acción contextual).
+    expect(screen.getAllByRole("link", { name: "Preparar JobIT CV" })).toHaveLength(1);
+  });
+
+  it("NAV-01: las QuickActions no duplican 'Preparar JobIT CV' y quedan las 3 acciones", async () => {
+    vi.mocked(getCandidateDashboard).mockResolvedValueOnce(fullDto);
+    renderWithSession();
+    await screen.findByText("Hola, Ana");
+    const qa = screen.getByText("Acciones rápidas").closest("section") as HTMLElement;
+    expect(within(qa).queryByRole("link", { name: "Preparar JobIT CV" })).not.toBeInTheDocument();
+    expect(within(qa).getByRole("link", { name: /añadir skills/i })).toBeInTheDocument();
+    expect(within(qa).getByRole("link", { name: /explorar ofertas/i })).toBeInTheDocument();
+    expect(within(qa).getByRole("link", { name: /revisar matches/i })).toBeInTheDocument();
+  });
+
+  it("DASH-04: el badge 'Siguiente' de 'Tu próximo paso' no usa posicionamiento absoluto", async () => {
+    vi.mocked(getCandidateDashboard).mockResolvedValueOnce(fullDto);
+    renderWithSession();
+    await screen.findByText("Hola, Ana");
+    const section = screen.getByText("Tu próximo paso").closest("section") as HTMLElement;
+    expect(within(section).getByText("Siguiente")).not.toHaveClass("absolute");
   });
 
   it("muestra el CTA de gestión de Portfolio hacia /profile/portfolio", async () => {
@@ -508,7 +528,7 @@ describe("DashboardPage", () => {
   it("ante 401 limpia la sesión y redirige a /login", async () => {
     vi.mocked(getCandidateDashboard).mockRejectedValueOnce(new ApiClientError(401, "UNAUTHORIZED", "x"));
     renderWithSession();
-    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/login"));
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/login?reason=expired"));
     expect(
       await screen.findByText("Tu sesión ha caducado. Vuelve a iniciar sesión.")
     ).toBeInTheDocument();

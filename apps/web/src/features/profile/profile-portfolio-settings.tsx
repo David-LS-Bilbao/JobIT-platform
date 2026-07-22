@@ -138,6 +138,13 @@ export function ProfilePortfolioSettings({
 
   return (
     <div className="mx-auto w-full max-w-2xl space-y-6">
+      {/* PORT-01: retorno explícito al portfolio (sin breadcrumb global). */}
+      <Link
+        href="/profile/portfolio"
+        className="inline-flex w-fit items-center text-sm font-medium text-jobit-brand hover:underline"
+      >
+        ← Volver al portfolio
+      </Link>
       {/* Estado + enlace público */}
       <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">

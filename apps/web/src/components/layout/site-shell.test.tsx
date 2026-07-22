@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -27,6 +27,7 @@ vi.mock("next/link", () => ({
   )
 }));
 vi.mock("@/features/auth/auth-api", () => ({ logoutCandidate: vi.fn() }));
+vi.mock("@/features/auth/auth-identity", () => ({ loadCandidateIdentity: vi.fn(() => new Promise(() => {})) }));
 
 const sessionUser: UserDto = {
   id: "u1",
@@ -193,5 +194,108 @@ describe("SiteShell navegación auth-aware", () => {
 
     await user.click(toggleClosed);
     expect(screen.getByRole("button", { name: "Ocultar menú" })).toHaveAttribute("aria-expanded", "true");
+  });
+});
+
+describe("SiteShell · Sprint 21D (RED estructura/marca)", () => {
+  it("D1: breakpoint del shell en lg (no md) en las 4 clases coordinadas", () => {
+    renderPrivate();
+    expect(document.getElementById("app-sidebar")).toHaveClass("lg:flex");
+    expect(screen.getByRole("main").parentElement).toHaveClass("lg:ml-64");
+    expect(screen.getByRole("button", { name: "Abrir menú" })).toHaveClass("lg:hidden");
+    expect(screen.getByRole("button", { name: "Ocultar menú" })).toHaveClass("lg:inline-flex");
+  });
+
+  it("D2: header anti-overflow (min-w-0 / truncate / shrink-0) con logout visible", () => {
+    renderPrivate();
+    const h1 = screen.getByRole("heading", { level: 1 });
+    expect(h1.parentElement).toHaveClass("min-w-0");
+    expect(h1).toHaveClass("truncate");
+    const logout = screen.getByRole("button", { name: "Cerrar sesión" });
+    expect(logout.parentElement).toHaveClass("shrink-0");
+    expect(logout).toBeVisible();
+  });
+
+  it("D6: sin CTA 'Preparar JobIT CV' en el pie del sidebar; el ítem 'JobIT CV' permanece", () => {
+    renderPrivate();
+    expect(screen.queryByRole("link", { name: "Preparar JobIT CV" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "JobIT CV" })).toHaveAttribute("href", "/profile");
+  });
+
+  it("G2: el shell usa el gradiente canónico jobit-brand→jobit-green, sin sky→emerald", () => {
+    renderPrivate();
+    expect(document.querySelector(".from-jobit-brand")).not.toBeNull();
+    expect(document.querySelector(".from-sky-400")).toBeNull();
+  });
+});
+
+describe("SiteShell · a11y navegación móvil (Sprint 21D.5)", () => {
+  it("A1: el botón de abrir expone aria-expanded y aria-controls al panel móvil", async () => {
+    const user = userEvent.setup();
+    renderPrivate();
+    const trigger = screen.getByRole("button", { name: "Abrir menú" });
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    const controls = trigger.getAttribute("aria-controls");
+    expect(controls).toBeTruthy();
+
+    await user.click(trigger);
+    // El mismo control refleja el estado abierto y su aria-controls apunta al panel real.
+    expect(screen.getByRole("button", { name: "Abrir menú" })).toHaveAttribute("aria-expanded", "true");
+    const panel = screen.getByRole("dialog", { name: "Menú de navegación" });
+    expect(panel).toHaveAttribute("id", controls as string);
+    expect(document.getElementById(controls as string)).toBe(panel);
+  });
+
+  it("A2: al abrir el drawer, el foco pasa al control de cierre", async () => {
+    const user = userEvent.setup();
+    renderPrivate();
+    await user.click(screen.getByRole("button", { name: "Abrir menú" }));
+    expect(screen.getByRole("button", { name: "Cerrar menú" })).toHaveFocus();
+  });
+
+  it("A3: Escape cierra el drawer y devuelve el foco al botón de abrir", async () => {
+    const user = userEvent.setup();
+    renderPrivate();
+    const trigger = screen.getByRole("button", { name: "Abrir menú" });
+    await user.click(trigger);
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+  });
+
+  it("A4: cerrar con el botón devuelve el foco al botón de abrir", async () => {
+    const user = userEvent.setup();
+    renderPrivate();
+    const trigger = screen.getByRole("button", { name: "Abrir menú" });
+    await user.click(trigger);
+    await user.click(screen.getByRole("button", { name: "Cerrar menú" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+  });
+
+  // aria-modal="true" (mini-spec §10) exige que el foco no alcance el fondo:
+  // contención de foco local mínima (Tab/Shift+Tab ciclan dentro del drawer).
+  it("A7: Shift+Tab desde el control de cierre no escapa al contenido de fondo", async () => {
+    const user = userEvent.setup();
+    renderPrivate();
+    await user.click(screen.getByRole("button", { name: "Abrir menú" }));
+    const dialog = screen.getByRole("dialog");
+    expect(screen.getByRole("button", { name: "Cerrar menú" })).toHaveFocus();
+    await user.tab({ shift: true });
+    expect(dialog.contains(document.activeElement)).toBe(true);
+  });
+
+  it("A8: Tab desde el último control del drawer vuelve al primero (cierre)", async () => {
+    const user = userEvent.setup();
+    renderPrivate();
+    await user.click(screen.getByRole("button", { name: "Abrir menú" }));
+    const dialog = screen.getByRole("dialog");
+    const links = within(dialog).getAllByRole("link");
+    links[links.length - 1].focus();
+    await user.tab();
+    expect(dialog.contains(document.activeElement)).toBe(true);
+    expect(screen.getByRole("button", { name: "Cerrar menú" })).toHaveFocus();
   });
 });

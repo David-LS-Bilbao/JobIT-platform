@@ -15,12 +15,21 @@ export function ProfileAvatar({
   name,
   avatarUrl,
   imgClassName,
-  fallbackClassName
+  fallbackClassName,
+  decorative = false
 }: {
   name: string;
   avatarUrl: string | null;
   imgClassName: string;
   fallbackClassName: string;
+  /**
+   * Cuando el nombre ya aparece como texto visible junto al avatar (p. ej. en el
+   * header del shell), el avatar es puramente decorativo: la imagen usa `alt=""`
+   * y las iniciales de reemplazo se ocultan a tecnologías de asistencia para no
+   * duplicar la lectura del nombre. Por defecto (false) conserva el nombre como
+   * texto alternativo (uso en preview/CV).
+   */
+  decorative?: boolean;
 }) {
   const [failed, setFailed] = useState(false);
   const resolvedUrl = resolveProfileImageUrl(avatarUrl);
@@ -30,7 +39,7 @@ export function ProfileAvatar({
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={resolvedUrl}
-        alt={name}
+        alt={decorative ? "" : name}
         loading="lazy"
         onError={() => setFailed(true)}
         className={imgClassName}
@@ -38,5 +47,9 @@ export function ProfileAvatar({
     );
   }
 
-  return <span className={fallbackClassName}>{initialsFrom(name)}</span>;
+  return (
+    <span className={fallbackClassName} aria-hidden={decorative || undefined}>
+      {initialsFrom(name)}
+    </span>
+  );
 }

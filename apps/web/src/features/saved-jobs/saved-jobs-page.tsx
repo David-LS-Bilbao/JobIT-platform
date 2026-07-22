@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { SiteShell } from "@/components/layout/site-shell";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/feedback";
 import { useAuth } from "@/features/auth/auth-context";
+import { redirectOnMissingSession, redirectToLogin } from "@/features/auth/auth-navigation";
 import { JobCard } from "@/features/jobs/job-card";
 import { isSessionExpiredError } from "@/lib/api-client";
 import type { SavedJobDto } from "@/types/api";
@@ -15,7 +16,7 @@ import { getSavedJobs, unsaveJob } from "./saved-jobs-api";
 /** `/saved-jobs`: listado privado de ofertas guardadas, con quitar y estado vacío. */
 export function SavedJobsPage() {
   const router = useRouter();
-  const { accessToken, clearSession } = useAuth();
+  const { accessToken, clearSession, endReason } = useAuth();
 
   const [items, setItems] = useState<SavedJobDto[] | null>(null);
   const [errored, setErrored] = useState(false);
@@ -27,8 +28,8 @@ export function SavedJobsPage() {
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
-    if (!accessToken) router.push("/login");
-  }, [accessToken, router]);
+    if (!accessToken) redirectOnMissingSession(router, endReason);
+  }, [accessToken, endReason, router]);
 
   // El estado de carga se deriva de `items === null` (evita setState síncrono en el efecto).
   useEffect(() => {
@@ -43,8 +44,8 @@ export function SavedJobsPage() {
       .catch((err: unknown) => {
         if (cancelled) return;
         if (isSessionExpiredError(err)) {
-          clearSession();
-          router.push("/login");
+          clearSession("expired");
+          redirectToLogin(router, "expired");
           return;
         }
         setErrored(true);

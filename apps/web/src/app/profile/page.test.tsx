@@ -60,6 +60,9 @@ vi.mock("@/features/profile/profile-api", async (importOriginal) => ({
   uploadProfileAvatar: vi.fn()
 }));
 vi.mock("@/features/auth/auth-api", () => ({ logoutCandidate: vi.fn() }));
+// Sprint 21D: neutraliza la carga session-scoped de identidad (no interfiere con el
+// mockeo/encadenado de getMyProfile de la propia página).
+vi.mock("@/features/auth/auth-identity", () => ({ loadCandidateIdentity: vi.fn(() => new Promise(() => {})) }));
 
 const sessionUser: UserDto = {
   id: "u1",
@@ -188,8 +191,18 @@ describe("ProfilePage (/profile · JobIT CV)", () => {
         <ProfilePage />
       </AuthProvider>
     );
-    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/login"));
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/login?reason=required"));
     expect(getMyProfile).not.toHaveBeenCalled();
+  });
+
+  it("RESP-03: la rail de progreso+preview va antes del editor en móvil (order responsive)", async () => {
+    vi.mocked(getMyProfile).mockResolvedValueOnce(fullProfile);
+    renderWithSession();
+    await screen.findByText("Tu perfil tech vivo");
+    const editor = document.querySelector('[class*="lg:col-span-8"]');
+    const rail = document.querySelector('[class*="lg:col-span-4"]');
+    expect(editor).toHaveClass("order-2", "lg:order-1");
+    expect(rail).toHaveClass("order-1", "lg:order-2");
   });
 
   it("muestra el estado de carga mientras pide el perfil", async () => {
@@ -363,8 +376,9 @@ describe("ProfilePage (/profile · JobIT CV)", () => {
     await user.upload(screen.getByLabelText("Subir imagen"), file);
 
     await waitFor(() => expect(uploadProfileAvatar).toHaveBeenCalledWith("tok-cv", expect.any(File)));
-    const img = await screen.findByAltText("Ana Pérez");
-    expect(img.getAttribute("src")).toContain("/uploads/avatars/u1_abc.png");
+    // NAV-02: tras la subida el header también muestra el avatar; basta con que alguna imagen lo refleje.
+    const imgs = await screen.findAllByAltText("Ana Pérez");
+    expect(imgs.some((i) => i.getAttribute("src")?.includes("/uploads/avatars/u1_abc.png"))).toBe(true);
     // 17D.4: el éxito de la subida se anuncia de forma accesible.
     expect(screen.getByRole("status")).toHaveTextContent("Imagen actualizada.");
   });

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { BrandMark } from "@/components/brand/brand-mark";
+
 /**
  * Marco visual de las pantallas públicas de auth (login/register), alineado con
  * la landing: split-screen con panel de marca oscuro (desktop) + card de
@@ -12,6 +14,8 @@ interface AuthFormShellProps {
   subtitle?: string;
   children: ReactNode;
   footer: ReactNode;
+  /** Aviso contextual opcional (FLOW-02); se renderiza sobre el formulario. */
+  notice?: ReactNode;
 }
 
 const PANEL_MODULES: ReadonlyArray<{ name: string; description: string }> = [
@@ -27,7 +31,7 @@ const gridPattern = {
   backgroundSize: "40px 40px"
 } as const;
 
-export function AuthFormShell({ title, subtitle, children, footer }: AuthFormShellProps) {
+export function AuthFormShell({ title, subtitle, children, footer, notice }: AuthFormShellProps) {
   return (
     <div className="grid min-h-dvh bg-slate-50 lg:grid-cols-2">
       {/* Panel de marca (desktop) */}
@@ -37,9 +41,7 @@ export function AuthFormShell({ title, subtitle, children, footer }: AuthFormShe
         <div aria-hidden="true" className="pointer-events-none absolute -right-16 bottom-10 h-72 w-72 rounded-full bg-emerald-500/20 blur-3xl" />
 
         <Link href="/" className="relative flex w-fit items-center gap-2 font-bold tracking-tight">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-sky-400 to-emerald-400 text-sm font-bold text-slate-900">
-            J
-          </span>
+          <BrandMark />
           <span className="text-lg">JobIT</span>
         </Link>
 
@@ -68,15 +70,14 @@ export function AuthFormShell({ title, subtitle, children, footer }: AuthFormShe
         <div className="w-full max-w-md">
           {/* Marca en móvil */}
           <Link href="/" className="mb-8 flex w-fit items-center gap-2 font-bold tracking-tight lg:hidden">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-sky-500 to-emerald-500 text-sm font-bold text-white">
-              J
-            </span>
+            <BrandMark />
             <span className="text-lg">JobIT</span>
           </Link>
 
           <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-xl shadow-slate-200/50">
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">{title}</h1>
             {subtitle ? <p className="mt-2 text-sm text-slate-600">{subtitle}</p> : null}
+            {notice}
             <div className="mt-6">{children}</div>
             <div className="mt-6 border-t border-slate-100 pt-4 text-center text-sm text-slate-600">{footer}</div>
           </div>

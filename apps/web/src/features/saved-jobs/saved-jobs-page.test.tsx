@@ -27,6 +27,7 @@ vi.mock("@/features/saved-jobs/saved-jobs-api", () => ({
   unsaveJob: vi.fn()
 }));
 vi.mock("@/features/auth/auth-api", () => ({ logoutCandidate: vi.fn() }));
+vi.mock("@/features/auth/auth-identity", () => ({ loadCandidateIdentity: vi.fn(() => new Promise(() => {})) }));
 
 const sessionUser: UserDto = {
   id: "u1",
@@ -101,7 +102,7 @@ describe("SavedJobsPage (/saved-jobs)", () => {
         <SavedJobsPage />
       </AuthProvider>
     );
-    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/login"));
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/login?reason=required"));
     expect(getSavedJobs).not.toHaveBeenCalled();
   });
 
@@ -211,6 +212,6 @@ describe("SavedJobsPage (/saved-jobs)", () => {
   it("ante sesión caducada (401) limpia la sesión y redirige a /login", async () => {
     vi.mocked(getSavedJobs).mockRejectedValue(new ApiClientError(401, "UNAUTHORIZED", "x"));
     renderWithSession();
-    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/login"));
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/login?reason=expired"));
   });
 });

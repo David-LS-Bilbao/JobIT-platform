@@ -25,6 +25,7 @@ vi.mock("@/features/profile/profile-api", async (importOriginal) => ({
   getMyProfile: vi.fn()
 }));
 vi.mock("@/features/auth/auth-api", () => ({ logoutCandidate: vi.fn() }));
+vi.mock("@/features/auth/auth-identity", () => ({ loadCandidateIdentity: vi.fn(() => new Promise(() => {})) }));
 
 const sessionUser: UserDto = {
   id: "u1",
@@ -159,7 +160,7 @@ describe("ProfilePortfolioPage (/profile/portfolio · Portfolio JobIT CV)", () =
         <ProfilePortfolioPage />
       </AuthProvider>
     );
-    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/login"));
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/login?reason=required"));
     expect(getMyProfile).not.toHaveBeenCalled();
   });
 

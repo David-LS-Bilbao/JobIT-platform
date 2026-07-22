@@ -61,14 +61,6 @@ function IconStar() {
     </svg>
   );
 }
-function IconEdit() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-      <path d="M4 20h4L18 10l-4-4L4 16v4z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
-      <path d="M13.5 6.5l4 4" stroke="currentColor" strokeWidth="1.7" />
-    </svg>
-  );
-}
 function IconPlus() {
   return (
     <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
@@ -462,8 +454,8 @@ export function DashboardContent({ dashboard }: DashboardContentProps) {
       {/* Acciones rápidas */}
       <section className="col-span-12">
         <h3 className="mb-4 text-xl font-semibold text-slate-900">Acciones rápidas</h3>
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <QuickAction icon={<IconEdit />} label="Preparar JobIT CV" href="/profile" />
+        {/* NAV-01: sin "Preparar JobIT CV" (duplica el CTA primario del hero). */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <QuickAction icon={<IconPlus />} label="Añadir skills" href="/profile#skills" />
           <QuickAction icon={<IconSearch />} label="Explorar ofertas" href="/jobs" />
           <QuickAction icon={<IconTarget />} label="Revisar matches" href="/match" />
@@ -616,12 +608,13 @@ export function DashboardContent({ dashboard }: DashboardContentProps) {
       {/* Tu próximo paso */}
       <section className="col-span-12">
         <h3 className="mb-4 text-xl font-semibold text-slate-900">Tu próximo paso</h3>
-        <div className="relative rounded-xl border border-slate-200 border-t-4 border-t-jobit-brand bg-white p-6 shadow-sm">
-          <span className="absolute right-4 top-4 rounded bg-jobit-brand-soft px-2 py-1 text-xs font-bold text-jobit-brand">
-            Siguiente
-          </span>
+        <div className="rounded-xl border border-slate-200 border-t-4 border-t-jobit-brand bg-white p-6 shadow-sm">
           <div className="flex flex-col gap-6 md:flex-row md:items-center">
             <div className="md:w-1/2">
+              {/* DASH-04: badge en flujo (antes 'absolute', solapaba el copy a 390 px). */}
+              <span className="mb-3 inline-flex rounded bg-jobit-brand-soft px-2 py-1 text-xs font-bold text-jobit-brand">
+                Siguiente
+              </span>
               <p className="mb-4 text-slate-600">
                 Completa tu JobIT CV para mejorar tu perfil, destacar tus skills y preparar mejores oportunidades.
               </p>

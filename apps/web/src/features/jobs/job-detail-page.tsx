@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { SiteShell } from "@/components/layout/site-shell";
 import { ErrorState, LoadingState } from "@/components/ui/feedback";
 import { useAuth } from "@/features/auth/auth-context";
+import { redirectOnMissingSession, redirectToLogin } from "@/features/auth/auth-navigation";
 import { JobMatchPanel } from "@/features/match/job-match-panel";
 import { getSavedJobs, saveJob, unsaveJob } from "@/features/saved-jobs/saved-jobs-api";
 import { ApiClientError, isSessionExpiredError } from "@/lib/api-client";
@@ -27,7 +28,7 @@ type LoadError = "notfound" | "generic";
 /** `/jobs/[id]`: detalle privado de una oferta con guardar/quitar y enlace externo. */
 export function JobDetailPage({ id }: { id: string }) {
   const router = useRouter();
-  const { accessToken, clearSession } = useAuth();
+  const { accessToken, clearSession, endReason } = useAuth();
 
   const [job, setJob] = useState<JobPublicDto | null>(null);
   const [loadError, setLoadError] = useState<LoadError | null>(null);
@@ -40,8 +41,8 @@ export function JobDetailPage({ id }: { id: string }) {
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
-    if (!accessToken) router.push("/login");
-  }, [accessToken, router]);
+    if (!accessToken) redirectOnMissingSession(router, endReason);
+  }, [accessToken, endReason, router]);
 
   useEffect(() => {
     if (!accessToken) return;
@@ -56,8 +57,8 @@ export function JobDetailPage({ id }: { id: string }) {
       .catch((err: unknown) => {
         if (cancelled) return;
         if (isSessionExpiredError(err)) {
-          clearSession();
-          router.push("/login");
+          clearSession("expired");
+          redirectToLogin(router, "expired");
           return;
         }
         setLoadError(err instanceof ApiClientError && err.status === 404 ? "notfound" : "generic");
