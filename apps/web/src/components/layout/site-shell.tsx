@@ -214,9 +214,10 @@ export function SiteShell({
   const [menuOpen, setMenuOpen] = useState(false); // drawer móvil/tablet
   const [desktopNavOpen, setDesktopNavOpen] = useState(true); // sidebar desktop (ocultable)
 
-  // Gestión de foco del drawer móvil (a11y, Sprint 21D.5): al abrir, el foco pasa
+  // Gestión de foco del drawer móvil (a11y, Sprint 21D): al abrir, el foco pasa
   // al control de cierre; al cerrar (botón, overlay o Escape), vuelve al botón que
-  // lo abrió. No es un focus trap (fuera de alcance): solo enfoque y retorno.
+  // lo abrió. Además, con aria-modal activo, Tab/Shift+Tab quedan contenidos en el
+  // panel (no alcanzan el fondo). Es una contención local, no un gestor modal general.
   const openMenuRef = useRef<HTMLButtonElement>(null);
   const closeMenuRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
