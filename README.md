@@ -2,7 +2,7 @@
 
 JobIT es una plataforma fullstack modular de empleo tecnologico. Su objetivo es ayudar a profesionales tech a gestionar mejor su busqueda laboral, preparar su perfil y conectar con oportunidades relevantes.
 
-El repositorio ha superado la fase documental inicial y tiene en marcha la implementacion del backend MVP candidate-first (API en `apps/api`). Ya estan implementados los modulos de Auth, Candidate Profile & CV, Jobs (incluida la integracion backend-only con Jooble y la politica de visibilidad publica de la API), Saved Jobs, Match basico explicable y Candidate Dashboard. En el Sprint 07 se ha anadido una primera version del frontend candidate-first en `apps/web` (Next.js + TypeScript + Tailwind): partio del slice vertical landing -> login/registro -> dashboard privado y desde entonces se han anadido las UIs de Perfil/CV y Portfolio, Jobs, Saved Jobs y Match basico explicable. En el Sprint 08 se valido el entorno local real y el smoke HTTP del flujo `register -> login -> dashboard -> logout` (PASS_WITH_NOTES); el smoke visual quedo cubierto despues por el smoke E2E de Playwright (Sprint 18). Desde el Sprint 19 el repositorio cuenta con CI basico en GitHub Actions (workflow `JobIT CI`) que verifica API y Web en cada PR. La infraestructura de despliegue (Docker, VPS) sigue pendiente.
+El repositorio ha superado la fase documental inicial y tiene un MVP candidate-first **funcional** (backend en `apps/api` + frontend en `apps/web`), en fase de pulido de UX/UI y preparacion de despliegue. Estan implementados los modulos de Auth, Candidate Profile & CV, Jobs (incluida la integracion backend-only con Jooble y, mas adelante, Greenhouse, y la politica de visibilidad publica de la API), Saved Jobs, Match basico explicable y Candidate Dashboard. Desde el Sprint 07 existe el frontend candidate-first en `apps/web` (Next.js + TypeScript + Tailwind + App Router): partio del slice vertical landing -> login/registro -> dashboard privado y desde entonces se han anadido las UIs de Perfil/CV y Portfolio (incluido portfolio publico `/u/[slug]`), Jobs, Saved Jobs y Match basico explicable. En el Sprint 08 se valido el entorno local real y el smoke HTTP del flujo `register -> login -> dashboard -> logout` (PASS_WITH_NOTES); el smoke visual quedo cubierto despues por el smoke E2E de Playwright (Sprint 18). Sprints posteriores agregaron la arquitectura multi-fuente de ofertas y el proveedor Greenhouse (Sprint 16), la activacion y el endurecimiento del dashboard y el pulido de UI candidato (Sprint 17), la preparacion **verificada en local** del deploy dev/staging con Docker + runbook, sin desplegar en VPS (Sprint 20), y una auditoria UX/UI del flujo candidato con su remediacion por lotes (Sprint 21: identidad, navegacion responsive, paginacion de Jobs, UX de match para perfiles incompletos y accesibilidad del drawer). Desde el Sprint 19 el repositorio cuenta con CI en GitHub Actions (workflow `JobIT CI`) que verifica API y Web en cada PR. La infraestructura de despliegue real (Docker en VPS, DNS, reverse proxy/SSL) sigue pendiente de autorizacion (gate 20.6).
 
 ## Vision modular
 
@@ -57,7 +57,7 @@ Parte de este stack ya esta implementado: el backend en `apps/api` (Express + Pr
 
 ## Estado actual del repositorio
 
-Estado: backend MVP candidate-first en desarrollo activo sobre la base documental y de specs ya creada. El backend vive en `apps/api` (Node.js + TypeScript + Express + Zod, PostgreSQL + Prisma).
+Estado: MVP candidate-first funcional (backend + frontend) sobre la base documental y de specs ya creada, en fase de pulido de UX/UI y preparacion de despliegue. El backend vive en `apps/api` (Node.js + TypeScript + Express + Zod, PostgreSQL + Prisma) y el frontend en `apps/web` (Next.js + TypeScript + Tailwind + App Router). Ultimo sprint cerrado: **Sprint 21 (Candidate UX/UI Audit & remediacion)** — ver [`docs/sprints/sprint-21-final-report.md`](docs/sprints/sprint-21-final-report.md).
 
 Modulos backend implementados:
 
@@ -88,9 +88,9 @@ Endpoint de Dashboard disponible (ruta privada, requiere sesion):
 
 - `GET /api/dashboard/me` — vista agregada del candidato autenticado. Devuelve `profile` (`firstName`, `lastName`, `headline`, `completionPercentage`), `skills`, `savedJobs` (`total` + `recent` limitado a 3 por fecha de guardado), `matches` (top 3 explicables) y `nextActions` deterministas (`complete_profile`, `explore_jobs`). El `userId` se obtiene solo del token; los jobs embebidos usan el contrato publico de Jobs (sin `externalId`/`ingestedAt`).
 
-### Frontend candidate-first (Sprint 07)
+### Frontend candidate-first (desde Sprint 07)
 
-El frontend vive en `apps/web` como workspace `@jobit/web` (Next.js + TypeScript + Tailwind + App Router). Es una primera version minima candidate-first que consume el backend real.
+El frontend vive en `apps/web` como workspace `@jobit/web` (Next.js + TypeScript + Tailwind + App Router). Nacio en el Sprint 07 como una primera version minima candidate-first que consume el backend real y ha ido madurando en sprints posteriores (Portfolio v1, activacion y pulido del dashboard, paginacion de Jobs, y la remediacion UX/UI del Sprint 21: identidad real y sincronizada del header, navegacion responsive con drawer accesible, avisos de sesion, deduplicacion de CTAs y orden responsive del perfil).
 
 Pantallas implementadas:
 
@@ -150,8 +150,10 @@ Pendiente global: infraestructura de despliegue (Docker, VPS). El CI basico de v
 
 El workflow `JobIT CI` (`.github/workflows/ci.yml`) se ejecuta en cada PR hacia `dev`/`main`, en cada push a `dev` y bajo demanda (`workflow_dispatch`), con dos jobs separados e independientes:
 
-- **api**: PostgreSQL 16 como service efimero (la suite de integracion migra la base sola via `globalSetup`), `prisma generate` explicito, typecheck, tests (399) y build.
-- **web**: lint, typecheck, tests RTL con APIs mockeadas (291) y build de Next.
+- **api**: PostgreSQL 16 como service efimero (la suite de integracion migra la base sola via `globalSetup`), `prisma generate` explicito, typecheck, tests (399 en 41 archivos) y build.
+- **web**: lint, typecheck, tests RTL con APIs mockeadas (386 en 27 archivos) y build de Next.
+
+> Conteos de tests al cierre del Sprint 21 (CI verde en `dev`). Iran creciendo con cada sprint; el CI es la fuente de verdad.
 
 El CI fija Node 20, resuelve pnpm desde el campo `packageManager` e instala con `--frozen-lockfile`. No usa secrets: solo variables dummy (`DATABASE_URL_TEST` del service efimero y `NEXT_PUBLIC_API_BASE_URL`, que es publica). Las ramas y PRs deben pasar ambos jobs antes del merge hacia `dev`.
 
@@ -166,53 +168,37 @@ pnpm --filter @jobit/web lint && pnpm --filter @jobit/web typecheck && pnpm --fi
 
 El smoke E2E de Playwright (Sprint 18) NO corre en CI: sigue siendo ejecucion local/manual (`pnpm --filter @jobit/web test:e2e` contra el stack local seedeado) y queda documentado como fase posterior con workflow manual. El Sprint 19 no anade deploy. Detalle: spec `docs/specs/features/ci-quality-gates.md` y plan `docs/sprints/sprint-19-ci-quality-gates-plan.md`.
 
-## Estructura documental inicial
+## Estructura documental
+
+Estructura actual (orientativa; las carpetas `decisions/`, `specs/features/` y `sprints/`
+crecen con cada sprint — consulta el arbol real del repo para el listado completo):
 
 ```text
 .
 ├── AGENTS.md
 ├── CLAUDE.md
 ├── README.md
+├── apps
+│   ├── api            # Backend Express + Prisma (Node.js + TypeScript + Zod)
+│   └── web            # Frontend Next.js (App Router) + TypeScript + Tailwind
+├── docker-compose.staging.yml
 └── docs
-    ├── agents
-    │   ├── README.md
-    │   ├── concepts.md
-    │   ├── workflow.md
-    │   ├── sdd-tdd-ai-audit-workflow.md
-    │   ├── tdd-guidelines.md
-    │   ├── audit-quality-security-skill.md
-    │   ├── pr-checklist.md
-    │   ├── checklists
-    │   ├── claude
-    │   ├── codex
-    │   ├── prompts
-    │   ├── skills
-    │   └── templates
-    ├── architecture
-    │   ├── 00-architecture-overview.md
-    │   ├── 01-repository-structure.md
-    │   └── 02-mvp-modules.md
-    ├── decisions
-    │   ├── ADR-0001-start-from-scratch.md
-    │   ├── ADR-0002-initial-stack.md
-    │   ├── ADR-0003-sdd-and-agent-workflow.md
-    │   └── ADR-0004-sdd-tdd-ai-audit-workflow.md
-    ├── product
-    │   └── 00-product-brief.md
+    ├── agents         # Guias, workflow SDD+TDD+AI Audit, skills, plantillas y checklists
+    ├── architecture   # 00-overview, 01-repository-structure, 02-mvp-modules, 03-job-sources-and-search
+    ├── decisions      # ADR-0001 … ADR-0012 (stack, auth, API, DB/ORM, Jooble, deploy staging…)
+    ├── deployment     # staging-env, runbook de deploy en VPS (preparado, no ejecutado)
+    ├── development    # local-env (arranque API/Web, DB de dev/test, smoke con curl)
+    ├── product        # 00-product-brief
     ├── specs
     │   ├── 00-mvp-scope.md
     │   ├── spec-template.md
-    │   └── features
-    │       ├── auth.md
-    │       ├── candidate-profile-cv.md
-    │       ├── jobs.md
-    │       ├── saved-jobs.md
-    │       ├── match-basic.md
-    │       └── dashboard.md
-    └── sprints
-        ├── pre-sprint-00A-documentation.md
-        ├── pre-sprint-00B-architecture.md
-        └── pre-sprint-00C-functional-specs.md
+    │   └── features   # auth, candidate-profile-cv, jobs, saved-jobs, match-basic, dashboard,
+    │                  # external-jobs-jooble, job-sources-aggregation, jobs-api-visibility,
+    │                  # jobit-portfolio-v1, candidate-e2e-smoke, ci-quality-gates,
+    │                  # deploy-staging-readiness, match-incomplete-profile-ux,
+    │                  # identity-navigation-responsive, …
+    └── sprints        # pre-sprint-00A…00D + briefs/planes/reports de los Sprints 00–21
+                       # (registros historicos por sprint; el ultimo es sprint-21-final-report.md)
 ```
 
 ## Flujo oficial de ramas
@@ -281,4 +267,9 @@ Las reglas operativas para agentes estan en [AGENTS.md](AGENTS.md).
 
 ## Siguiente paso
 
-El siguiente paso recomendado es revisar las specs funcionales del MVP con el equipo de producto y tecnico, cerrar las decisiones de stack (ADRs pendientes) y abrir el primer sprint de implementacion.
+El nucleo candidate-first del MVP esta implementado y verificado (backend + frontend, CI en verde). Los siguientes pasos recomendados son:
+
+- **Deploy dev/staging real (gate 20.6)**: ejecutar el runbook ya escrito y verificado en local (Docker + VPS + DNS + reverse proxy/SSL), con autorizacion expresa y ventana de rollback. Ver [`docs/deployment/staging-vps-deploy-runbook.md`](docs/deployment/staging-vps-deploy-runbook.md) y [`docs/sprints/sprint-20-final-report.md`](docs/sprints/sprint-20-final-report.md).
+- **Deuda de accesibilidad y UX (Sprint 21E y posteriores)**: A11Y-01…05 (auditoria WCAG completa) y hallazgos diferidos (PROF-01/02, PORT-02, SAVED-02, MATCH-04). Ver [`docs/sprints/sprint-21-final-report.md`](docs/sprints/sprint-21-final-report.md).
+
+Cada nuevo modulo o mejora sigue el flujo SDD + TDD + AI Audit + PR descrito arriba: spec previa, tests minimos, verificaciones locales, auditoria y PR hacia `dev`.
