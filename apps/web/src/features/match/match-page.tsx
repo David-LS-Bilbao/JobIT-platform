@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { SiteShell } from "@/components/layout/site-shell";
 import { ErrorState, LoadingState } from "@/components/ui/feedback";
 import { useAuth } from "@/features/auth/auth-context";
+import { redirectOnMissingSession, redirectToLogin } from "@/features/auth/auth-navigation";
 import { getMyProfile } from "@/features/profile/profile-api";
 import { getSavedJobs, saveJob, unsaveJob } from "@/features/saved-jobs/saved-jobs-api";
 import { isSessionExpiredError } from "@/lib/api-client";
@@ -24,7 +25,7 @@ import { MatchCard } from "./match-card";
  */
 export function MatchPage() {
   const router = useRouter();
-  const { accessToken, clearSession } = useAuth();
+  const { accessToken, clearSession, endReason } = useAuth();
 
   const [profile, setProfile] = useState<CandidateProfileDto | null>(null);
   const [matches, setMatches] = useState<ProfileJobMatchDto[] | null>(null);
@@ -38,8 +39,8 @@ export function MatchPage() {
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
-    if (!accessToken) router.push("/login");
-  }, [accessToken, router]);
+    if (!accessToken) redirectOnMissingSession(router, endReason);
+  }, [accessToken, endReason, router]);
 
   // Ofertas guardadas (una vez) para reflejar el estado del toggle en las cards.
   useEffect(() => {
@@ -71,8 +72,8 @@ export function MatchPage() {
       .catch((err: unknown) => {
         if (cancelled) return;
         if (isSessionExpiredError(err)) {
-          clearSession();
-          router.push("/login");
+          clearSession("expired");
+          redirectToLogin(router, "expired");
           return;
         }
         setErrored(true);
@@ -92,8 +93,8 @@ export function MatchPage() {
       .catch((err: unknown) => {
         if (cancelled) return;
         if (isSessionExpiredError(err)) {
-          clearSession();
-          router.push("/login");
+          clearSession("expired");
+          redirectToLogin(router, "expired");
           return;
         }
         setErrored(true);

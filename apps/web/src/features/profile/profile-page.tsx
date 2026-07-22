@@ -6,6 +6,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { SiteShell } from "@/components/layout/site-shell";
 import { ErrorState, LoadingState } from "@/components/ui/feedback";
 import { useAuth } from "@/features/auth/auth-context";
+import { redirectOnMissingSession, redirectToLogin } from "@/features/auth/auth-navigation";
 import { getMyProfile } from "@/features/profile/profile-api";
 import { ProfileContent } from "@/features/profile/profile-content";
 import { isSessionExpiredError } from "@/lib/api-client";
@@ -16,7 +17,7 @@ type LoadError = "generic" | "expired";
 /** JobIT CV (`/profile`): vista + edición de datos básicos del perfil tech vivo. */
 export function ProfilePage() {
   const router = useRouter();
-  const { accessToken, clearSession } = useAuth();
+  const { accessToken, clearSession, endReason } = useAuth();
 
   const [profile, setProfile] = useState<CandidateProfileDto | null>(null);
   const [loadError, setLoadError] = useState<LoadError | null>(null);
@@ -26,9 +27,9 @@ export function ProfilePage() {
   // Guard: sin sesión en memoria (p. ej. tras recargar) → login.
   useEffect(() => {
     if (!accessToken) {
-      router.push("/login");
+      redirectOnMissingSession(router, endReason);
     }
-  }, [accessToken, router]);
+  }, [accessToken, endReason, router]);
 
   useEffect(() => {
     if (!accessToken) return;
@@ -40,9 +41,9 @@ export function ProfilePage() {
       .catch((error: unknown) => {
         if (cancelled) return;
         if (isSessionExpiredError(error)) {
-          clearSession();
+          clearSession("expired");
           setLoadError("expired");
-          router.push("/login");
+          redirectToLogin(router, "expired");
           return;
         }
         setLoadError("generic");

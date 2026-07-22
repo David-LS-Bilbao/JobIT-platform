@@ -30,6 +30,7 @@ vi.mock("@/features/saved-jobs/saved-jobs-api", () => ({
   unsaveJob: vi.fn()
 }));
 vi.mock("@/features/auth/auth-api", () => ({ logoutCandidate: vi.fn() }));
+vi.mock("@/features/auth/auth-identity", () => ({ loadCandidateIdentity: vi.fn(() => new Promise(() => {})) }));
 
 const sessionUser: UserDto = {
   id: "u1",
@@ -123,7 +124,7 @@ describe("JobsPage (/jobs)", () => {
         <JobsPage />
       </AuthProvider>
     );
-    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/login"));
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/login?reason=required"));
     expect(getJobs).not.toHaveBeenCalled();
   });
 
@@ -319,7 +320,7 @@ describe("JobsPage (/jobs)", () => {
   it("ante sesión caducada (401) limpia la sesión y redirige a /login", async () => {
     vi.mocked(getJobs).mockRejectedValue(new ApiClientError(401, "UNAUTHORIZED", "x"));
     renderWithSession();
-    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/login"));
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/login?reason=expired"));
   });
 
   it("la sidebar marca Jobs como ruta activa (enlace real a /jobs)", async () => {

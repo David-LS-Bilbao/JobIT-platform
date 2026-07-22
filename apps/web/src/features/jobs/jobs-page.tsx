@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, type SyntheticEvent } from "react";
 import { SiteShell } from "@/components/layout/site-shell";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/feedback";
 import { useAuth } from "@/features/auth/auth-context";
+import { redirectOnMissingSession, redirectToLogin } from "@/features/auth/auth-navigation";
 import { getSavedJobs, saveJob, unsaveJob } from "@/features/saved-jobs/saved-jobs-api";
 import { isSessionExpiredError } from "@/lib/api-client";
 import type { JobContractType, JobFilters, JobPublicDto, JobRemoteFilter, JobSeniorityFilter } from "@/types/api";
@@ -22,7 +23,7 @@ type ActionMsg = { kind: "success" | "error"; text: string };
 /** `/jobs`: listado privado de ofertas con filtros básicos y guardar/quitar. */
 export function JobsPage() {
   const router = useRouter();
-  const { accessToken, clearSession } = useAuth();
+  const { accessToken, clearSession, endReason } = useAuth();
 
   const [filters, setFilters] = useState<JobFilters>({});
   const [qInput, setQInput] = useState("");
@@ -45,8 +46,8 @@ export function JobsPage() {
   const pendingPaginationScrollRef = useRef(false);
 
   useEffect(() => {
-    if (!accessToken) router.push("/login");
-  }, [accessToken, router]);
+    if (!accessToken) redirectOnMissingSession(router, endReason);
+  }, [accessToken, endReason, router]);
 
   // Ofertas guardadas (una vez) para reflejar el estado del toggle en las cards.
   useEffect(() => {
@@ -79,8 +80,8 @@ export function JobsPage() {
       .catch((err: unknown) => {
         if (cancelled) return;
         if (isSessionExpiredError(err)) {
-          clearSession();
-          router.push("/login");
+          clearSession("expired");
+          redirectToLogin(router, "expired");
           return;
         }
         setErrored(true);

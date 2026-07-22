@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, type SyntheticEvent } from "react";
 
+import { useAuth } from "@/features/auth/auth-context";
 import { ApiClientError } from "@/lib/api-client";
 import type { AvailabilityStatus, CandidateProfileDto, UpdateProfileBasicInfoInput } from "@/types/api";
 
@@ -31,6 +32,7 @@ type SaveState = "idle" | "saving" | "saved" | "error";
 
 /** JobIT CV: vista + edición de datos profesionales básicos (PUT) + subrecursos editables. */
 export function ProfileContent({ profile: initialProfile, token }: { profile: CandidateProfileDto; token: string }) {
+  const { updateCandidateIdentity } = useAuth();
   const [profile, setProfile] = useState<CandidateProfileDto>(initialProfile);
   const [firstName, setFirstName] = useState(initialProfile.firstName ?? "");
   const [lastName, setLastName] = useState(initialProfile.lastName ?? "");
@@ -104,6 +106,13 @@ export function ProfileContent({ profile: initialProfile, token }: { profile: Ca
       setAvatarUrl("");
       const fresh = await getMyProfile(token);
       setProfile(fresh);
+      // NAV-02: sincroniza el header con la respuesta ya obtenida (sin nueva petición).
+      updateCandidateIdentity({
+        firstName: fresh.firstName,
+        lastName: fresh.lastName,
+        headline: fresh.headline,
+        avatarUrl: fresh.avatarUrl
+      });
       setUploadOk(true);
     } catch (err) {
       setUploadError(
@@ -150,6 +159,13 @@ export function ProfileContent({ profile: initialProfile, token }: { profile: Ca
     try {
       const updated = await updateMyProfile(token, input);
       setProfile(updated);
+      // NAV-02: sincroniza el header (nombre/headline/avatar) con el DTO ya devuelto.
+      updateCandidateIdentity({
+        firstName: updated.firstName,
+        lastName: updated.lastName,
+        headline: updated.headline,
+        avatarUrl: updated.avatarUrl
+      });
       setSaveState("saved");
     } catch (err) {
       setSaveState("error");
@@ -207,7 +223,7 @@ export function ProfileContent({ profile: initialProfile, token }: { profile: Ca
       {/* Dos columnas */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         {/* Editor + secciones read-only */}
-        <div className="min-w-0 space-y-6 lg:col-span-8">
+        <div className="order-2 min-w-0 space-y-6 lg:order-1 lg:col-span-8">
           <ProfileSectionCard title="Datos profesionales">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="space-y-1">
@@ -391,7 +407,7 @@ export function ProfileContent({ profile: initialProfile, token }: { profile: Ca
         </div>
 
         {/* Progreso + preview */}
-        <div className="space-y-6 lg:col-span-4 lg:sticky lg:top-24">
+        <div className="order-1 space-y-6 lg:order-2 lg:col-span-4 lg:sticky lg:top-24">
           <ProfileCompletionCard profile={profile} />
           <ProfilePreview profile={previewProfile} />
         </div>

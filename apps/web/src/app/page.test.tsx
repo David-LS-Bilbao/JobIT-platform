@@ -70,4 +70,12 @@ describe("Landing pública candidate-first", () => {
     expect(screen.queryByText(/ai tailoring/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/expertech/i)).not.toBeInTheDocument();
   });
+
+  it("G1: el logo de la landing usa el gradiente canónico jobit-brand→jobit-green (VIS-01)", () => {
+    const { container } = render(<Home />);
+    const navLogo = container.querySelector('a[href="#producto"] span');
+    expect(navLogo).not.toBeNull();
+    expect(navLogo).toHaveClass("from-jobit-brand");
+    expect(navLogo).not.toHaveClass("from-sky-400");
+  });
 });

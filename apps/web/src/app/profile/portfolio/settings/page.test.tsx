@@ -38,6 +38,7 @@ vi.mock("@/features/profile/profile-api", async (importOriginal) => ({
   unpublishMyPortfolio: vi.fn()
 }));
 vi.mock("@/features/auth/auth-api", () => ({ logoutCandidate: vi.fn() }));
+vi.mock("@/features/auth/auth-identity", () => ({ loadCandidateIdentity: vi.fn(() => new Promise(() => {})) }));
 
 const sessionUser: UserDto = {
   id: "u1",
@@ -98,7 +99,7 @@ describe("ProfilePortfolioSettingsPage (/profile/portfolio/settings)", () => {
         <ProfilePortfolioSettingsPage />
       </AuthProvider>
     );
-    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/login"));
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/login?reason=required"));
     expect(getMyPortfolioSettings).not.toHaveBeenCalled();
   });
 
@@ -110,6 +111,16 @@ describe("ProfilePortfolioSettingsPage (/profile/portfolio/settings)", () => {
     expect(screen.getByLabelText("Enlace público (slug)")).toHaveValue("ana-perez");
     expect(screen.getByText("Ruta pública: /u/ana-perez")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Publicar portfolio" })).toBeInTheDocument();
+  });
+
+  it("PORT-01: muestra '← Volver al portfolio' hacia /profile/portfolio", async () => {
+    vi.mocked(getMyPortfolioSettings).mockResolvedValueOnce(unpublished);
+    renderWithSession();
+    await screen.findByText("No publicado");
+    expect(screen.getByRole("link", { name: "← Volver al portfolio" })).toHaveAttribute(
+      "href",
+      "/profile/portfolio"
+    );
   });
 
   it("guarda un slug válido llamando a updateMyPortfolioSettings", async () => {

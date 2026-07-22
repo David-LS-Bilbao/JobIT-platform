@@ -9,6 +9,8 @@
  */
 import type { ReactNode } from "react";
 
+import { BrandMark } from "@/components/brand/brand-mark";
+
 const STACK = ["TypeScript", "React", "Node.js", "PostgreSQL", "Docker"];
 
 function IconUser() {
@@ -115,9 +117,7 @@ export default function Home() {
       <header className="sticky top-0 z-30 border-b border-white/10 bg-slate-950/80 text-white backdrop-blur">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-4">
           <a href="#producto" className="flex items-center gap-2 font-bold tracking-tight">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-sky-400 to-emerald-400 text-sm font-bold text-slate-900">
-              J
-            </span>
+            <BrandMark />
             <span className="text-lg">JobIT</span>
           </a>
           <nav aria-label="Secciones" className="hidden items-center gap-6 text-sm text-slate-300 md:flex">
@@ -423,9 +423,7 @@ export default function Home() {
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-10 sm:flex-row sm:items-center sm:justify-between">
           <div className="max-w-sm">
             <div className="flex items-center gap-2 font-bold">
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-sky-500 to-emerald-500 text-xs font-bold text-white">
-                J
-              </span>
+              <BrandMark className="h-7 w-7 text-xs" />
               JobIT
             </div>
             <p className="mt-2 text-sm text-slate-500">

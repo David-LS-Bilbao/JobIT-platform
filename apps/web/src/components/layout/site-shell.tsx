@@ -2,10 +2,14 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
+import { BrandMark } from "@/components/brand/brand-mark";
 import { logoutCandidate } from "@/features/auth/auth-api";
 import { useAuth } from "@/features/auth/auth-context";
+import { redirectToLogin } from "@/features/auth/auth-navigation";
+import { ProfileAvatar } from "@/features/profile/profile-avatar";
+import { displayName } from "@/features/profile/profile-format";
 
 /**
  * App shell reutilizable de la zona privada. Sistema visual "Nexus Professional"
@@ -13,12 +17,12 @@ import { useAuth } from "@/features/auth/auth-context";
  *
  * - Sin sesión: cabecera superior pública (Inicio / Login / Registro).
  * - Con sesión: layout privado con navegación real y responsive:
- *     · desktop → sidebar fija;
- *     · móvil   → botón "Abrir menú" + drawer con overlay.
+ *     · desktop (≥lg) → sidebar fija;
+ *     · móvil/tablet (<lg) → botón "Abrir menú" + drawer con overlay.
  *
  * La navegación es una única fuente (PRIVATE_NAV) compartida por sidebar y drawer.
- * El estado activo se deriva de la ruta (`usePathname`), no está hardcodeado.
- * Título/subtítulo del header son parametrizables (por defecto, "Dashboard").
+ * El estado activo se deriva de la ruta (`usePathname`). El header muestra la
+ * identidad real del candidato (NAV-02) con fallback "Candidato tech / CT".
  * Sesión en memoria (ADR-0006): al recargar vuelve al estado público.
  */
 
@@ -90,14 +94,6 @@ function IconClose() {
     <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" aria-hidden="true">
       <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
-  );
-}
-
-function BrandMark() {
-  return (
-    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-jobit-brand to-jobit-green text-sm font-bold text-white">
-      J
-    </span>
   );
 }
 
@@ -203,21 +199,6 @@ function SidebarBrand() {
   );
 }
 
-function SidebarBottom() {
-  return (
-    <div className="mt-auto border-t border-slate-200 pt-4">
-      {/* CTA hacia JobIT CV (ya disponible). Los placeholders "Ajustes/Ayuda
-          (futuro)" se retiraron en 17D.1 (ruido no accionable). */}
-      <Link
-        href="/profile"
-        className="flex w-full items-center justify-center rounded-lg bg-jobit-brand px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-jobit-brand-dark"
-      >
-        Preparar JobIT CV
-      </Link>
-    </div>
-  );
-}
-
 export function SiteShell({
   children,
   title = "Dashboard",
@@ -227,11 +208,62 @@ export function SiteShell({
   title?: string;
   subtitle?: string;
 }) {
-  const { isAuthenticated, accessToken, clearSession } = useAuth();
+  const { isAuthenticated, accessToken, clearSession, candidateIdentity } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const [menuOpen, setMenuOpen] = useState(false); // drawer móvil
+  const [menuOpen, setMenuOpen] = useState(false); // drawer móvil/tablet
   const [desktopNavOpen, setDesktopNavOpen] = useState(true); // sidebar desktop (ocultable)
+
+  // Gestión de foco del drawer móvil (a11y, Sprint 21D.5): al abrir, el foco pasa
+  // al control de cierre; al cerrar (botón, overlay o Escape), vuelve al botón que
+  // lo abrió. No es un focus trap (fuera de alcance): solo enfoque y retorno.
+  const openMenuRef = useRef<HTMLButtonElement>(null);
+  const closeMenuRef = useRef<HTMLButtonElement>(null);
+  const drawerRef = useRef<HTMLElement>(null);
+
+  const closeMenu = useCallback(() => {
+    setMenuOpen(false);
+    openMenuRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    closeMenuRef.current?.focus();
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        closeMenu();
+        return;
+      }
+      // Contención de foco del drawer (aria-modal, §10): con Tab/Shift+Tab el
+      // foco cicla entre los controles del panel y no alcanza el fondo. No es un
+      // gestor modal general: solo evita la fuga en los bordes.
+      if (event.key !== "Tab") return;
+      const panel = drawerRef.current;
+      if (!panel) return;
+      const focusables = panel.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement;
+      if (event.shiftKey) {
+        if (active === first || !panel.contains(active)) {
+          event.preventDefault();
+          last.focus();
+        }
+      } else if (active === last || !panel.contains(active)) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [menuOpen, closeMenu]);
+
+  // Identidad real del header (NAV-02) con fallback seguro.
+  const headerName = displayName(candidateIdentity ?? { firstName: null, lastName: null });
+  const headerHeadline = candidateIdentity?.headline?.trim() ? candidateIdentity.headline : null;
 
   async function handleLogout() {
     try {
@@ -239,8 +271,8 @@ export function SiteShell({
     } catch {
       // Aunque el logout del servidor falle, limpiamos la sesión local igualmente.
     } finally {
-      clearSession();
-      router.push("/login");
+      clearSession("logout");
+      redirectToLogin(router);
     }
   }
 
@@ -272,30 +304,31 @@ export function SiteShell({
     );
   }
 
-  // --- Shell privado (con sesión): sidebar desktop + drawer móvil ----------
+  // --- Shell privado (con sesión): sidebar desktop + drawer móvil/tablet ----
   return (
     <div className="min-h-dvh bg-jobit-surface text-slate-900">
-      {/* Sidebar desktop (ocultable) */}
+      {/* Sidebar desktop (≥lg, ocultable) */}
       <aside
         id="app-sidebar"
         className={`fixed left-0 top-0 z-30 hidden h-full w-64 flex-col border-r border-slate-200 bg-white px-4 py-6 print:hidden ${
-          desktopNavOpen ? "md:flex" : ""
+          desktopNavOpen ? "lg:flex" : ""
         }`}
       >
         <SidebarBrand />
         <PrivateNav pathname={pathname} />
-        <SidebarBottom />
       </aside>
 
-      {/* Drawer móvil */}
+      {/* Drawer móvil/tablet (<lg) */}
       {menuOpen ? (
-        <div className="md:hidden print:hidden">
+        <div className="lg:hidden print:hidden">
           <div
             className="fixed inset-0 z-40 bg-slate-900/40"
             aria-hidden="true"
-            onClick={() => setMenuOpen(false)}
+            onClick={closeMenu}
           />
           <aside
+            ref={drawerRef}
+            id="app-mobile-nav"
             role="dialog"
             aria-modal="true"
             aria-label="Menú de navegación"
@@ -304,8 +337,9 @@ export function SiteShell({
             <div className="mb-6 flex items-center justify-between">
               <SidebarBrand />
               <button
+                ref={closeMenuRef}
                 type="button"
-                onClick={() => setMenuOpen(false)}
+                onClick={closeMenu}
                 aria-label="Cerrar menú"
                 className="rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-100"
               >
@@ -313,7 +347,6 @@ export function SiteShell({
               </button>
             </div>
             <PrivateNav pathname={pathname} onNavigate={() => setMenuOpen(false)} />
-            <SidebarBottom />
           </aside>
         </div>
       ) : null}
@@ -321,11 +354,11 @@ export function SiteShell({
       {/* Columna de contenido */}
       <div
         className={`flex min-h-dvh flex-col transition-[margin] duration-200 print:ml-0! ${
-          desktopNavOpen ? "md:ml-64" : "md:ml-0"
+          desktopNavOpen ? "lg:ml-64" : "lg:ml-0"
         }`}
       >
         <header className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-slate-200 bg-white/80 px-4 py-3 backdrop-blur md:px-6 print:hidden">
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
             {/* Toggle desktop: oculta/muestra la sidebar */}
             <button
               type="button"
@@ -333,35 +366,47 @@ export function SiteShell({
               aria-label={desktopNavOpen ? "Ocultar menú" : "Mostrar menú"}
               aria-expanded={desktopNavOpen}
               aria-controls="app-sidebar"
-              className="hidden rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-100 md:inline-flex"
+              className="hidden shrink-0 rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-100 lg:inline-flex"
             >
               <IconMenu />
             </button>
-            {/* Toggle móvil: abre el drawer */}
+            {/* Toggle móvil/tablet: abre el drawer */}
             <button
+              ref={openMenuRef}
               type="button"
               onClick={() => setMenuOpen(true)}
               aria-label="Abrir menú"
-              className="rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-100 md:hidden"
+              aria-expanded={menuOpen}
+              aria-controls="app-mobile-nav"
+              className="shrink-0 rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-100 lg:hidden"
             >
               <IconMenu />
             </button>
-            <div>
-              <h1 className="text-lg font-bold tracking-tight text-slate-900 md:text-xl">{title}</h1>
-              <p className="hidden text-sm text-slate-500 md:block">{subtitle}</p>
+            <div className="min-w-0 flex-1">
+              <h1 className="truncate text-lg font-bold tracking-tight text-slate-900 md:text-xl">{title}</h1>
+              <p className="hidden truncate text-sm text-slate-500 md:block">{subtitle}</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="hidden items-center gap-2 border-l border-slate-200 pl-3 sm:flex">
-              <span className="text-sm font-medium text-slate-700">Candidato tech</span>
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-jobit-brand-muted text-sm font-bold text-jobit-brand-dark">
-                CT
-              </span>
+          <div className="flex shrink-0 items-center gap-3">
+            <div className="hidden items-center gap-2 border-l border-slate-200 pl-3 lg:flex">
+              <div className="min-w-0 text-right">
+                <p className="max-w-[12rem] truncate text-sm font-medium text-slate-700">{headerName}</p>
+                {headerHeadline ? (
+                  <p className="max-w-[12rem] truncate text-xs text-slate-500">{headerHeadline}</p>
+                ) : null}
+              </div>
+              <ProfileAvatar
+                name={headerName}
+                avatarUrl={candidateIdentity?.avatarUrl ?? null}
+                decorative
+                imgClassName="h-9 w-9 shrink-0 rounded-full object-cover"
+                fallbackClassName="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-jobit-brand-muted text-sm font-bold text-jobit-brand-dark"
+              />
             </div>
             <button
               type="button"
               onClick={handleLogout}
-              className="rounded-full border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+              className="shrink-0 rounded-full border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
             >
               Cerrar sesión
             </button>

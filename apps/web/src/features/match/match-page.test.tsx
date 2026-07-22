@@ -39,6 +39,7 @@ vi.mock("@/features/saved-jobs/saved-jobs-api", () => ({
   unsaveJob: vi.fn()
 }));
 vi.mock("@/features/auth/auth-api", () => ({ logoutCandidate: vi.fn() }));
+vi.mock("@/features/auth/auth-identity", () => ({ loadCandidateIdentity: vi.fn(() => new Promise(() => {})) }));
 // Sprint 21C: MatchPage necesitará el nº de skills del perfil (getMyProfile). Se
 // preservan los demás exports reales (los usa el SiteShell) y solo se stubbea getMyProfile.
 vi.mock("@/features/profile/profile-api", async (importOriginal) => {
@@ -160,7 +161,7 @@ describe("MatchPage (/match)", () => {
         <MatchPage />
       </AuthProvider>
     );
-    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/login"));
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/login?reason=required"));
     expect(getJobMatches).not.toHaveBeenCalled();
   });
 
@@ -327,10 +328,10 @@ describe("MatchPage (/match)", () => {
     await waitFor(() => expect(unsaveJob).toHaveBeenCalledWith("tok-match", "j1"));
   });
 
-  it("ante sesión caducada (401) limpia la sesión y redirige a /login", async () => {
+  it("ante sesión caducada (401) limpia la sesión y redirige a /login?reason=expired (FLOW-02)", async () => {
     vi.mocked(getJobMatches).mockRejectedValue(new ApiClientError(401, "UNAUTHORIZED", "x"));
     renderWithSession();
-    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/login"));
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/login?reason=expired"));
   });
 
   it("es honesta: explica que es match básico y NO reclama recomendaciones por IA", async () => {
@@ -456,7 +457,7 @@ describe("MatchPage · Sprint 21C — robustez (21C.4)", () => {
   it("401 de Profile limpia la sesión, redirige a /login y no muestra guía ni listado", async () => {
     vi.mocked(getMyProfile).mockRejectedValue(new ApiClientError(401, "UNAUTHORIZED", "x"));
     renderWithSession();
-    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/login"));
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/login?reason=expired"));
     expect(screen.queryByText("Añade skills para calcular tu afinidad")).not.toBeInTheDocument();
     expect(screen.queryByText("Frontend Developer")).not.toBeInTheDocument();
   });
