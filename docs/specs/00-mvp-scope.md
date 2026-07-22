@@ -42,9 +42,9 @@ Frontend candidate-first (Sprint 07): primera versión implementada en `apps/web
 
 Entorno y smoke (Sprint 08): entorno local real validado en WSL nativo (backend `:4000` + PostgreSQL `jobit_dev` + frontend `:3000`) y smoke HTTP del flujo `register → login → dashboard → logout` en **PASS_WITH_NOTES** (`register 201`, `login 200`, `dashboard 200`, `logout 204`, `me sin token 401`). El deploy dev/staging quedó **planificado, no ejecutado**.
 
-Cubierto en sprints posteriores: la UI candidate-first de Jobs/Saved Jobs/Perfil-CV/Match (Sprints 13–15), el smoke E2E local con Playwright del flujo candidato (Sprint 18, `docs/specs/features/candidate-e2e-smoke.md`) y el CI básico API/Web en GitHub Actions (Sprint 19, `docs/specs/features/ci-quality-gates.md`).
+Cubierto en sprints posteriores: la UI candidate-first de Jobs/Saved Jobs/Perfil-CV/Match y el Portfolio v1 (Sprints 13–15), la arquitectura multi-fuente de ofertas y el proveedor Greenhouse además de Jooble (Sprint 16, `docs/specs/features/job-sources-aggregation.md`), la activación y el endurecimiento del dashboard más el pulido de UI candidato (Sprint 17), el smoke E2E local con Playwright del flujo candidato (Sprint 18, `docs/specs/features/candidate-e2e-smoke.md`), el CI API/Web en GitHub Actions (Sprint 19, `docs/specs/features/ci-quality-gates.md`), la preparación **verificada en local** del deploy dev/staging con Docker + runbook, sin desplegar en VPS (Sprint 20, `docs/specs/features/deploy-staging-readiness.md`), y una auditoría UX/UI del flujo candidato con su remediación por lotes (Sprint 21: paginación de Jobs, UX de match para perfiles incompletos, identidad/navegación responsive y accesibilidad del drawer — `docs/specs/features/identity-navigation-responsive.md` y `docs/sprints/sprint-21-final-report.md`).
 
-Pendientes: despliegue (Docker/VPS), ajuste de cookie cross-site/HTTPS para staging, y E2E en CI (workflow manual/posterior y, si demuestra estabilidad, futuro required check).
+Pendientes: despliegue real (Docker/VPS, gate 20.6), ajuste de cookie cross-site/HTTPS para staging, E2E en CI (workflow manual/posterior y, si demuestra estabilidad, futuro required check) y la deuda de accesibilidad WCAG (A11Y-01…05) y hallazgos UX diferidos identificados en la auditoría del Sprint 21.
 
 ## Módulos fuera del MVP inicial
 
