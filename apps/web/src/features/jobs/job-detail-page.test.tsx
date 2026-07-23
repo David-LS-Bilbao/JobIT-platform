@@ -133,11 +133,31 @@ describe("JobDetailPage (/jobs/[id])", () => {
     expect(main.getByText("3+ años con React")).toBeInTheDocument();
   });
 
+  it("A11Y-04: el título de la oferta es un heading de nivel 2 (el h1 lo aporta el SiteShell)", async () => {
+    renderWithSession();
+    // Espera a que cargue el detalle (heading de la oferta, cualquier nivel hoy).
+    await screen.findByRole("heading", { name: "Senior React Engineer" });
+    // Contrato: el título interno de la oferta debe ser h2, no h1.
+    expect(
+      screen.queryByRole("heading", { level: 2, name: "Senior React Engineer" })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { level: 1, name: "Senior React Engineer" })
+    ).not.toBeInTheDocument();
+  });
+
   it("con una oferta inexistente (404) muestra 'Oferta no disponible' y enlace de vuelta", async () => {
     vi.mocked(getJobById).mockRejectedValue(new ApiClientError(404, "NOT_FOUND", "x"));
     renderWithSession("desconocida");
     expect(await screen.findByText("Oferta no disponible")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "← Volver a ofertas" })).toHaveAttribute("href", "/jobs");
+    // A11Y-04: el título del estado no disponible es h2 (el h1 lo aporta el SiteShell).
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Oferta no disponible" })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { level: 1, name: "Oferta no disponible" })
+    ).not.toBeInTheDocument();
   });
 
   it("ante un error genérico muestra un aviso", async () => {

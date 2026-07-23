@@ -62,3 +62,11 @@ describe("RegisterPage", () => {
     expect(screen.getByText("Dashboard")).toBeInTheDocument();
   });
 });
+
+describe("RegisterPage · accesibilidad (Sprint 21E.2 RED)", () => {
+  it("A11Y-02: expone exactamente un landmark principal <main>", () => {
+    renderPage();
+    // AuthFormShell debe envolver el contenido en un único <main> (hoy ausente).
+    expect(screen.queryAllByRole("main")).toHaveLength(1);
+  });
+});

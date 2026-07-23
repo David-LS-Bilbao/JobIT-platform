@@ -208,11 +208,17 @@ export function MatchPage() {
       );
     return (
       <div className="space-y-4">
-        <p className="text-xs text-slate-500">
-          {matches.length === 1
-            ? "1 oferta ordenada por afinidad"
-            : `${matches.length} ofertas ordenadas por afinidad`}
-        </p>
+        <div>
+          <p className="text-xs text-slate-500">
+            {matches.length === 1
+              ? "1 oferta ordenada por afinidad"
+              : `${matches.length} ofertas ordenadas por afinidad`}
+          </p>
+          {/* MATCH-04: aclara el alcance de la afinidad (una vez, no por tarjeta). */}
+          <p className="mt-1 text-xs text-slate-600">
+            La afinidad es orientativa: no es una nota ni garantiza avanzar en el proceso.
+          </p>
+        </div>
         {matches.map((match) => (
           <MatchCard
             key={match.job.id}

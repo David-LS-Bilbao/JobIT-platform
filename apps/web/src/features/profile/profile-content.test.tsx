@@ -108,3 +108,45 @@ describe("ProfileContent · sincronización de identidad (NAV-02, Sprint 21D)", 
     );
   });
 });
+
+describe("ProfileContent · semántica y feedback de guardado (Sprint 21E.3 RED)", () => {
+  it("A11Y-04: el título interno de Profile es un heading de nivel 2 (el h1 lo aporta el SiteShell)", () => {
+    render(<ProfileContent profile={baseProfile} token="tok" />);
+    // RED: hoy "Tu perfil tech vivo" es un h1; debe pasar a h2 (el shell ya da el h1 de página).
+    expect(
+      screen.queryByRole("heading", { level: 2, name: /tu perfil tech vivo/i })
+    ).toBeInTheDocument();
+    // Y el título interno NO debe permanecer como h1 (evita un h2 duplicado sin retirar el h1).
+    expect(
+      screen.queryByRole("heading", { level: 1, name: "Tu perfil tech vivo" })
+    ).not.toBeInTheDocument();
+  });
+
+  it("PROF-02: las altas de experiencia, formación y proyecto son grupos (fieldset/legend) con sus campos", () => {
+    render(<ProfileContent profile={baseProfile} token="tok" />);
+
+    const expGroup = screen.queryByRole("group", { name: /añadir experiencia/i });
+    expect(expGroup).toBeInTheDocument();
+    expect(expGroup).toContainElement(screen.getByLabelText("Empresa"));
+
+    const eduGroup = screen.queryByRole("group", { name: /añadir formación/i });
+    expect(eduGroup).toBeInTheDocument();
+    expect(eduGroup).toContainElement(screen.getByLabelText("Institución"));
+
+    const projGroup = screen.queryByRole("group", { name: /añadir proyecto/i });
+    expect(projGroup).toBeInTheDocument();
+    expect(projGroup).toContainElement(screen.getByLabelText("Nombre del proyecto"));
+  });
+
+  it("PROF-01: las cuatro altas de guardado inmediato indican 'Se guarda al añadir.'", () => {
+    render(<ProfileContent profile={baseProfile} token="tok" />);
+    // Skills, experiencia, formación y proyectos guardan al añadir.
+    expect(screen.getAllByText("Se guarda al añadir.")).toHaveLength(4);
+  });
+
+  it("PROF-01: las dos secciones de guardado por botón indican 'Los cambios se guardan al pulsar «Guardar».'", () => {
+    render(<ProfileContent profile={baseProfile} token="tok" />);
+    // Enlaces y preferencias aplican los cambios al pulsar su botón de guardar.
+    expect(screen.getAllByText("Los cambios se guardan al pulsar «Guardar».")).toHaveLength(2);
+  });
+});

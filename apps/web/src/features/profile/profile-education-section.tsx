@@ -335,7 +335,7 @@ export function ProfileEducationSection({
                       {edu.institution}
                       {edu.field?.trim() ? ` · ${edu.field}` : ""}
                     </p>
-                    <p className="text-xs text-slate-400">{formatDateRange(edu.startDate, edu.endDate, edu.current)}</p>
+                    <p className="text-xs text-slate-500">{formatDateRange(edu.startDate, edu.endDate, edu.current)}</p>
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
                     <button
@@ -366,7 +366,8 @@ export function ProfileEducationSection({
         <p className="text-sm text-slate-500">Aún no has añadido formación.</p>
       )}
 
-      <div className="space-y-3 rounded-lg border border-slate-100 bg-slate-50/60 p-3">
+      <fieldset className="space-y-3 rounded-lg border border-slate-100 bg-slate-50/60 p-3">
+        <legend className="sr-only">Añadir formación</legend>
         <EducationFields values={addValues} onPatch={patchAdd} idPrefix="edu-add" />
         <div className="flex items-center justify-end">
           <button
@@ -378,12 +379,13 @@ export function ProfileEducationSection({
             {adding ? "Añadiendo…" : "Añadir formación"}
           </button>
         </div>
+        <p className="text-xs text-slate-600">Se guarda al añadir.</p>
         {addError ? (
           <p role="alert" className="text-xs font-medium text-red-600">
             {addError}
           </p>
         ) : null}
-      </div>
+      </fieldset>
     </div>
   );
 }

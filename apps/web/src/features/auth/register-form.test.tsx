@@ -68,6 +68,21 @@ describe("RegisterForm", () => {
     expect(screen.getByText("La contraseña debe tener al menos 8 caracteres.")).toBeInTheDocument();
   });
 
+  it("A11Y-05: el error de contraseña se asocia al input por aria-describedby y conserva aria-invalid (RED)", async () => {
+    const user = userEvent.setup();
+    renderForm();
+    await user.type(screen.getByLabelText("Email"), "new@jobit.dev");
+    await user.type(screen.getByLabelText("Contraseña"), "weak");
+    await user.type(screen.getByLabelText("Confirmar contraseña"), "weak");
+    await user.click(screen.getByRole("button", { name: "Crear cuenta" }));
+    const passwordInput = screen.getByLabelText("Contraseña");
+    // aria-invalid ya está implementado y debe conservarse.
+    expect(passwordInput).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByText("La contraseña debe tener al menos 8 caracteres.")).toBeInTheDocument();
+    // RED: el input aún no referencia el mensaje de error (falta id + aria-describedby).
+    expect(passwordInput).toHaveAccessibleDescription("La contraseña debe tener al menos 8 caracteres.");
+  });
+
   it("en éxito llama registerCandidate, guarda la sesión y redirige a /dashboard", async () => {
     vi.mocked(registerCandidate).mockResolvedValueOnce(authResponse);
     const user = userEvent.setup();

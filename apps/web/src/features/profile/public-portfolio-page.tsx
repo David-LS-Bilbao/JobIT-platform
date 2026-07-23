@@ -90,7 +90,7 @@ export function PublicPortfolioPage({ slug }: { slug: string }) {
               </button>
             </div>
             <PublicPortfolioCv profile={data.profile} />
-            <footer className="mt-6 text-center text-xs text-slate-400 print:hidden">Generado con JobIT</footer>
+            <footer className="mt-6 text-center text-xs text-slate-500 print:hidden">Generado con JobIT</footer>
           </>
         ) : null}
       </main>

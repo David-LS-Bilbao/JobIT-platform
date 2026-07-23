@@ -181,7 +181,7 @@ export function ProfileContent({ profile: initialProfile, token }: { profile: Ca
       <div className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-6 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)] md:flex-row md:items-center md:justify-between">
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Tu perfil tech vivo</h1>
+            <h2 className="text-2xl font-bold tracking-tight text-slate-900">Tu perfil tech vivo</h2>
             <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
               Perfil en progreso
             </span>

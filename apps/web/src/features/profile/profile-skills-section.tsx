@@ -114,7 +114,7 @@ export function ProfileSkillsSection({
                 <span className="h-1.5 w-1.5 rounded-full bg-jobit-brand" aria-hidden="true" />
                 <span>{skill.name}</span>
                 {skill.level ? <span className="text-xs text-slate-500">· {SKILL_LEVEL_LABELS[skill.level]}</span> : null}
-                {skill.category ? <span className="text-xs text-slate-400">· {skill.category}</span> : null}
+                {skill.category ? <span className="text-xs text-slate-600">· {skill.category}</span> : null}
                 <button
                   type="button"
                   onClick={() => void handleDelete(skill)}
@@ -173,6 +173,7 @@ export function ProfileSkillsSection({
             {adding ? "Añadiendo…" : "Añadir skill"}
           </button>
         </div>
+        <p className="mt-2 text-xs text-slate-600">Se guarda al añadir.</p>
         {error ? (
           <p role="alert" className="mt-2 text-xs font-medium text-red-600">
             {error}

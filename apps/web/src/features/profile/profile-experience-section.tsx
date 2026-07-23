@@ -353,7 +353,7 @@ export function ProfileExperienceSection({
                       {exp.company}
                       {exp.location?.trim() ? ` · ${exp.location}` : ""}
                     </p>
-                    <p className="text-xs text-slate-400">{formatDateRange(exp.startDate, exp.endDate, exp.current)}</p>
+                    <p className="text-xs text-slate-500">{formatDateRange(exp.startDate, exp.endDate, exp.current)}</p>
                     {exp.description?.trim() ? <p className="mt-1 text-sm text-slate-600">{exp.description}</p> : null}
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
@@ -385,7 +385,8 @@ export function ProfileExperienceSection({
         <p className="text-sm text-slate-500">Aún no has añadido experiencia profesional.</p>
       )}
 
-      <div className="space-y-3 rounded-lg border border-slate-100 bg-slate-50/60 p-3">
+      <fieldset className="space-y-3 rounded-lg border border-slate-100 bg-slate-50/60 p-3">
+        <legend className="sr-only">Añadir experiencia</legend>
         <ExperienceFields values={addValues} onPatch={patchAdd} idPrefix="exp-add" />
         <div className="flex items-center justify-end">
           <button
@@ -397,12 +398,13 @@ export function ProfileExperienceSection({
             {adding ? "Añadiendo…" : "Añadir experiencia"}
           </button>
         </div>
+        <p className="text-xs text-slate-600">Se guarda al añadir.</p>
         {addError ? (
           <p role="alert" className="text-xs font-medium text-red-600">
             {addError}
           </p>
         ) : null}
-      </div>
+      </fieldset>
     </div>
   );
 }

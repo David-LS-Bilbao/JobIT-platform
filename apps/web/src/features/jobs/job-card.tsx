@@ -67,7 +67,7 @@ export function JobCard({
       ) : null}
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-        <span className="text-xs text-slate-400">
+        <span className="text-xs text-slate-500">
           Fuente: {JOB_SOURCE_LABELS[job.source]}
           {job.postedAt ? ` · ${formatPostedDate(job.postedAt)}` : ""}
         </span>

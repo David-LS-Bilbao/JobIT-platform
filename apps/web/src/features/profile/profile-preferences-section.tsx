@@ -265,6 +265,7 @@ export function ProfilePreferencesSection({
           {saving ? "Guardando…" : "Guardar preferencias"}
         </button>
       </div>
+      <p className="text-xs text-slate-600">Los cambios se guardan al pulsar «Guardar».</p>
       {error ? (
         <p role="alert" className="text-xs font-medium text-red-600">
           {error}

@@ -19,7 +19,7 @@ export function ProfilePreview({ profile }: { profile: CandidateProfileDto }) {
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-[0_10px_15px_-3px_rgba(0,0,0,0.1)]">
-      <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-slate-400">Vista previa</p>
+      <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Vista previa</p>
       <div className="flex items-start gap-4">
         <ProfileAvatar
           name={name}
@@ -70,13 +70,13 @@ export function ProfilePreview({ profile }: { profile: CandidateProfileDto }) {
             ) : null}
           </div>
         ) : (
-          <p className="text-sm text-slate-400">Añade tus skills para mostrarlas aquí.</p>
+          <p className="text-sm text-slate-500">Añade tus skills para mostrarlas aquí.</p>
         )}
       </div>
 
       {profile.projects.length > 0 ? (
         <div className="mt-4 border-t border-slate-100 pt-4">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Proyectos destacados</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Proyectos destacados</p>
           <ul className="space-y-1 text-sm text-slate-700">
             {profile.projects.slice(0, 3).map((project) => (
               <li key={project.id} className="truncate">

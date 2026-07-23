@@ -8,8 +8,8 @@ import { createE2eUser, expectDashboard, goToPrivateSection, registerCandidate }
  *
  * Determinismo: no se asume ninguna oferta concreta — se captura el título de
  * la primera card visible tras buscar y se usa para los asserts posteriores.
- * Match no filtra por score mínimo (puntúa todas las ofertas disponibles),
- * así que hay resultados sin necesidad de preparar skills en el perfil.
+ * Match requiere al menos una skill en el perfil para calcular y ordenar
+ * afinidades, así que el journey añade una skill por UI antes de abrir /match.
  * Requiere web :3000 y API :4000 vivas con la BD local (ofertas del seed).
  */
 test.describe("jobs, saved jobs and match smoke", () => {
@@ -49,7 +49,15 @@ test.describe("jobs, saved jobs and match smoke", () => {
     await expect(page.getByText("Oferta quitada de guardadas.", { exact: true })).toBeVisible();
     await expect(page.getByText("Aún no has guardado ninguna oferta.")).toBeVisible();
 
-    // Match: hay resultados (score sobre todas las ofertas) y se puede guardar.
+    // Match necesita al menos una skill: se añade por UI y se confirma su
+    // persistencia (el chip con su botón "Eliminar React" solo aparece tras el
+    // POST y el refetch del perfil, no por el valor del input ni el preview).
+    await goToPrivateSection(page, "JobIT CV", "Tu perfil tech vivo");
+    await page.getByLabel("Nombre de la skill").fill("React");
+    await page.getByRole("button", { name: "Añadir skill" }).click();
+    await expect(page.getByRole("button", { name: "Eliminar React" })).toBeVisible();
+
+    // Match: con skills en el perfil hay resultados ordenados por afinidad.
     await goToPrivateSection(page, "JobIT Match", "JobIT Match");
     await expect(page.getByText(/ofertas ordenadas por afinidad/)).toBeVisible();
     const firstSaveButton = page.getByRole("button", { name: "Guardar", exact: true }).first();

@@ -69,9 +69,14 @@ export function RegisterForm() {
           onChange={(event) => setEmail(event.target.value)}
           disabled={loading}
           aria-invalid={fieldErrors.email ? true : undefined}
+          aria-describedby={fieldErrors.email ? "register-email-error" : undefined}
           className={inputClasses}
         />
-        {fieldErrors.email ? <p className="text-xs text-red-600">{fieldErrors.email}</p> : null}
+        {fieldErrors.email ? (
+          <p id="register-email-error" className="text-xs text-red-600">
+            {fieldErrors.email}
+          </p>
+        ) : null}
       </div>
 
       <div className="space-y-1">
@@ -87,9 +92,14 @@ export function RegisterForm() {
           onChange={(event) => setPassword(event.target.value)}
           disabled={loading}
           aria-invalid={fieldErrors.password ? true : undefined}
+          aria-describedby={fieldErrors.password ? "register-password-error" : undefined}
           className={inputClasses}
         />
-        {fieldErrors.password ? <p className="text-xs text-red-600">{fieldErrors.password}</p> : null}
+        {fieldErrors.password ? (
+          <p id="register-password-error" className="text-xs text-red-600">
+            {fieldErrors.password}
+          </p>
+        ) : null}
         <PasswordRules password={password} />
       </div>
 
@@ -106,10 +116,13 @@ export function RegisterForm() {
           onChange={(event) => setConfirmPassword(event.target.value)}
           disabled={loading}
           aria-invalid={fieldErrors.confirmPassword ? true : undefined}
+          aria-describedby={fieldErrors.confirmPassword ? "register-confirm-error" : undefined}
           className={inputClasses}
         />
         {fieldErrors.confirmPassword ? (
-          <p className="text-xs text-red-600">{fieldErrors.confirmPassword}</p>
+          <p id="register-confirm-error" className="text-xs text-red-600">
+            {fieldErrors.confirmPassword}
+          </p>
         ) : null}
       </div>
 
