@@ -13,6 +13,18 @@ import type { SavedJobDto } from "@/types/api";
 
 import { getSavedJobs, unsaveJob } from "./saved-jobs-api";
 
+/**
+ * SAVED-02: una oferta guardada es "no disponible" cuando está cerrada
+ * (`status === "CLOSED"`) o su `expiresAt` ya pasó. Derivación pura en cliente a
+ * partir del contrato existente (sin recalcular en backend ni petición extra).
+ */
+function isJobUnavailable(job: SavedJobDto["job"]): boolean {
+  if (job.status === "CLOSED") return true;
+  if (!job.expiresAt) return false;
+  const expiresAt = Date.parse(job.expiresAt);
+  return Number.isFinite(expiresAt) && expiresAt < Date.now();
+}
+
 /** `/saved-jobs`: listado privado de ofertas guardadas, con quitar y estado vacío. */
 export function SavedJobsPage() {
   const router = useRouter();
@@ -112,15 +124,26 @@ export function SavedJobsPage() {
         <p className="text-xs text-slate-500">
           {items.length === 1 ? "1 guardada" : `${items.length} guardadas`}
         </p>
-        {items.map((item) => (
-          <JobCard
-            key={item.job.id}
-            job={item.job}
-            saved
-            saving={removingId === item.job.id}
-            onToggleSave={() => handleRemove(item.job.id)}
-          />
-        ))}
+        <ul className="space-y-4">
+          {items.map((item) => {
+            const unavailable = isJobUnavailable(item.job);
+            return (
+              <li key={item.job.id}>
+                {unavailable ? (
+                  <p className="mb-2 inline-flex rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800">
+                    Oferta no disponible
+                  </p>
+                ) : null}
+                <JobCard
+                  job={item.job}
+                  saved
+                  saving={removingId === item.job.id}
+                  onToggleSave={() => handleRemove(item.job.id)}
+                />
+              </li>
+            );
+          })}
+        </ul>
       </div>
     );
   }

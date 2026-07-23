@@ -687,7 +687,7 @@ export function DashboardContent({ dashboard }: DashboardContentProps) {
               </div>
               <div
                 className={`pt-2 text-sm font-medium ${
-                  cvSections.links ? "text-jobit-brand" : "text-slate-400"
+                  cvSections.links ? "text-jobit-brand" : "text-slate-500"
                 }`}
               >
                 {cvSections.links

@@ -83,7 +83,7 @@ export function ProfilePrintCv({ profile }: { profile: CandidateProfileDto }) {
                 className="rounded-md border border-slate-300 bg-slate-50 px-2.5 py-0.5 text-xs text-slate-700 print:bg-white"
               >
                 {skill.name}
-                {skill.level ? <span className="text-slate-400"> · {SKILL_LEVEL_LABELS[skill.level]}</span> : null}
+                {skill.level ? <span className="text-slate-500"> · {SKILL_LEVEL_LABELS[skill.level]}</span> : null}
               </li>
             ))}
           </ul>

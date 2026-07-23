@@ -99,3 +99,19 @@ describe("JobMatchPanel · JOBS-05", () => {
     expect(within(section).queryByText(/Añade skills y preferencias a tu perfil/i)).not.toBeInTheDocument();
   });
 });
+
+const MATCH04_COPY = "La afinidad es orientativa: no es una nota ni garantiza avanzar en el proceso.";
+
+describe("JobMatchPanel · claridad de la afinidad (MATCH-04, Sprint 21E.6 RED)", () => {
+  it("muestra la explicación de afinidad junto al score/nivel, conservando ambos (RED)", async () => {
+    vi.mocked(getJobMatch).mockResolvedValue(
+      makeMatch({ score: 72, level: "GOOD", matchedSkills: ["react"], missingSkills: ["aws"] })
+    );
+    const section = await renderPanelSection();
+    // No regresión: score y nivel de afinidad visibles.
+    expect(within(section).getByText("72/100")).toBeInTheDocument();
+    expect(within(section).getByText(/Afinidad/)).toBeInTheDocument();
+    // RED: la explicación de afinidad (hoy ausente).
+    expect(within(section).queryByText(MATCH04_COPY)).toBeInTheDocument();
+  });
+});

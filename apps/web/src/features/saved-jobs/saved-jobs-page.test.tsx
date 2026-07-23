@@ -215,3 +215,45 @@ describe("SavedJobsPage (/saved-jobs)", () => {
     await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/login?reason=expired"));
   });
 });
+
+describe("SavedJobsPage · indicador de disponibilidad (SAVED-02, Sprint 21E.5 RED)", () => {
+  // Fixtures deterministas (fechas fijas, sin new Date()); cada caso clona el job.
+  const closedJob = (): JobPublicDto => ({ ...makeJob("jc1", "Rol Cerrado", "ACME"), status: "CLOSED", expiresAt: null });
+  const expiredJob = (): JobPublicDto => ({ ...makeJob("je1", "Rol Expirado", "ACME"), status: "ACTIVE", expiresAt: "2000-01-01T00:00:00.000Z" });
+  const activeNullJob = (): JobPublicDto => ({ ...makeJob("ja1", "Rol Activo", "ACME"), status: "ACTIVE", expiresAt: null });
+  const activeFutureJob = (): JobPublicDto => ({ ...makeJob("jf1", "Rol Futuro", "ACME"), status: "ACTIVE", expiresAt: "2999-01-01T00:00:00.000Z" });
+
+  it("una guardada CLOSED muestra 'Oferta no disponible' y conserva la tarjeta y su CTA (RED)", async () => {
+    vi.mocked(getSavedJobs).mockResolvedValue(savedOf([closedJob()]));
+    renderWithSession();
+    const card = (await screen.findByText("Rol Cerrado")).closest("li") as HTMLElement;
+    // Se conservan tarjeta y CTA existente (no se deshabilita ni oculta el enlace).
+    const detalle = within(card).getByRole("link", { name: /ver detalle/i });
+    expect(detalle).toHaveAttribute("href", "/jobs/jc1");
+    // RED: el indicador de indisponibilidad aún no existe.
+    expect(within(card).queryByText("Oferta no disponible")).toBeInTheDocument();
+  });
+
+  it("una guardada expirada (expiresAt pasado) muestra 'Oferta no disponible' y conserva el CTA (RED)", async () => {
+    vi.mocked(getSavedJobs).mockResolvedValue(savedOf([expiredJob()]));
+    renderWithSession();
+    const card = (await screen.findByText("Rol Expirado")).closest("li") as HTMLElement;
+    expect(within(card).getByRole("link", { name: /ver detalle/i })).toHaveAttribute("href", "/jobs/je1");
+    // RED: mismo indicador ausente.
+    expect(within(card).queryByText("Oferta no disponible")).toBeInTheDocument();
+  });
+
+  it("una guardada activa sin expiración NO muestra el indicador (no regresión)", async () => {
+    vi.mocked(getSavedJobs).mockResolvedValue(savedOf([activeNullJob()]));
+    renderWithSession();
+    const card = (await screen.findByText("Rol Activo")).closest("li") as HTMLElement;
+    expect(within(card).queryByText("Oferta no disponible")).not.toBeInTheDocument();
+  });
+
+  it("una guardada activa con expiración futura NO muestra el indicador (no regresión)", async () => {
+    vi.mocked(getSavedJobs).mockResolvedValue(savedOf([activeFutureJob()]));
+    renderWithSession();
+    const card = (await screen.findByText("Rol Futuro")).closest("li") as HTMLElement;
+    expect(within(card).queryByText("Oferta no disponible")).not.toBeInTheDocument();
+  });
+});

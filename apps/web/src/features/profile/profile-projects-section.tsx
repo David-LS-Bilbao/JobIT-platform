@@ -423,7 +423,8 @@ export function ProfileProjectsSection({
         <p className="text-sm text-slate-500">Aún no has añadido proyectos.</p>
       )}
 
-      <div className="space-y-3 rounded-lg border border-slate-100 bg-slate-50/60 p-3">
+      <fieldset className="space-y-3 rounded-lg border border-slate-100 bg-slate-50/60 p-3">
+        <legend className="sr-only">Añadir proyecto</legend>
         <ProjectFields values={addValues} onPatch={patchAdd} idPrefix="project-add" />
         <div className="flex items-center justify-end">
           <button
@@ -435,12 +436,13 @@ export function ProfileProjectsSection({
             {adding ? "Añadiendo…" : "Añadir proyecto"}
           </button>
         </div>
+        <p className="text-xs text-slate-600">Se guarda al añadir.</p>
         {addError ? (
           <p role="alert" className="text-xs font-medium text-red-600">
             {addError}
           </p>
         ) : null}
-      </div>
+      </fieldset>
     </div>
   );
 }

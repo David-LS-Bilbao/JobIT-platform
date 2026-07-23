@@ -508,3 +508,28 @@ describe("MatchPage · Sprint 21C — robustez (21C.4)", () => {
     );
   });
 });
+
+const MATCH04_COPY = "La afinidad es orientativa: no es una nota ni garantiza avanzar en el proceso.";
+
+describe("MatchPage · claridad de la afinidad (MATCH-04, Sprint 21E.6 RED)", () => {
+  it("con resultados muestra la explicación de afinidad una sola vez, no por tarjeta (RED)", async () => {
+    vi.mocked(getJobMatches).mockResolvedValue([
+      makeMatch("j1", "Frontend Developer", "ACME"),
+      makeMatch("j2", "Backend Developer", "Globex")
+    ]);
+    renderWithSession();
+    await screen.findByText("Frontend Developer");
+    // No regresión: dos tarjetas con su score visible.
+    expect(screen.getByText("Backend Developer")).toBeInTheDocument();
+    expect(screen.queryAllByText("72/100")).toHaveLength(2);
+    // RED: la explicación de afinidad aparece exactamente una vez (hoy 0).
+    expect(screen.queryAllByText(MATCH04_COPY)).toHaveLength(1);
+  });
+
+  it("en el estado guía (perfil sin skills) NO muestra la explicación de afinidad (no regresión)", async () => {
+    vi.mocked(getMyProfile).mockResolvedValue(makeProfile([]));
+    renderWithSession();
+    await screen.findByText("Añade skills para calcular tu afinidad", undefined, { timeout: 2000 });
+    expect(screen.queryByText(MATCH04_COPY)).not.toBeInTheDocument();
+  });
+});

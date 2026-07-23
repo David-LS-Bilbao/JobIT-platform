@@ -52,6 +52,18 @@ describe("LoginForm", () => {
     expect(screen.getByText("Introduce tu email.")).toBeInTheDocument();
   });
 
+  it("A11Y-05: el error de campo se asocia al input por aria-describedby y conserva aria-invalid (RED)", async () => {
+    const user = userEvent.setup();
+    renderForm();
+    await user.click(screen.getByRole("button", { name: "Iniciar sesión" }));
+    const emailInput = screen.getByLabelText("Email");
+    // aria-invalid ya está implementado y debe conservarse.
+    expect(emailInput).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByText("Introduce tu email.")).toBeInTheDocument();
+    // RED: el input aún no referencia el mensaje de error (falta id + aria-describedby).
+    expect(emailInput).toHaveAccessibleDescription("Introduce tu email.");
+  });
+
   it("en éxito llama loginCandidate, guarda la sesión y redirige a /dashboard", async () => {
     vi.mocked(loginCandidate).mockResolvedValueOnce(authResponse);
     const user = userEvent.setup();

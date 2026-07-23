@@ -67,9 +67,14 @@ export function LoginForm() {
           onChange={(event) => setEmail(event.target.value)}
           disabled={loading}
           aria-invalid={fieldErrors.email ? true : undefined}
+          aria-describedby={fieldErrors.email ? "login-email-error" : undefined}
           className={inputClasses}
         />
-        {fieldErrors.email ? <p className="text-xs text-red-600">{fieldErrors.email}</p> : null}
+        {fieldErrors.email ? (
+          <p id="login-email-error" className="text-xs text-red-600">
+            {fieldErrors.email}
+          </p>
+        ) : null}
       </div>
 
       <div className="space-y-1">
@@ -85,9 +90,14 @@ export function LoginForm() {
           onChange={(event) => setPassword(event.target.value)}
           disabled={loading}
           aria-invalid={fieldErrors.password ? true : undefined}
+          aria-describedby={fieldErrors.password ? "login-password-error" : undefined}
           className={inputClasses}
         />
-        {fieldErrors.password ? <p className="text-xs text-red-600">{fieldErrors.password}</p> : null}
+        {fieldErrors.password ? (
+          <p id="login-password-error" className="text-xs text-red-600">
+            {fieldErrors.password}
+          </p>
+        ) : null}
       </div>
 
       <button type="submit" disabled={loading} className={submitClasses}>

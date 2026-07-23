@@ -122,7 +122,7 @@ export function JobDetailPage({ id }: { id: string }) {
   } else if (loadError === "notfound") {
     body = (
       <div className="rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-        <h1 className="text-xl font-bold text-slate-900">Oferta no disponible</h1>
+        <h2 className="text-xl font-bold text-slate-900">Oferta no disponible</h2>
         <p className="mt-2 text-sm text-slate-600">Esta oferta no existe o ya no está activa.</p>
         <Link href="/jobs" className="mt-4 inline-block text-sm font-medium text-jobit-brand hover:underline">
           ← Volver a ofertas
@@ -155,7 +155,7 @@ export function JobDetailPage({ id }: { id: string }) {
         <article className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900">{job.title}</h1>
+              <h2 className="text-2xl font-bold tracking-tight text-slate-900">{job.title}</h2>
               <p className="text-base font-medium text-slate-600">{job.company}</p>
             </div>
             <button
@@ -187,7 +187,7 @@ export function JobDetailPage({ id }: { id: string }) {
 
           <p className="mt-2 text-sm text-slate-500">{jobMetadataLabel(job)}</p>
           {salary ? <p className="mt-1 text-base font-semibold text-slate-800">{salary}</p> : null}
-          <p className="mt-1 text-xs text-slate-400">
+          <p className="mt-1 text-xs text-slate-500">
             Fuente: {JOB_SOURCE_LABELS[job.source]}
             {job.postedAt ? ` · Publicada el ${formatPostedDate(job.postedAt)}` : ""}
           </p>

@@ -102,6 +102,11 @@ export function JobMatchPanel({ jobId, token }: { jobId: string; token: string }
         </div>
       </div>
 
+      {/* MATCH-04: aclara el alcance de la afinidad, junto al score/nivel. */}
+      <p className="mt-3 text-xs text-slate-600">
+        La afinidad es orientativa: no es una nota ni garantiza avanzar en el proceso.
+      </p>
+
       {/* Explicación básica del backend, humanizada (sin enums crudos, JOBS-03). */}
       {match.explanation ? (
         <p className="mt-3 text-sm text-slate-700">{humanizeMatchExplanation(match.explanation)}</p>

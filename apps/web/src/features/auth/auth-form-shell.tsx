@@ -65,8 +65,8 @@ export function AuthFormShell({ title, subtitle, children, footer, notice }: Aut
         <p className="relative text-xs text-slate-500">© 2026 JobIT</p>
       </section>
 
-      {/* Card de formulario */}
-      <section className="flex items-center justify-center px-6 py-12 sm:px-10">
+      {/* Card de formulario (landmark principal, A11Y-02) */}
+      <main className="flex items-center justify-center px-6 py-12 sm:px-10">
         <div className="w-full max-w-md">
           {/* Marca en móvil */}
           <Link href="/" className="mb-8 flex w-fit items-center gap-2 font-bold tracking-tight lg:hidden">
@@ -88,7 +88,7 @@ export function AuthFormShell({ title, subtitle, children, footer, notice }: Aut
             </Link>
           </p>
         </div>
-      </section>
+      </main>
     </div>
   );
 }
