@@ -19,7 +19,13 @@ Las referencias a «MVP», «demo» o equivalentes solo se conservarán como con
 
 ## 3. Nivel de riesgo
 
-**Alto.** La auditoría alcanza autenticación, datos personales, destrucción accidental de datos, publicación pública, proveedores externos, términos de uso, despliegue, copias de seguridad y recuperación. No se ejecutarán operaciones sobre datos, proveedores ni infraestructura.
+**Nivel 2 — Auditoría documental y técnica.**
+
+La ejecución del sprint tiene autonomía controlada porque se limita a inspección de solo lectura, clasificación y documentación. No modifica código, configuración, datos ni infraestructura.
+
+La criticidad de las áreas auditadas es alta: autenticación, datos personales, destrucción accidental de datos, publicación pública, proveedores externos, términos de uso, despliegue, copias de seguridad y recuperación.
+
+Cualquier remediación posterior que afecte a autenticación, autorización, privacidad, Prisma, migraciones, datos reales, fuentes externas, secretos, infraestructura productiva o despliegue deberá clasificarse como **Nivel 3** y ejecutarse en un sprint separado.
 
 ## 4. Alcance
 
