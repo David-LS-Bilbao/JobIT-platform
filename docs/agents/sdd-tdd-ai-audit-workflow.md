@@ -1,10 +1,25 @@
 # Flujo SDD + TDD pragmatico + AI Audit
 
+> Documento especializado del flujo tecnico de entrega. La fuente canonica es [`jobit-operating-model-v2.md`](jobit-operating-model-v2.md), que prevalece ante cualquier contradiccion.
+
 ## Objetivo
 
 Formalizar el flujo de trabajo de JobIT-platform para pasar de una idea a una Pull Request revisable sin perder control de alcance, calidad, seguridad ni documentacion.
 
 Este flujo aplica a features, fixes relevantes, cambios de arquitectura y tareas documentales con impacto en metodologia o producto.
+
+## Plan Mode y Execution Mode
+
+El flujo se ejecuta en dos modos:
+
+- **Plan Mode (solo lectura):** inspeccion del repositorio y entrega de un plan — estado inicial, documentos revisados, riesgos, alcance, archivos previstos, estrategia SDD/TDD, verificaciones, fases internas y decisiones pendientes. No se edita, no se crean archivos, no se ejecutan acciones Git.
+- **Execution Mode (tras `PLAN_APPROVED`):** el agente completa de forma continua las fases internas del plan:
+
+  ```text
+  spec → tests RED → implementacion GREEN → refactor → verificaciones → auditoria → documentacion → informe final
+  ```
+
+  No requiere prompts entre cada fase mientras no cambie el contrato aprobado. El control paso a paso se reserva para Nivel 3, incidentes, bloqueos o cambios de alcance.
 
 ## Fases
 
@@ -22,7 +37,9 @@ Este flujo aplica a features, fixes relevantes, cambios de arquitectura y tareas
 
 4. Implementacion asistida
 
-   La IA puede ayudar a implementar, pero trabaja con prompts pequenos, alcance controlado y cambios reversibles. La IA no decide ampliar producto, arquitectura o dependencias sin aprobacion humana.
+   Dentro de un plan aprobado, el agente implementa de forma autonoma y continua (RED → GREEN → refactor) con alcance controlado y cambios reversibles, sin pedir permiso entre fases internas. No decide ampliar producto, arquitectura o dependencias sin aprobacion humana.
+
+   Una tarea pequena, documental o puramente interna puede reutilizar una spec existente o el brief aprobado como fuente de verdad, indicando cual actua como tal, en lugar de crear una spec nueva.
 
 5. Verificacion local
 
@@ -68,7 +85,7 @@ Este flujo aplica a features, fixes relevantes, cambios de arquitectura y tareas
 - Respeta archivos permitidos, restricciones y criterios de aceptacion.
 - Propone tests, verificaciones y documentacion necesaria.
 - Informa riesgos, dudas y cambios realizados.
-- No actua como piloto automatico ni sustituye la revision humana.
+- Ejecuta autonomamente el plan aprobado, pero no lo redefine ni sustituye la revision humana final ni las autorizaciones Git.
 
 ## Fuera de alcance
 

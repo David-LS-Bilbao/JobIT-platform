@@ -210,7 +210,7 @@ Tras aplicar esta plantilla a un sprint concreto, el operador y el agente compar
 
 - Un documento `docs/sprints/<sprint>-agent-brief.md` aprobado y trazable.
 - Un alcance acotado y verificable, con archivos permitidos cerrados.
-- Una secuencia de prompts pequeños, secuenciados y con skill documental declarada.
+- Un plan aprobado que se ejecuta de forma autonoma segun el nivel de riesgo (Plan Mode + Execution Mode), con skill documental declarada; el troceo en prompts pequeños se reserva para Nivel 3, incidentes o cambios de alcance.
 - Un conjunto explícito de condiciones de kill-switch que cualquier ejecutor debe respetar.
 - Un formato común de informe final que facilita revisión humana y PR.
 

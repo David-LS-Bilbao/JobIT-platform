@@ -6,7 +6,7 @@ Definir criterios documentales para decidir cuando NO crear permisos automaticos
 
 ## Estado actual
 
-JobIT-platform no usa `.claude/skills/`, `.claude/settings.json` ni hooks. Esa decision es deliberada en fase documental inicial.
+JobIT-platform no usa `.claude/skills/`, `.claude/settings.json` ni hooks. Esa decision es deliberada y se mantiene mientras no exista un ADR aprobado que la revise (ver [native-skills-future-plan.md](native-skills-future-plan.md)).
 
 Cualquier activacion de configuracion ejecutable requiere:
 

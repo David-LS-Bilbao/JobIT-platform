@@ -1,5 +1,7 @@
 # Codex: patrones de prompt
 
+> La fuente canonica es [`../jobit-operating-model-v2.md`](../jobit-operating-model-v2.md), que prevalece ante cualquier contradiccion.
+
 ## Objetivo
 
 Definir patrones de prompt para trabajar con Codex en JobIT-platform de forma controlada, repetible y revisable.
@@ -65,9 +67,11 @@ Devuelve hallazgos por severidad, riesgos y recomendacion final.
 No abras PR ni propongas merge.
 ```
 
-## Patron: prompt chaining
+## Patron: prompt chaining (reservado)
 
-Para trabajos largos, dividir en pasos cortos:
+El flujo por defecto es Plan Mode + Execution Mode autonomo (ver la fuente canonica). El prompt chaining con revision humana entre pasos se reserva para **Nivel 3**, incidentes, bloqueos, cambios de alcance o decisiones humanas intermedias.
+
+Cuando aplique, dividir en pasos cortos:
 
 1. Investigacion (read-only, devuelve hallazgos).
 2. Propuesta (devuelve plan, no edita).
@@ -75,7 +79,7 @@ Para trabajos largos, dividir en pasos cortos:
 4. Verificacion (git status, diff, revision documental).
 5. Cierre (resumen y siguiente paso).
 
-Cada paso espera revision humana antes de continuar.
+En ese modo reservado, cada paso espera revision humana antes de continuar.
 
 ## Antipatrones
 

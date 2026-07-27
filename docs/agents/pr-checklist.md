@@ -1,5 +1,18 @@
 # Checklist de Pull Request
 
+> Documento especializado. La fuente canonica es [`jobit-operating-model-v2.md`](jobit-operating-model-v2.md); el detalle de cierre Git vive en [`git-pr-skill.md`](git-pr-skill.md).
+
+## Autorizaciones Git separadas
+
+Cada accion Git necesita su propia autorizacion humana; una no implica la siguiente:
+
+- `COMMIT_APPROVED` → crear commit (no autoriza push).
+- `PUSH_APPROVED` → subir rama (no autoriza PR).
+- `PR_APPROVED` → abrir PR (no autoriza merge).
+- `MERGE_APPROVED` → fusionar (indica PR y metodo cuando proceda).
+
+No se anade `Co-Authored-By` ni autoria IA, no se pegan prompts ni informes completos en la PR, no se borran ramas sin autorizacion y no se despliega durante el cierre Git.
+
 ## Plantilla de PR
 
 ```markdown

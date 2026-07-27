@@ -1,5 +1,7 @@
 # Guia de TDD pragmatico
 
+> Documento especializado sobre la aplicacion proporcional de TDD. La fuente canonica es [`jobit-operating-model-v2.md`](jobit-operating-model-v2.md), que prevalece ante cualquier contradiccion.
+
 ## Principio
 
 JobIT aplica TDD pragmatico, no dogmatico. El objetivo es mejorar diseno, confianza y mantenibilidad sin convertir la cobertura en un fin en si mismo.
@@ -12,18 +14,22 @@ Cada feature debe definir tests minimos antes de implementar. Cuando el comporta
 2. Green: implementar lo minimo para que el test pase.
 3. Refactor: mejorar diseno, nombres o estructura sin cambiar comportamiento.
 
-Este ciclo debe mantenerse pequeno. Si una iteracion requiere tocar demasiados archivos, dividir la tarea.
+Este ciclo debe mantenerse pequeno y revisable. Un ciclo pequeno no equivale a un prompt separado: Red, Green y Refactor son fases internas de Execution Mode y el agente puede completar el ciclo completo, sin permiso intermedio, dentro de un plan aprobado. Si una iteracion requiere ampliar el alcance o cambiar el contrato aprobado, hay que detenerse y elevar la decision.
 
 ## Cuando aplicar TDD fuerte
 
-Usar TDD fuerte cuando:
+TDD fuerte sigue siendo **obligatorio** cuando el cambio afecta:
 
-- La regla de negocio es critica.
-- Hay validaciones con errores o casos limite.
-- El cambio afecta autenticacion, permisos, privacidad o datos de usuario.
-- El comportamiento tiene varias ramas.
-- Se esta corrigiendo un bug reproducible.
-- La feature sera base para otras features.
+- reglas de negocio criticas;
+- validaciones con errores o casos limite;
+- autenticacion, autorizacion y permisos;
+- privacidad y datos de usuario;
+- separacion por usuario (ownership);
+- contratos HTTP/DTO y endpoints;
+- scoring o decisiones sobre personas;
+- comportamiento con varias ramas;
+- bugs reproducibles;
+- features que seran base para otras features.
 
 ## Cuando bastan tests minimos
 
@@ -35,6 +41,10 @@ Pueden bastar tests minimos cuando:
 - El tooling de tests aun no existe y la tarea solo prepara especificaciones.
 
 En esos casos se deben dejar definidos los tests esperados en la spec y documentar que aun no se ejecutan por falta de infraestructura.
+
+## Verificaciones equivalentes
+
+La documentacion, el copy y los cambios puramente visuales no requieren TDD literal. En su lugar deben usarse verificaciones equivalentes justificadas: `grep`, typecheck, lint, build, revision visual, `git diff --check`, enlaces internos y tests existentes. La eleccion debe quedar registrada en el informe final.
 
 ## Ejemplos futuros
 

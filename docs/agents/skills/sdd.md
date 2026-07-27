@@ -28,7 +28,7 @@ Guiar el trabajo mediante Specification-Driven Development: especificar antes de
 
 - No implementar sin spec aprobada.
 - No mezclar producto, codigo e infraestructura en una misma tarea si no esta aprobado.
-- No ampliar el MVP fuera de candidate-first sin revision humana.
+- No ampliar el alcance fuera de candidate-first sin revision humana.
 
 ## Checklist
 

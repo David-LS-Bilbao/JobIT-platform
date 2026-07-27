@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Guiar decisiones de arquitectura del MVP candidate-first manteniendo modularidad, trazabilidad y alcance acotado, sin fijar stack ni infraestructura sin ADR aprobado.
+Guiar decisiones de arquitectura de la version candidate-first manteniendo modularidad, trazabilidad y alcance acotado, sin fijar stack ni infraestructura sin ADR aprobado.
 
 ## Cuando usarla
 
@@ -16,7 +16,7 @@ Guiar decisiones de arquitectura del MVP candidate-first manteniendo modularidad
 - Problema o decision a resolver.
 - Modulo o limite afectado.
 - Alternativas consideradas.
-- Restricciones del MVP candidate-first.
+- Restricciones de la version candidate-first.
 - Riesgos conocidos.
 
 ## Archivos permitidos
@@ -30,12 +30,12 @@ Guiar decisiones de arquitectura del MVP candidate-first manteniendo modularidad
 - No fijar stack, libreria o infraestructura sin ADR aprobado.
 - No introducir patrones complejos antes de tener un caso real.
 - No mezclar responsabilidades de modulos sin justificacion documentada.
-- No ampliar alcance del MVP candidate-first sin revision humana.
+- No ampliar el alcance candidate-first sin revision humana.
 - No crear codigo, configuracion ejecutable ni dependencias.
 
 ## Checklist
 
-- [ ] Decision alineada con MVP candidate-first.
+- [ ] Decision alineada con la version candidate-first.
 - [ ] Alternativas consideradas y descartadas con motivo.
 - [ ] Limites de modulos respetados.
 - [ ] Riesgos y trade-offs documentados.

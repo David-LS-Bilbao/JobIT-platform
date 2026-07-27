@@ -1,10 +1,10 @@
 # Codex en JobIT-platform
 
-Codex debe trabajar siguiendo `AGENTS.md` como contrato principal del repositorio.
+Codex debe trabajar siguiendo `AGENTS.md` como resumen operativo y [`../jobit-operating-model-v2.md`](../jobit-operating-model-v2.md) como contrato canonico, que prevalece ante cualquier contradiccion.
 
 ## Uso recomendado
 
-- Partir de prompts pequenos y concretos.
+- Partir del prompt inicial del sprint, trabajar en Plan Mode y, tras `PLAN_APPROVED`, ejecutar de forma autonoma segun el nivel de riesgo, sin fragmentar en micro-prompts por defecto.
 - Indicar rama, archivos permitidos, restricciones y verificaciones.
 - Leer los documentos relevantes antes de editar.
 - Revisar `git status --short` antes y despues de modificar.
@@ -20,7 +20,7 @@ No se asume aqui que exista un formato nativo de skills en disco para Codex. En 
 ## Guias especificas para Codex
 
 - [prompt-patterns.md](prompt-patterns.md): patrones de prompt seguros y reproducibles.
-- [safe-operating-mode.md](safe-operating-mode.md): modo de operacion seguro paso a paso.
+- [safe-operating-mode.md](safe-operating-mode.md): modo de operacion seguro con autonomia controlada por riesgo.
 - [codex-scope-guard.md](codex-scope-guard.md): control de alcance para evitar cambios fuera de lista.
 - [codex-diff-review.md](codex-diff-review.md): uso de Codex como revisor de diff, no como implementador.
 - [codex-task-brief.md](codex-task-brief.md): plantilla operativa de task brief.

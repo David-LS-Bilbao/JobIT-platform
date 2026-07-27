@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Guiar el diseno documental de endpoints, contratos de API y reglas de servicio para el MVP candidate-first, antes de implementar codigo backend.
+Guiar el diseno documental de endpoints, contratos de API y reglas de servicio de la version candidate-first; el codigo backend se toca cuando la tarea y la spec lo autoricen.
 
 ## Cuando usarla
 
@@ -22,12 +22,12 @@ Guiar el diseno documental de endpoints, contratos de API y reglas de servicio p
 
 - Specs en `docs/specs/`.
 - Plantillas en `docs/agents/templates/`.
-- En fases tecnicas posteriores: codigo backend solo cuando la tarea lo autorice.
+- Cuando la tarea y la spec lo autoricen: codigo backend.
 
 ## Restricciones
 
 - No fijar framework, ORM ni libreria sin ADR aprobado.
-- No definir endpoints fuera del alcance MVP candidate-first.
+- No definir endpoints fuera del alcance actual candidate-first.
 - No omitir errores ni codigos HTTP relevantes.
 - No exponer datos personales innecesarios en respuestas.
 - No introducir autenticacion compleja sin spec aprobada.

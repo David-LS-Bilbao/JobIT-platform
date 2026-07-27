@@ -1,14 +1,14 @@
 # Claude Code en JobIT-platform
 
-Claude Code debe apoyarse en `CLAUDE.md` como capa minima especifica y en `AGENTS.md` como fuente principal de reglas del proyecto.
+Claude Code debe apoyarse en `CLAUDE.md` como adaptador minimo, en `AGENTS.md` como resumen operativo y en [`../jobit-operating-model-v2.md`](../jobit-operating-model-v2.md) como contrato canonico, que prevalece ante cualquier contradiccion.
 
 ## Uso recomendado
 
-- Consultar `AGENTS.md` antes de actuar.
+- Consultar `AGENTS.md` y la fuente canonica antes de actuar.
 - Usar `CLAUDE.md` solo para notas especificas de Claude Code.
 - Reutilizar prompts, plantillas, checklists y skills neutrales desde `docs/agents/`.
-- Mantener cambios pequenos y esperar revision humana.
-- No implementar sin spec aprobada.
+- Trabajar por niveles de riesgo: Plan Mode (solo lectura) y, tras `PLAN_APPROVED`, Execution Mode autonomo, sin micro-prompts por defecto. La revision final y las autorizaciones Git son humanas.
+- No implementar sin spec aprobada (o brief aprobado).
 
 ## Skills nativas futuras
 

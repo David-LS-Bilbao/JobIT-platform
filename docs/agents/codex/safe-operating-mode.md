@@ -1,8 +1,10 @@
 # Codex: modo de operacion seguro
 
+> La fuente canonica es [`../jobit-operating-model-v2.md`](../jobit-operating-model-v2.md), que prevalece ante cualquier contradiccion.
+
 ## Objetivo
 
-Definir el modo de trabajo seguro para Codex en JobIT-platform: pasos pequenos, alcance controlado, verificaciones explicitas y revision humana antes de avanzar.
+Definir el modo de trabajo seguro para Codex en JobIT-platform: autonomia controlada por nivel de riesgo, alcance controlado, verificaciones explicitas y revision humana en los limites. Tras `PLAN_APPROVED`, Codex ejecuta las fases internas del plan de forma continua; el control paso a paso se reserva para Nivel 3, incidentes, bloqueos o cambios de alcance.
 
 ## Reglas base
 
@@ -24,7 +26,7 @@ Definir el modo de trabajo seguro para Codex en JobIT-platform: pasos pequenos, 
 
 ## Durante la tarea
 
-- Trabajar en pasos pequenos y reversibles.
+- Ejecutar el plan aprobado de principio a fin, con cambios reversibles, sin pedir permiso entre fases internas mientras no cambie el contrato aprobado.
 - No mezclar documentacion, codigo e infraestructura en un mismo cambio salvo aprobacion.
 - No instalar dependencias.
 - No introducir secretos, tokens ni credenciales.

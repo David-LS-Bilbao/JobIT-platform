@@ -1,10 +1,14 @@
 # Auditoria quality/security
 
+> Documento especializado. La fuente canonica es [`jobit-operating-model-v2.md`](jobit-operating-model-v2.md), que prevalece ante cualquier contradiccion.
+
 ## Objetivo
 
-Definir una auditoria documental y tecnica previa a Pull Request. En esta fase es un documento de trabajo, no una skill ejecutable ni una herramienta automatizada.
+Definir una auditoria documental y tecnica previa a Pull Request. Es un documento de trabajo, no una skill ejecutable ni una herramienta automatizada.
 
-Aunque el archivo use `skill` en el nombre, su ubicacion actual en `docs/agents/` indica que es un checklist neutral de trabajo. No crea una skill instalada, no configura agentes y no activa automatizaciones.
+Aunque el archivo use `skill` en el nombre, su ubicacion en `docs/agents/` indica que es un checklist neutral de trabajo. No crea una skill instalada, no configura agentes y no activa automatizaciones.
+
+Esta auditoria es la **fase final de Execution Mode**: se ejecuta dentro del plan aprobado, antes del informe final y antes de solicitar cualquier autorizacion Git, sin requerir un prompt independiente.
 
 ## Checklist de alcance
 
@@ -46,7 +50,7 @@ Aunque el archivo use `skill` en el nombre, su ubicacion actual en `docs/agents/
 - [ ] No introduce acoplamientos prematuros.
 - [ ] No fija stack, infraestructura o patrones sin ADR/spec aprobada.
 - [ ] Las decisiones relevantes quedan documentadas como ADR cuando corresponde.
-- [ ] No se sobreingeniera el MVP.
+- [ ] No se introduce complejidad, arquitectura o capacidad fuera del alcance actual y del roadmap aprobado.
 
 ## Checklist de documentacion
 

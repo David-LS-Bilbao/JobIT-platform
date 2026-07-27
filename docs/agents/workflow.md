@@ -1,6 +1,6 @@
 # Workflow SDD para agentes
 
-> **Nota:** Este documento describe el flujo SDD base e historico del proyecto. El flujo operativo vigente y completo, que incorpora TDD pragmatico, AI Audit y PR, esta en `docs/agents/sdd-tdd-ai-audit-workflow.md`.
+> **Nota:** Este documento describe el flujo SDD base e historico del proyecto. El flujo operativo vigente y completo, que incorpora TDD pragmatico, AI Audit y PR, esta en [`sdd-tdd-ai-audit-workflow.md`](sdd-tdd-ai-audit-workflow.md). El contrato operativo canonico, con Plan Mode, Execution Mode y niveles de riesgo, es [`jobit-operating-model-v2.md`](jobit-operating-model-v2.md) y prevalece ante cualquier contradiccion.
 
 JobIT-platform sigue un flujo SDD, Specification-Driven Development:
 
@@ -16,7 +16,7 @@ No se implementa sin spec aprobada.
 
 ## PLAN
 
-Dividir la spec en pasos pequenos, reversibles y verificables. Identificar archivos permitidos y restricciones.
+Organizar la spec en fases internas reversibles y verificables, e identificar archivos permitidos y restricciones. Estas fases son fases internas de Execution Mode: tras `PLAN_APPROVED` se ejecutan de forma continua, sin un prompt por paso (salvo Nivel 3, incidentes o cambios de alcance).
 
 ## TASK BRIEF
 

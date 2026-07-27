@@ -2,23 +2,42 @@
 
 Guia operativa para agentes IA que trabajen en JobIT-platform.
 
+JobIT es una plataforma fullstack modular de empleo tecnologico **destinada a produccion** y en fase de hardening candidate-first. No debe tratarse en trabajo nuevo como prototipo, demo, experimento ni MVP actual.
+
+Este documento es el **resumen operativo obligatorio y punto de entrada**. El contrato operativo completo y la fuente canonica unica es [`docs/agents/jobit-operating-model-v2.md`](docs/agents/jobit-operating-model-v2.md). Ante cualquier contradiccion, prevalece la fuente canonica.
+
 ## Rol de los agentes
 
 Los agentes IA actuan como asistentes tecnicos controlados. Su funcion es ayudar a documentar, analizar, planificar, implementar tareas autorizadas y revisar cambios cuando exista una especificacion clara.
 
-En la fase documental inicial el rol esta limitado a crear y ordenar documentacion. No se debe implementar codigo ni configurar infraestructura.
+El agente puede ejecutar autonomamente el plan aprobado, pero no puede redefinir el sprint, ampliar alcance ni realizar acciones Git o productivas no autorizadas.
+
+## Modos de trabajo
+
+El agente trabaja en dos modos, definidos en la fuente canonica:
+
+- **Plan Mode:** solo lectura. Inspecciona el repositorio y entrega un plan (estado inicial, documentos revisados, alcance, riesgos, archivos previstos, estrategia SDD/TDD, verificaciones, fases internas y decisiones pendientes). No edita, no crea archivos, no ejecuta acciones Git.
+- **Execution Mode:** tras `PLAN_APPROVED`, el agente completa de forma autonoma y continua las fases internas del plan (spec → tests RED → implementacion GREEN → refactor → verificaciones → auditoria → documentacion → informe final) sin pedir permiso entre ellas, mientras no cambie el contrato aprobado.
+
+## Autonomia por nivel de riesgo
+
+El operador clasifica cada sprint antes de empezar:
+
+- **Nivel 1 — riesgo bajo / autonomia alta:** documentacion, copy, ajustes visuales, tokens, accesibilidad frontend localizada, tests frontend, refactors internos, informes. Ejecucion completa tras aprobar el plan.
+- **Nivel 2 — riesgo medio / autonomia controlada:** formularios, navegacion, sesion frontend, errores, rutas privadas, E2E, CI, Docker local, refactors transversales. Ejecucion completa dentro del alcance con checkpoint final obligatorio.
+- **Nivel 3 — riesgo alto / control estricto:** backend, auth, autorizacion, seguridad, Prisma, migraciones, contratos HTTP/DTO, datos reales, ingesta externa, secretos, despliegue, scoring o decisiones sobre personas. Se permiten fases separadas y revision humana en puntos criticos.
 
 ## Reglas generales
 
 - Responder siempre en espanol.
 - Mantener un tono claro, profesional y practico.
-- Priorizar cambios pequenos, seguros y reversibles.
-- Trabajar en pasos pequenos, esperar revision humana y no ampliar alcance sin aprobacion.
+- Priorizar cambios seguros y reversibles.
+- No ampliar alcance sin aprobacion: el plan aprobado es el contrato operativo.
 - Respetar el alcance indicado por la tarea o sprint activo.
 - No ampliar producto, arquitectura o tecnologia sin permiso explicito.
 - Documentar decisiones relevantes cuando afecten al alcance futuro.
 - Separar documentacion, codigo e infraestructura en cambios distintos.
-- Usar la IA como copiloto, no como piloto automatico: la revision y validacion final son humanas.
+- Dentro de un plan aprobado, el agente ejecuta de principio a fin; la revision y validacion finales, y las autorizaciones Git, son humanas.
 
 ## Entorno operativo
 
@@ -45,7 +64,7 @@ Si la rama no coincide con la solicitada o el working tree no esta limpio, debe 
 
 ## Prompts y documentacion de apoyo
 
-Cada tarea para agentes deberia ser pequena, controlada y verificable. Para trabajos largos se debe usar prompt chaining: dividir el trabajo en pasos acotados, revisar el resultado de cada paso y continuar solo si el alcance sigue claro.
+Cada sprint se define con un prompt inicial claro, se aprueba en Plan Mode y se ejecuta de forma autonoma en Execution Mode. No se divide por defecto en micro-prompts (uno por archivo o por test). El prompt chaining y el control paso a paso se reservan para Nivel 3, incidentes, bloqueos, cambios de alcance o decisiones humanas intermedias (ver la fuente canonica, secciones 10-11 y 19).
 
 Cada tarea deberia incluir:
 
@@ -77,7 +96,7 @@ Resumen del flujo oficial:
 Rama desde dev -> Spec -> Tests minimos/TDD -> Implementacion asistida -> Verificacion local -> Auditoria quality/security -> Correcciones -> Documentacion -> PR hacia dev
 ```
 
-El contrato operativo es: spec antes de feature, tests minimos antes de implementar, TDD pragmatico, auditoria quality/security antes de PR y documentacion actualizada en la misma rama.
+El contrato operativo es: spec antes de feature, tests minimos antes de implementar, TDD pragmatico, auditoria quality/security antes de PR y documentacion actualizada en la misma rama. Estas fases son fases internas de Execution Mode: dentro de un plan aprobado no requieren prompts intermedios. El detalle completo vive en [`docs/agents/jobit-operating-model-v2.md`](docs/agents/jobit-operating-model-v2.md).
 
 ## Restricciones de seguridad
 

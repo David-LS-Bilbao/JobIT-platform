@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Guiar el diseno documental del modelo de datos para el MVP candidate-first, sin instalar Prisma, base de datos ni migraciones todavia.
+Guiar el diseno documental del modelo de datos de la version candidate-first; el schema de Prisma y las migraciones solo se tocan cuando la tarea y la spec lo autoricen.
 
 ## Cuando usarla
 
@@ -22,7 +22,7 @@ Guiar el diseno documental del modelo de datos para el MVP candidate-first, sin 
 
 - Specs en `docs/specs/`.
 - Plantillas en `docs/agents/templates/`.
-- En fases tecnicas posteriores: schema de Prisma o migraciones solo cuando la tarea lo autorice.
+- Cuando la tarea y la spec lo autoricen: schema de Prisma o migraciones.
 
 ## Restricciones
 
