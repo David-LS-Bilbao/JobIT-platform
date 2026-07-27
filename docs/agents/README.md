@@ -4,11 +4,25 @@ Esta carpeta define la biblioteca documental neutral para trabajar con agentes I
 
 `docs/agents/` no es configuracion ejecutable. No instala herramientas, no activa permisos y no define automatizaciones. Su objetivo es ordenar conceptos, flujos, checklists, plantillas, prompts reutilizables y skills neutrales.
 
+## Fuente canonica y jerarquia
+
+La fuente canonica unica del modelo operativo es [`jobit-operating-model-v2.md`](jobit-operating-model-v2.md): define Plan Mode, Execution Mode, niveles de riesgo, SDD/TDD proporcional, auditoria, Git y gates de parada. Existe una sola copia completa del contrato; el resto de documentos lo resumen, especializan o enlazan, y **no lo duplican**. Ante cualquier contradiccion, prevalece la fuente canonica.
+
+Distincion de capas:
+
+- **Contrato** (`jobit-operating-model-v2.md`): la fuente canonica completa.
+- **Resumen de entrada** (`AGENTS.md`): punto de entrada obligatorio y resumen operativo.
+- **Guias especializadas** (`sdd-tdd-ai-audit-workflow.md`, `tdd-guidelines.md`, `audit-quality-security-skill.md`, `git-pr-skill.md`, `operating-environment.md`): detallan una parte del flujo y enlazan al contrato.
+- **Skills documentales neutrales** (`skills/`): reutilizables por cualquier agente; no son skills instaladas ni configuracion ejecutable.
+- **Adaptadores** (`CLAUDE.md`, `claude/`, `codex/`, `skills/jobit-operating-model-v2-skill.md`): punteros breves por agente que enlazan al contrato sin duplicarlo.
+
+En este sprint **no se crean skills nativas** ni configuracion ejecutable (`.claude/`, `.codex/`, hooks, settings). Las condiciones para evaluarlas en el futuro estan en [`claude/native-skills-future-plan.md`](claude/native-skills-future-plan.md).
+
 ## Capas documentales
 
-- `AGENTS.md`: contrato corto y transversal para cualquier agente IA que trabaje en el repositorio. Define reglas, limites, seguridad, flujo minimo antes de modificar y resumen final obligatorio.
-- `CLAUDE.md`: capa minima especifica para Claude Code. Siempre queda subordinada a `AGENTS.md` y no debe duplicar la gobernanza general.
-- `docs/agents/`: biblioteca neutral reutilizable por Codex, Claude Code u otros agentes. Contiene guias, flujos, checklists, prompts y plantillas.
+- `AGENTS.md`: resumen operativo y punto de entrada, subordinado a la fuente canonica. Define reglas, limites, seguridad, modos de trabajo y niveles de riesgo.
+- `CLAUDE.md`: adaptador minimo para Claude Code. Subordinado a `AGENTS.md` y a la fuente canonica; no duplica la gobernanza general.
+- `docs/agents/`: biblioteca neutral reutilizable por Codex, Claude Code u otros agentes. Contiene el contrato, guias, flujos, checklists, prompts y plantillas.
 - `docs/agents/skills/`: skills documentales neutrales. Describen como ejecutar tipos de trabajo, pero no son skills instaladas ni configuracion ejecutable.
 - `docs/agents/checklists/`: checklists para cierre, pre-merge, seguridad u otras revisiones.
 - `docs/agents/templates/`: plantillas documentales reutilizables.
@@ -24,6 +38,7 @@ No se debe crear `.claude/skills/`, `.claude/settings.json`, hooks ni configurac
 
 ## Documentos principales
 
+- `jobit-operating-model-v2.md`: contrato operativo canonico (Plan Mode, Execution Mode, niveles de riesgo, SDD/TDD, auditoria, Git).
 - `sdd-tdd-ai-audit-workflow.md`: flujo oficial SDD + TDD pragmatico + AI Audit + PR.
 - `tdd-guidelines.md`: guia de TDD pragmatico.
 - `audit-quality-security-skill.md`: checklist neutral de auditoria quality/security.
@@ -74,6 +89,6 @@ Recordatorio: tanto las guias para Codex como para Claude Code son documentacion
 
 ## Principio de uso
 
-Los agentes deben partir de `AGENTS.md`, consultar la documentacion neutral necesaria y ejecutar tareas pequenas con archivos permitidos, criterios de aceptacion claros y revision humana.
+Los agentes deben partir de `AGENTS.md`, consultar la fuente canonica y la documentacion neutral necesaria, y ejecutar tareas completas dentro de un plan aprobado —con archivos permitidos, criterios de aceptacion claros y revision humana final— en lugar de fragmentar cada sprint en micro-prompts por defecto.
 
-No se debe implementar codigo sin spec aprobada.
+No se debe implementar codigo sin spec aprobada (o brief aprobado) y sin revision humana; las acciones Git requieren autorizacion separada.

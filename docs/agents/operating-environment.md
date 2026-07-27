@@ -1,5 +1,7 @@
 # Entorno operativo JobIT
 
+> Documento especializado de entorno, secretos y tooling. La fuente canonica es [`jobit-operating-model-v2.md`](jobit-operating-model-v2.md). Los gates de entorno y seguridad de este documento (ruta canonica WSL, no OneDrive/Windows, no imprimir secretos) prevalecen durante Plan Mode y Execution Mode y no se relajan por la autonomia del agente.
+
 ## Decisión
 
 El entorno principal de desarrollo y verificación de JobIT es el **clon nativo de WSL2 (Ubuntu)**, en filesystem Linux nativo:

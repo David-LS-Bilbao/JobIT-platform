@@ -6,7 +6,7 @@ Documentar criterios y restricciones para futuras tareas de despliegue en VPS, s
 
 ## Cuando usarla
 
-- Al planificar el despliegue futuro del MVP.
+- Al planificar el despliegue futuro del producto.
 - Al evaluar si un cambio impacta operacion o despliegue.
 - Al revisar specs que mencionan infraestructura, dominio, certificados o proxy.
 - Al recoger requisitos no funcionales.
@@ -22,7 +22,7 @@ Documentar criterios y restricciones para futuras tareas de despliegue en VPS, s
 
 - Specs en `docs/specs/` cuando la tarea lo autorice.
 - Plantillas en `docs/agents/templates/`.
-- En fases tecnicas posteriores: archivos de despliegue solo cuando la tarea lo autorice.
+- Cuando la tarea y la spec lo autoricen: archivos de despliegue.
 
 ## Restricciones
 

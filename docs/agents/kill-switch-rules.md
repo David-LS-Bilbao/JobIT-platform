@@ -128,7 +128,7 @@ Sin estos cuatro puntos, el kill-switch sigue activo. La inercia ("pero ya estab
 - **Se está en `main` o `dev`**: el ritual de Startup revela que la rama activa es `main` o `dev` y el prompt pide modificar archivos. El ejecutor activa kill-switch citando "tocar `main` o `dev` directamente", no toca nada y propone crear una rama de trabajo desde `dev` antes de continuar.
 - **`.claude/` aparece untracked y alguien propone `git add .`**: el operador observa que un prompt utiliza `git add .` con `.claude/` untracked. Kill-switch activado: el comando arrastraría archivos fuera de alcance. Se propone usar `git add` con rutas explícitas o resolver `.claude/` en un cambio aparte.
 - **No existe la spec obligatoria**: el prompt pide implementar una feature pero no hay spec en `docs/specs/`. El ejecutor activa kill-switch, no inicia implementación y solicita la spec aprobada antes de continuar.
-- **El prompt pide "implementar todo Sprint 01 Auth"**: prompt demasiado amplio, sin lista cerrada de archivos, mezclando fases. El ejecutor activa kill-switch citando [docs/agents/codex-claude-skill-invocation.md](codex-claude-skill-invocation.md) y pide al operador descomponer la tarea en prompts pequeños y secuenciados.
+- **El prompt pide "implementar todo Sprint 01 Auth"**: prompt demasiado amplio, sin lista cerrada de archivos, mezclando fases y sin un plan aprobado. El ejecutor activa kill-switch citando [docs/agents/codex-claude-skill-invocation.md](codex-claude-skill-invocation.md) y pide al operador un plan acotado (Plan Mode) con lista cerrada de archivos antes de ejecutar; en Nivel 3, ademas, descomponer en fases controladas.
 
 En todos los casos, el resultado es el mismo: parada, informe `BLOCKED`, espera de decisión humana.
 

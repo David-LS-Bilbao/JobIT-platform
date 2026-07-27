@@ -2,7 +2,7 @@
 
 JobIT es una plataforma fullstack modular de empleo tecnologico. Su objetivo es ayudar a profesionales tech a gestionar mejor su busqueda laboral, preparar su perfil y conectar con oportunidades relevantes.
 
-El repositorio ha superado la fase documental inicial y tiene un MVP candidate-first **funcional** (backend en `apps/api` + frontend en `apps/web`), en fase de pulido de UX/UI y preparacion de despliegue. Estan implementados los modulos de Auth, Candidate Profile & CV, Jobs (incluida la integracion backend-only con Jooble y, mas adelante, Greenhouse, y la politica de visibilidad publica de la API), Saved Jobs, Match basico explicable y Candidate Dashboard. Desde el Sprint 07 existe el frontend candidate-first en `apps/web` (Next.js + TypeScript + Tailwind + App Router): partio del slice vertical landing -> login/registro -> dashboard privado y desde entonces se han anadido las UIs de Perfil/CV y Portfolio (incluido portfolio publico `/u/[slug]`), Jobs, Saved Jobs y Match basico explicable. En el Sprint 08 se valido el entorno local real y el smoke HTTP del flujo `register -> login -> dashboard -> logout` (PASS_WITH_NOTES); el smoke visual quedo cubierto despues por el smoke E2E de Playwright (Sprint 18). Sprints posteriores agregaron la arquitectura multi-fuente de ofertas y el proveedor Greenhouse (Sprint 16), la activacion y el endurecimiento del dashboard y el pulido de UI candidato (Sprint 17), la preparacion **verificada en local** del deploy dev/staging con Docker + runbook, sin desplegar en VPS (Sprint 20), y una auditoria UX/UI del flujo candidato con su remediacion por lotes (Sprint 21: identidad, navegacion responsive, paginacion de Jobs, UX de match para perfiles incompletos y accesibilidad del drawer). Desde el Sprint 19 el repositorio cuenta con CI en GitHub Actions (workflow `JobIT CI`) que verifica API y Web en cada PR. La infraestructura de despliegue real (Docker en VPS, DNS, reverse proxy/SSL) sigue pendiente de autorizacion (gate 20.6).
+JobIT es un producto modular candidate-first **destinado a produccion**, en fase de hardening de UX/UI, accesibilidad y preparacion de despliegue. La funcionalidad candidate-first esta implementada y verificada (backend en `apps/api` + frontend en `apps/web`); el despliegue productivo real todavia no esta acreditado (ver gate 20.6 al final). Estan implementados los modulos de Auth, Candidate Profile & CV, Jobs (incluida la integracion backend-only con Jooble y, mas adelante, Greenhouse, y la politica de visibilidad publica de la API), Saved Jobs, Match basico explicable y Candidate Dashboard. Desde el Sprint 07 existe el frontend candidate-first en `apps/web` (Next.js + TypeScript + Tailwind + App Router): partio del slice vertical landing -> login/registro -> dashboard privado y desde entonces se han anadido las UIs de Perfil/CV y Portfolio (incluido portfolio publico `/u/[slug]`), Jobs, Saved Jobs y Match basico explicable. En el Sprint 08 se valido el entorno local real y el smoke HTTP del flujo `register -> login -> dashboard -> logout` (PASS_WITH_NOTES); el smoke visual quedo cubierto despues por el smoke E2E de Playwright (Sprint 18). Sprints posteriores agregaron la arquitectura multi-fuente de ofertas y el proveedor Greenhouse (Sprint 16), la activacion y el endurecimiento del dashboard y el pulido de UI candidato (Sprint 17), la preparacion **verificada en local** del deploy dev/staging con Docker + runbook, sin desplegar en VPS (Sprint 20), y una auditoria UX/UI del flujo candidato con su remediacion por lotes (Sprint 21: identidad, navegacion responsive, paginacion de Jobs, UX de match para perfiles incompletos y accesibilidad del drawer), la remediacion de accesibilidad y deuda UX restante (Sprint 21E) y una auditoria de production readiness sobre datos reales (Sprint 22, ultimo sprint cerrado). Desde el Sprint 19 el repositorio cuenta con CI en GitHub Actions (workflow `JobIT CI`) que verifica API y Web en cada PR. La infraestructura de despliegue real (Docker en VPS, DNS, reverse proxy/SSL) sigue pendiente de autorizacion (gate 20.6).
 
 ## Vision modular
 
@@ -57,7 +57,7 @@ Parte de este stack ya esta implementado: el backend en `apps/api` (Express + Pr
 
 ## Estado actual del repositorio
 
-Estado: MVP candidate-first funcional (backend + frontend) sobre la base documental y de specs ya creada, en fase de pulido de UX/UI y preparacion de despliegue. El backend vive en `apps/api` (Node.js + TypeScript + Express + Zod, PostgreSQL + Prisma) y el frontend en `apps/web` (Next.js + TypeScript + Tailwind + App Router). Ultimo sprint cerrado: **Sprint 21 (Candidate UX/UI Audit & remediacion)** — ver [`docs/sprints/sprint-21-final-report.md`](docs/sprints/sprint-21-final-report.md).
+Estado: producto modular candidate-first funcional, actualmente en fase de hardening y preparacion controlada para usuarios y datos reales. El backend vive en `apps/api` (Node.js + TypeScript + Express + Zod, PostgreSQL + Prisma) y el frontend en `apps/web` (Next.js + TypeScript + Tailwind + App Router). El ultimo sprint cerrado es el **Sprint 22 — Production Readiness & Real Data Audit**; su auditoria concluye que el repositorio dispone de una base funcional solida, pero todavia existen riesgos y requisitos pendientes antes de incorporar usuarios o datos reales. Ver [`docs/sprints/sprint-22-production-readiness-real-data-audit-report.md`](docs/sprints/sprint-22-production-readiness-real-data-audit-report.md).
 
 Modulos backend implementados:
 
@@ -248,7 +248,7 @@ Reglas de bloqueo:
 - No se abre PR si la auditoria quality/security devuelve `FAIL`.
 - No se abre PR si faltan verificaciones locales razonables para el alcance.
 - La documentacion afectada debe actualizarse en la misma rama antes de la PR.
-- La IA es copiloto, no piloto automatico: una persona revisa y valida el resultado.
+- El agente ejecuta autonomamente el plan aprobado, pero no redefine el sprint ni realiza acciones Git o productivas sin autorizacion: la revision final y las autorizaciones Git son humanas.
 
 Documentos de referencia:
 
@@ -261,13 +261,13 @@ Documentos de referencia:
 
 ## Uso de agentes IA
 
-Los agentes IA pueden ayudar a documentar, analizar, proponer, implementar tareas controladas y revisar cambios. Deben respetar siempre el alcance aprobado, trabajar con prompts pequenos, aplicar prompt chaining cuando el trabajo sea largo, mantener cambios reversibles y entregar un resumen final.
+Los agentes IA pueden ayudar a documentar, analizar, proponer, implementar tareas controladas y revisar cambios. Trabajan en Plan Mode (solo lectura) y, tras `PLAN_APPROVED`, en Execution Mode autonomo, completando las fases internas del plan sin micro-prompts por defecto. Deben respetar siempre el alcance aprobado, mantener cambios reversibles y entregar un resumen final. El control paso a paso se reserva para Nivel 3, incidentes o cambios de alcance.
 
-Las reglas operativas para agentes estan en [AGENTS.md](AGENTS.md).
+Las reglas operativas para agentes estan en [AGENTS.md](AGENTS.md); el contrato operativo canonico completo es [JobIT Operating Model v2](docs/agents/jobit-operating-model-v2.md).
 
 ## Siguiente paso
 
-El nucleo candidate-first del MVP esta implementado y verificado (backend + frontend, CI en verde). Los siguientes pasos recomendados son:
+El nucleo candidate-first esta implementado y verificado (backend + frontend, CI en verde), destinado a produccion y en fase de hardening. Los siguientes pasos recomendados son:
 
 - **Deploy dev/staging real (gate 20.6)**: ejecutar el runbook ya escrito y verificado en local (Docker + VPS + DNS + reverse proxy/SSL), con autorizacion expresa y ventana de rollback. Ver [`docs/deployment/staging-vps-deploy-runbook.md`](docs/deployment/staging-vps-deploy-runbook.md) y [`docs/sprints/sprint-20-final-report.md`](docs/sprints/sprint-20-final-report.md).
 - **Deuda de accesibilidad y UX (Sprint 21E y posteriores)**: A11Y-01…05 (auditoria WCAG completa) y hallazgos diferidos (PROF-01/02, PORT-02, SAVED-02, MATCH-04). Ver [`docs/sprints/sprint-21-final-report.md`](docs/sprints/sprint-21-final-report.md).

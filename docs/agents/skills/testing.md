@@ -22,7 +22,7 @@ Definir o revisar tests minimos para una feature aplicando TDD pragmatico, sin p
 
 - Specs en `docs/specs/`.
 - `docs/agents/tdd-guidelines.md` como referencia de criterio.
-- En fases tecnicas posteriores: archivos de tests autorizados por la tarea.
+- Cuando la tarea y la spec lo autoricen: archivos de tests.
 
 ## Restricciones
 

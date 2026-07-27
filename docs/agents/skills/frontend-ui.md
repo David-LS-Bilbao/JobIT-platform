@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Guiar el diseno documental de pantallas, estados, acciones y flujos de usuario para el MVP candidate-first, antes de implementar codigo frontend.
+Guiar el diseno documental de pantallas, estados, acciones y flujos de usuario de la version candidate-first; el codigo frontend se toca cuando la tarea y la spec lo autoricen.
 
 ## Cuando usarla
 
@@ -22,7 +22,7 @@ Guiar el diseno documental de pantallas, estados, acciones y flujos de usuario p
 
 - Specs en `docs/specs/`.
 - Plantillas en `docs/agents/templates/`.
-- En fases tecnicas posteriores: codigo frontend solo cuando la tarea lo autorice.
+- Cuando la tarea y la spec lo autoricen: codigo frontend.
 
 ## Restricciones
 
@@ -30,7 +30,7 @@ Guiar el diseno documental de pantallas, estados, acciones y flujos de usuario p
 - No introducir patrones visuales complejos antes de validar el flujo basico.
 - No ignorar accesibilidad en formularios y navegacion principal.
 - No exponer datos personales innecesarios en la interfaz.
-- No anadir pantallas fuera del alcance MVP.
+- No anadir pantallas fuera del alcance actual candidate-first.
 
 ## Checklist
 

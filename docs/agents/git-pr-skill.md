@@ -1,5 +1,25 @@
 # Skill — Git, Push y Pull Request en JobIT
 
+> Documento especializado. La fuente canonica es [`jobit-operating-model-v2.md`](jobit-operating-model-v2.md), que prevalece ante cualquier contradiccion.
+
+## Autorizaciones Git separadas
+
+Las acciones Git requieren autorizacion humana explicita y **separada**. Una autorizacion no implica la siguiente:
+
+```text
+COMMIT_APPROVED
+PUSH_APPROVED
+PR_APPROVED
+MERGE_APPROVED
+```
+
+- `COMMIT_APPROVED` autoriza crear el commit; no autoriza push.
+- `PUSH_APPROVED` autoriza subir la rama; no autoriza abrir PR.
+- `PR_APPROVED` autoriza abrir la Pull Request; no autoriza merge.
+- `MERGE_APPROVED` autoriza fusionar; debe indicar la PR y el metodo cuando proceda.
+
+El agente puede preparar el cierre (staging, verificaciones, diff, cuerpo de PR) de forma autonoma dentro del plan aprobado, pero no ejecuta ninguna de estas acciones sin su autorizacion correspondiente. No se borran ramas sin autorizacion. No se despliega durante el cierre Git.
+
 ## Objetivo
 
 Definir las normas obligatorias para cerrar una tarea o sprint en Git, subir la rama y abrir una Pull Request en JobIT sin contaminar la PR con informes completos, prompts operativos ni metadatos innecesarios.

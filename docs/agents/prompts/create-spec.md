@@ -8,7 +8,7 @@ Crear una spec clara antes de implementar.
 Instrucciones:
 - Lee `AGENTS.md`, `README.md` y la documentacion de producto relevante.
 - Define problema, objetivo, alcance, fuera de alcance, criterios de aceptacion, riesgos y verificaciones.
-- Mantén el MVP candidate-first como prioridad.
+- Mantén la version candidate-first (alcance actual) como prioridad.
 - No implementes codigo.
 - No amplíes alcance sin aprobacion humana.
 
