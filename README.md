@@ -1,275 +1,213 @@
 # JobIT-platform
 
-JobIT es una plataforma fullstack modular de empleo tecnologico. Su objetivo es ayudar a profesionales tech a gestionar mejor su busqueda laboral, preparar su perfil y conectar con oportunidades relevantes.
+JobIT es una plataforma fullstack modular de empleo tecnológico, orientada primero a
+candidatos y diseñada con criterios de producción. Permite construir un perfil
+profesional, explorar y guardar ofertas, consultar afinidades explicables y presentar
+un portfolio público.
 
-JobIT es un producto modular candidate-first **destinado a produccion**, en fase de hardening de UX/UI, accesibilidad y preparacion de despliegue. La funcionalidad candidate-first esta implementada y verificada (backend en `apps/api` + frontend en `apps/web`); el despliegue productivo real todavia no esta acreditado (ver gate 20.6 al final). Estan implementados los modulos de Auth, Candidate Profile & CV, Jobs (incluida la integracion backend-only con Jooble y, mas adelante, Greenhouse, y la politica de visibilidad publica de la API), Saved Jobs, Match basico explicable y Candidate Dashboard. Desde el Sprint 07 existe el frontend candidate-first en `apps/web` (Next.js + TypeScript + Tailwind + App Router): partio del slice vertical landing -> login/registro -> dashboard privado y desde entonces se han anadido las UIs de Perfil/CV y Portfolio (incluido portfolio publico `/u/[slug]`), Jobs, Saved Jobs y Match basico explicable. En el Sprint 08 se valido el entorno local real y el smoke HTTP del flujo `register -> login -> dashboard -> logout` (PASS_WITH_NOTES); el smoke visual quedo cubierto despues por el smoke E2E de Playwright (Sprint 18). Sprints posteriores agregaron la arquitectura multi-fuente de ofertas y el proveedor Greenhouse (Sprint 16), la activacion y el endurecimiento del dashboard y el pulido de UI candidato (Sprint 17), la preparacion **verificada en local** del deploy dev/staging con Docker + runbook, sin desplegar en VPS (Sprint 20), y una auditoria UX/UI del flujo candidato con su remediacion por lotes (Sprint 21: identidad, navegacion responsive, paginacion de Jobs, UX de match para perfiles incompletos y accesibilidad del drawer), la remediacion de accesibilidad y deuda UX restante (Sprint 21E) y una auditoria de production readiness sobre datos reales (Sprint 22, ultimo sprint cerrado). Desde el Sprint 19 el repositorio cuenta con CI en GitHub Actions (workflow `JobIT CI`) que verifica API y Web en cada PR. La infraestructura de despliegue real (Docker en VPS, DNS, reverse proxy/SSL) sigue pendiente de autorizacion (gate 20.6).
+El producto candidate-first está implementado en local y cubierto por pruebas. La
+preparación de despliegue en staging está documentada y verificada localmente, pero no
+hay un despliegue real en VPS acreditado. Tampoco debe interpretarse la documentación
+legal existente como una declaración de cumplimiento: las decisiones especializadas
+del tramo legal pendiente siguen bloqueando la publicación de superficies legales.
 
-## Vision modular
+## Estado actual
 
-JobIT se plantea como una plataforma evolutiva con modulos separados por responsabilidad:
+La última entrega integrada en `dev` es el **Sprint 25 — Landing Public Surface
+Hardening**. La landing pública incluye navegación responsive, preview con datos
+sintéticos, contraste AA, skip link, reduced motion, objetivos táctiles y metadatos
+sociales sin inventar dominio, canonical ni imágenes.
 
-- Experiencia de candidatos.
-- Gestion de perfil profesional.
-- Busqueda y seguimiento de ofertas.
-- Preparacion de candidaturas.
-- Futuras herramientas para recruiters y empresas.
-- Futuras capacidades de analitica e inteligencia asistida.
+Hitos recientes:
 
-La primera version se limita a validar el nucleo candidate-first antes de ampliar el alcance.
+- **Sprint 23:** guardas de seguridad para bases de datos de test y seed interno
+  idempotente, sin borrado global de ofertas.
+- **Sprint 24:** inventario de datos, política de superficies públicas y gate de
+  decisiones legales en documentos públicos sanitizados. El tramo de revisión legal
+  especializada continúa pendiente.
+- **Sprint 25:** hardening de la landing pública y su cobertura Vitest/Playwright.
 
-## Alcance MVP
+Los informes de sprint son registros históricos. Para conocer el estado vigente deben
+contrastarse con el código, las specs activas y esta documentación de arquitectura.
 
-El MVP inicial sera candidate-first. Debe centrarse en resolver necesidades reales de candidatos tech sin abrir todavia funcionalidades avanzadas.
+## Capacidades implementadas
 
-Alcance previsto del MVP:
+- **Auth:** registro, login, logout y consulta de usuario autenticado.
+- **Candidate Profile & CV:** perfil, skills, experiencia, educación, proyectos,
+  enlaces y preferencias.
+- **Portfolio:** edición, configuración y superficie pública `/u/[slug]`.
+- **Jobs:** listado, filtros, paginación y detalle de ofertas persistidas.
+- **Fuentes externas:** ingesta backend-only, manual y controlada desde Jooble y
+  Greenhouse; las lecturas del candidato se sirven desde PostgreSQL.
+- **Saved Jobs:** guardado idempotente, listado y eliminación con ownership.
+- **Match explicable:** puntuación determinista basada en reglas visibles; no usa
+  LLM, embeddings ni modelos opacos.
+- **Candidate Dashboard:** resumen agregado de perfil, skills, guardados, matches y
+  próximos pasos.
+- **Landing pública:** presentación candidate-first accesible y responsive.
 
-- Registro conceptual de candidatos y perfil profesional.
-- Gestion basica de informacion laboral, skills y preferencias.
-- Exploracion o gestion inicial de oportunidades.
-- Seguimiento simple del proceso de candidatura.
-- Base funcional preparada para crecer por modulos.
+No están implementados el módulo recruiter completo, un ATS propio, candidaturas
+internas, monetización, comunidad, aplicación móvil ni IA avanzada.
 
-Todo el alcance funcional debera definirse mediante especificaciones antes de implementarse.
+## Stack
 
-## Fuera de alcance MVP
+| Capa | Tecnología |
+|---|---|
+| Web | Next.js 16, React 19, TypeScript, Tailwind CSS 4 |
+| API | Node.js 20, Express 5, TypeScript, Zod |
+| Datos | PostgreSQL, Prisma 6 |
+| Tests | Vitest, Testing Library, Supertest, Playwright |
+| Calidad | ESLint, typecheck TypeScript, build por workspace |
+| CI | GitHub Actions, workflow `JobIT CI` con jobs API y Web |
+| Staging preparado | Docker y Docker Compose; despliegue real pendiente |
 
-Queda fuera del MVP inicial:
+El repositorio usa `pnpm@10.0.0`.
 
-- Frontend, backend, base de datos o infraestructura durante la fase documental inicial.
-- Modulo recruiter completo.
-- IA avanzada o automatizaciones complejas.
-- Monetizacion.
-- Comunidad real o red social.
-- Aplicacion movil.
-- Integraciones externas no imprescindibles.
-- Despliegue, Docker o configuracion de produccion (el CI basico de verificacion se anadio despues, en el Sprint 19).
-
-## Stack previsto
-
-El stack definitivo se decidira en sprints tecnicos posteriores. Como orientacion inicial, el proyecto preve:
-
-- Frontend: Next.js + TypeScript + Tailwind.
-- Backend: Node.js + TypeScript con Express o Fastify.
-- Base de datos: PostgreSQL + Prisma.
-- Deploy futuro: Docker + VPS + Nginx o Nginx Proxy Manager.
-
-Parte de este stack ya esta implementado: el backend en `apps/api` (Express + Prisma) y, desde el Sprint 07, el frontend en `apps/web` (Next.js + TypeScript + Tailwind + App Router). El stack de despliegue (Docker + VPS + Nginx) sigue pendiente de sprints posteriores.
-
-## Estado actual del repositorio
-
-Estado: producto modular candidate-first funcional, actualmente en fase de hardening y preparacion controlada para usuarios y datos reales. El backend vive en `apps/api` (Node.js + TypeScript + Express + Zod, PostgreSQL + Prisma) y el frontend en `apps/web` (Next.js + TypeScript + Tailwind + App Router). El ultimo sprint cerrado es el **Sprint 22 — Production Readiness & Real Data Audit**; su auditoria concluye que el repositorio dispone de una base funcional solida, pero todavia existen riesgos y requisitos pendientes antes de incorporar usuarios o datos reales. Ver [`docs/sprints/sprint-22-production-readiness-real-data-audit-report.md`](docs/sprints/sprint-22-production-readiness-real-data-audit-report.md).
-
-Modulos backend implementados:
-
-- **Auth (M01)**: registro, login, logout y ruta privada del usuario autenticado, con middleware `requireAuth`.
-- **Candidate Profile & CV (M02)**: perfil del candidato y subrecursos (skills, experience, education, projects, links, preferences) bajo `/api/profile/me`, con ownership por usuario autenticado.
-- **Jobs (M03)**: exploracion de ofertas tech, con filtros y paginacion. Incluye la integracion backend-only con Jooble (ingesta manual/controlada de ofertas externas, sin red en tests) y la politica de visibilidad publica de la API (DTO publico via `serializeJob` / `JobPublicDto`, que oculta `externalId`/`ingestedAt` y expone `source`/`sourceUrl`).
-- **Saved Jobs (M04)**: guardado, listado y borrado de ofertas por candidato autenticado, con ownership estricto e idempotencia.
-- **Match basico explicable (M05)**: afinidad entre el perfil/CV del candidato autenticado y las ofertas, calculada en tiempo de peticion. Heuristico, determinista y explicable (reglas visibles con desglose por factores); **no usa IA/ML/embeddings/LLM**. El job embebido usa `serializeJob` / `JobPublicDto` (sin `externalId`/`ingestedAt`).
-- **Candidate Dashboard (M06)**: vista agregada de solo lectura del candidato autenticado bajo `/api/dashboard/me`. Compone servicios ya existentes de Profile/CV (perfil + completitud), Saved Jobs (ultimas guardadas) y Match (mejores afinidades), reutilizando indirectamente `serializeJob` / `JobPublicDto`. Backend-first, determinista, **sin persistencia nueva, sin IA avanzada y sin llamadas externas**.
-
-Endpoints de Jobs disponibles (rutas privadas, requieren sesion):
-
-- `GET /api/jobs` — listado de ofertas activas con filtros (`q`, `location`, `remote`, `seniority`, `contractType`, `source`, `tags`) y paginacion (`page`, `limit`). `location` filtra por ubicacion (contains, case-insensitive) y es el eje principal de busqueda, alineado con las fuentes externas (Jooble y futuras APIs/RSS).
-- `GET /api/jobs/:id` — detalle de una oferta activa; devuelve `404` si no existe, esta cerrada o ha expirado.
-
-Endpoints de Saved Jobs disponibles (rutas privadas, requieren sesion):
-
-- `GET /api/saved-jobs` — listado de ofertas guardadas del candidato autenticado, ordenadas por fecha de guardado; el job embebido usa el contrato publico de Jobs.
-- `POST /api/saved-jobs/:jobId` — guarda una oferta; idempotente (`201` si la crea, `200` si ya estaba guardada).
-- `DELETE /api/saved-jobs/:jobId` — quita una oferta guardada propia (`204`); devuelve `404` si no estaba guardada por el usuario.
-
-Endpoints de Match disponibles (rutas privadas, requieren sesion):
-
-- `GET /api/jobs/:id/match` — calcula la afinidad del candidato autenticado con una oferta; devuelve `score` (0-100), `level`, `matchedSkills`, `missingSkills`, `factors` y `explanation`. `400` si el id no tiene forma de UUID; `404` si la oferta no esta disponible.
-- `GET /api/profile/me/matches` — mejores ofertas para el candidato autenticado, ordenadas por `score` descendente; `limit` opcional (default 10, maximo 50); cada item incluye la oferta via `JobPublicDto`. No expone `externalId` ni `ingestedAt`.
-
-Endpoint de Dashboard disponible (ruta privada, requiere sesion):
-
-- `GET /api/dashboard/me` — vista agregada del candidato autenticado. Devuelve `profile` (`firstName`, `lastName`, `headline`, `completionPercentage`), `skills`, `savedJobs` (`total` + `recent` limitado a 3 por fecha de guardado), `matches` (top 3 explicables) y `nextActions` deterministas (`complete_profile`, `explore_jobs`). El `userId` se obtiene solo del token; los jobs embebidos usan el contrato publico de Jobs (sin `externalId`/`ingestedAt`).
-
-### Frontend candidate-first (desde Sprint 07)
-
-El frontend vive en `apps/web` como workspace `@jobit/web` (Next.js + TypeScript + Tailwind + App Router). Nacio en el Sprint 07 como una primera version minima candidate-first que consume el backend real y ha ido madurando en sprints posteriores (Portfolio v1, activacion y pulido del dashboard, paginacion de Jobs, y la remediacion UX/UI del Sprint 21: identidad real y sincronizada del header, navegacion responsive con drawer accesible, avisos de sesion, deduplicacion de CTAs y orden responsive del perfil).
-
-Pantallas implementadas:
-
-- `/` — landing candidate-first (marca JobIT y accesos a login, registro y dashboard).
-- `/login` — inicio de sesion contra `POST /api/auth/login`.
-- `/register` — registro contra `POST /api/auth/register`, con confirmacion de contrasena y politica minima en cliente.
-- `/dashboard` — ruta privada que consume `GET /api/dashboard/me` y muestra perfil/completitud, skills, ofertas guardadas, mejores matches y proximos pasos, con estados de carga/error/vacio y boton de logout.
-- `/profile` (y `/profile/portfolio`, `/profile/portfolio/settings`) mas el portfolio publico `/u/[slug]` — JobIT CV editable y portfolio (Sprints 13-14).
-- `/jobs` y `/jobs/[id]` — exploracion y detalle de ofertas con filtros y guardar/quitar (Sprint 15A-B). El detalle muestra ademas un panel de match basico y explicable (`GET /api/jobs/:id/match`: score, nivel, explicacion, factores y skills), cuyo fallo no rompe el detalle (Sprint 15D). **Sin IA avanzada.** Cada oferta indica su **fuente** (JobIT/Jooble); si tiene `sourceUrl`, el candidato puede abrir la oferta original de forma segura (`target="_blank"` + `rel="noopener noreferrer"`, solo `http`/`https`) para inscribirse en el origen. Las ofertas de ejemplo (seed internas, sin URL) se marcan como tales y no muestran enlace de inscripcion. El MVP **no gestiona candidaturas internas**: la inscripcion ocurre siempre en la fuente original (Sprint 15E). La busqueda de `/jobs` se organiza por **ubicacion** (el antiguo selector de "Fuente" se sustituyo por un campo de ubicacion): con varias fuentes activas el candidato busca por sus parametros y el sistema devuelve ofertas de todas las fuentes disponibles. Las ofertas `JOOBLE` se ingieren con el modulo backend-only de Jooble; las `INTERNAL` seran, mas adelante, ofertas publicadas por empresas en la propia web de JobIT. Arquitectura de fuentes y extensibilidad (APIs/RSS): [`docs/architecture/03-job-sources-and-search.md`](docs/architecture/03-job-sources-and-search.md).
-- `/saved-jobs` — ofertas guardadas del candidato.
-- `/match` — JobIT Match basico y explicable (Sprint 15C): mejores ofertas del candidato ordenadas por una puntuacion basada en reglas visibles (skills, modalidad, seniority y ubicacion), con nivel de afinidad, skills coincidentes/faltantes, enlace al detalle y guardar/quitar. Consume `GET /api/profile/me/matches`; **no usa IA avanzada ni modelos opacos**.
-
-Sesion y seguridad:
-
-- El `accessToken` se guarda solo en memoria de React (no se usa `localStorage` ni `sessionStorage`).
-- El cliente API tipado usa `fetch` con `credentials: "include"` y cabecera `Authorization: Bearer` solo cuando hay token; la URL base se lee de `NEXT_PUBLIC_API_BASE_URL`.
-- No existe `POST /api/auth/refresh`: al recargar la pagina o expirar el token, la sesion se pierde y el candidato vuelve a iniciar sesion. Un `401` se trata como sesion expirada (limpia la sesion y redirige a `/login`).
-- Logout: llama a `POST /api/auth/logout` y limpia la sesion local aunque la llamada al servidor falle.
-
-Ejecucion local del frontend (backend dev esperado en `:4000`, frontend en `:3000`):
-
-```bash
-# Configuracion local no versionada
-echo "NEXT_PUBLIC_API_BASE_URL=http://localhost:4000" > apps/web/.env.local
-pnpm --filter @jobit/web dev
-pnpm --filter @jobit/web typecheck
-pnpm --filter @jobit/web test
-pnpm --filter @jobit/web build
-pnpm --filter @jobit/web lint
-```
-
-### Entorno local y smoke (Sprint 08)
-
-El Sprint 08 valido el entorno local real (backend + PostgreSQL + frontend) en el clon nativo de WSL y dejo el deploy dev/staging **planificado, no ejecutado**.
-
-- Entorno operativo obligatorio: clon nativo de WSL `/home/david/projects/JobIT-platform` (ver `docs/agents/operating-environment.md`). No usar la carpeta de OneDrive/Windows para tooling.
-- Base de datos local de dev/smoke: `jobit_dev` en el contenedor `jobit-postgres-test` (host `5434`), separada de la base de test `jobit_test`.
-- Plantilla de entorno del backend: `apps/api/.env.example` (placeholders, sin secretos). Los `.env` reales (`apps/api/.env`, `apps/web/.env.local`) son locales e ignorados por Git.
-- Variables (sin valores reales): backend `DATABASE_URL`, `DATABASE_URL_TEST`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `PORT` (4000), `CORS_ORIGIN`, `NODE_ENV`, `JOOBLE_API_KEY` (opcional/vacia), `JOOBLE_API_BASE_URL` (opcional; default `https://jooble.org/api`, regional p. ej. `https://es.jooble.org/api` para keys regionales); frontend `NEXT_PUBLIC_API_BASE_URL` (`http://localhost:4000`). La ingesta Jooble es backend-only y controlada; JobIT busca en su DB local, no consulta Jooble en vivo. Detalle en [`docs/development/local-env.md`](docs/development/local-env.md) y [`docs/architecture/03-job-sources-and-search.md`](docs/architecture/03-job-sources-and-search.md).
-- Guia detallada de entorno local (arranque API/Web, `DATABASE_URL_TEST` y smoke con curl): [`docs/development/local-env.md`](docs/development/local-env.md). Importante: `CORS_ORIGIN` debe coincidir con el puerto REAL del frontend; si el 3000 esta ocupado y el web corre en `:3001`, usa `CORS_ORIGIN=http://localhost:3001` (si no, el login falla por CORS).
-
-Resultado del smoke local (PASS_WITH_NOTES):
-
-- Smoke HTTP backend real: PASS — `register 201 -> login 200 -> GET /api/dashboard/me 200 -> logout 204 -> GET /api/auth/me sin token 401`. Ademas `GET /health` 200 y landing `/` 200.
-- Smoke visual en navegador: pendiente/BLOCKED por ausencia de navegador/Playwright en el entorno de agente (no es defecto de codigo).
-- Verificaciones: backend `278/278`, frontend `35/35`, typecheck/build/lint en verde.
-
-Pendiente: deploy dev/staging (requiere target y autorizacion); dominio/subdominio, DB staging y reverse proxy/SSL por decidir; ajuste de cookie cross-site/HTTPS para staging. Detalle en `docs/sprints/sprint-08-*`. El smoke visual con navegador quedo cubierto por el smoke E2E de Playwright del Sprint 18 (`docs/specs/features/candidate-e2e-smoke.md`).
-
-Verificaciones del Sprint 07: `typecheck`, `test` (35/35), `build` y `lint` en verde; auditoria quality/security PASS_WITH_NOTES. El smoke manual contra el backend real queda **pendiente** de provisionar el entorno local (`apps/web/.env.local`, backend con base de datos migrada y puerto `:3000` libre).
-
-Pendiente del frontend: smoke real en entorno provisionado, UI completa de Jobs / Saved Jobs / Perfil-CV, navegacion segun sesion, posible `POST /api/auth/refresh` (backend) y despliegue dev/staging.
-
-Pendiente global: infraestructura de despliegue (Docker, VPS). El CI basico de verificacion existe desde el Sprint 19 (ver la seccion de integracion continua). Cada nuevo modulo se implementa con su spec previa y el flujo SDD + TDD + AI Audit.
-
-### Integracion continua (Sprint 19)
-
-El workflow `JobIT CI` (`.github/workflows/ci.yml`) se ejecuta en cada PR hacia `dev`/`main`, en cada push a `dev` y bajo demanda (`workflow_dispatch`), con dos jobs separados e independientes:
-
-- **api**: PostgreSQL 16 como service efimero (la suite de integracion migra la base sola via `globalSetup`), `prisma generate` explicito, typecheck, tests (399 en 41 archivos) y build.
-- **web**: lint, typecheck, tests RTL con APIs mockeadas (386 en 27 archivos) y build de Next.
-
-> Conteos de tests al cierre del Sprint 21 (CI verde en `dev`). Iran creciendo con cada sprint; el CI es la fuente de verdad.
-
-El CI fija Node 20, resuelve pnpm desde el campo `packageManager` e instala con `--frozen-lockfile`. No usa secrets: solo variables dummy (`DATABASE_URL_TEST` del service efimero y `NEXT_PUBLIC_API_BASE_URL`, que es publica). Las ramas y PRs deben pasar ambos jobs antes del merge hacia `dev`.
-
-Comandos locales equivalentes (los mismos que ejecuta el CI):
-
-```bash
-pnpm install --frozen-lockfile
-pnpm --filter @jobit/api exec prisma generate
-pnpm --filter @jobit/api typecheck && pnpm --filter @jobit/api test && pnpm --filter @jobit/api build
-pnpm --filter @jobit/web lint && pnpm --filter @jobit/web typecheck && pnpm --filter @jobit/web test && pnpm --filter @jobit/web build
-```
-
-El smoke E2E de Playwright (Sprint 18) NO corre en CI: sigue siendo ejecucion local/manual (`pnpm --filter @jobit/web test:e2e` contra el stack local seedeado) y queda documentado como fase posterior con workflow manual. El Sprint 19 no anade deploy. Detalle: spec `docs/specs/features/ci-quality-gates.md` y plan `docs/sprints/sprint-19-ci-quality-gates-plan.md`.
-
-## Estructura documental
-
-Estructura actual (orientativa; las carpetas `decisions/`, `specs/features/` y `sprints/`
-crecen con cada sprint — consulta el arbol real del repo para el listado completo):
+## Estructura del repositorio
 
 ```text
 .
-├── AGENTS.md
-├── CLAUDE.md
-├── README.md
 ├── apps
-│   ├── api            # Backend Express + Prisma (Node.js + TypeScript + Zod)
-│   └── web            # Frontend Next.js (App Router) + TypeScript + Tailwind
+│   ├── api          # API Express, Prisma, módulos de dominio e ingestas
+│   └── web          # Aplicación Next.js candidate-first
+├── docs
+│   ├── agents       # Modelo operativo, skills, checklists y plantillas
+│   ├── architecture # Arquitectura y estructura vigentes
+│   ├── decisions    # ADRs históricos
+│   ├── deployment   # Preparación y runbook de staging
+│   ├── development  # Entorno local
+│   ├── legal        # Documentos públicos; privados locales fuera de Git
+│   ├── product      # Brief de producto vigente
+│   ├── specs        # Contratos funcionales y técnicos
+│   └── sprints      # Planes e informes históricos
+├── packages         # Reserva de monorepo; sin paquetes compartidos activos
 ├── docker-compose.staging.yml
-└── docs
-    ├── agents         # Guias, workflow SDD+TDD+AI Audit, skills, plantillas y checklists
-    ├── architecture   # 00-overview, 01-repository-structure, 02-mvp-modules, 03-job-sources-and-search
-    ├── decisions      # ADR-0001 … ADR-0012 (stack, auth, API, DB/ORM, Jooble, deploy staging…)
-    ├── deployment     # staging-env, runbook de deploy en VPS (preparado, no ejecutado)
-    ├── development    # local-env (arranque API/Web, DB de dev/test, smoke con curl)
-    ├── product        # 00-product-brief
-    ├── specs
-    │   ├── 00-mvp-scope.md
-    │   ├── spec-template.md
-    │   └── features   # auth, candidate-profile-cv, jobs, saved-jobs, match-basic, dashboard,
-    │                  # external-jobs-jooble, job-sources-aggregation, jobs-api-visibility,
-    │                  # jobit-portfolio-v1, candidate-e2e-smoke, ci-quality-gates,
-    │                  # deploy-staging-readiness, match-incomplete-profile-ux,
-    │                  # identity-navigation-responsive, …
-    └── sprints        # pre-sprint-00A…00D + briefs/planes/reports de los Sprints 00–21
-                       # (registros historicos por sprint; el ultimo es sprint-21-final-report.md)
+├── pnpm-workspace.yaml
+└── package.json
 ```
 
-## Flujo oficial de ramas
+Más detalle:
 
-JobIT usa ramas cortas y revisables. No se trabaja directamente sobre `main` ni `dev`.
+- [Visión de arquitectura](docs/architecture/00-architecture-overview.md)
+- [Estructura del repositorio](docs/architecture/01-repository-structure.md)
+- [Módulos candidate-first](docs/architecture/02-mvp-modules.md)
+- [Fuentes de ofertas y búsqueda](docs/architecture/03-job-sources-and-search.md)
 
-- `main`: rama estable. Solo recibe cambios validados desde `dev`.
-- `dev`: rama de integracion. Todas las PR deben apuntar aqui salvo decision explicita.
-- `docs/*`: documentacion, decisiones, specs y guias.
-- `feat/*`: nuevas funcionalidades con spec previa.
-- `fix/*`: correcciones acotadas.
-- `chore/*`: mantenimiento, ajustes internos o tareas no funcionales.
+## Puesta en marcha local
 
-Reglas operativas:
-
-- Crear cada rama desde `dev` actualizado.
-- Confirmar rama activa y `git status --short` antes de modificar.
-- Mantener cambios pequenos, revisables y reversibles.
-- Separar cambios documentales de cambios de codigo cuando el alcance lo permita.
-- Abrir PR hacia `dev` solo tras verificaciones y auditoria.
-
-Rama usada para formalizar este flujo:
+Trabaja desde el clon nativo de WSL:
 
 ```text
-docs/pre-sprint-00b-workflow-governance
+/home/david/projects/JobIT-platform
 ```
 
-## Flujo oficial SDD + TDD + AI Audit + PR
+No compartas `node_modules` con un checkout de Windows/OneDrive. Antes de instalar o
+ejecutar tooling consulta
+[el entorno operativo](docs/agents/operating-environment.md) y
+[la guía local](docs/development/local-env.md).
 
-JobIT sigue una metodologia SDD, Specification-Driven Development, combinada con TDD pragmatico, agentes IA controlados, auditoria documental/tecnica de calidad y seguridad, Pull Requests y Docs as Code.
+Preparación mínima:
 
-Flujo base:
+```bash
+pnpm install --frozen-lockfile
+cp apps/api/.env.example apps/api/.env
+pnpm --filter @jobit/api exec prisma generate
+pnpm --filter @jobit/api exec prisma migrate deploy
+```
 
-1. Crear rama desde `dev`.
-2. Crear o actualizar una spec en `docs/specs/`.
-3. Definir tests minimos antes de implementar.
-4. Implementar con TDD pragmatico y asistencia controlada de IA.
-5. Ejecutar verificaciones locales.
-6. Pasar auditoria de calidad y seguridad.
-7. Corregir cualquier fallo detectado.
-8. Actualizar la documentacion dentro de la misma rama.
-9. Abrir PR hacia `dev`.
+Completa `apps/api/.env` solo con valores locales y no publiques su contenido. Usa
+una base de desarrollo y otra base exclusiva para tests.
 
-Reglas de bloqueo:
+Arranque, en dos terminales:
 
-- No se implementa una feature sin spec previa en `docs/specs/`.
-- No se abre PR si la auditoria quality/security devuelve `FAIL`.
-- No se abre PR si faltan verificaciones locales razonables para el alcance.
-- La documentacion afectada debe actualizarse en la misma rama antes de la PR.
-- El agente ejecuta autonomamente el plan aprobado, pero no redefine el sprint ni realiza acciones Git o productivas sin autorizacion: la revision final y las autorizaciones Git son humanas.
+```bash
+pnpm --filter @jobit/api dev
+pnpm --filter @jobit/web dev
+```
 
-Documentos de referencia:
+Valores locales habituales:
 
-- [Flujo SDD + TDD + AI Audit](docs/agents/sdd-tdd-ai-audit-workflow.md).
-- [Guia de TDD pragmatico](docs/agents/tdd-guidelines.md).
-- [Auditoria quality/security](docs/agents/audit-quality-security-skill.md).
-- [Checklist de PR](docs/agents/pr-checklist.md).
-- [Plantilla de spec](docs/specs/spec-template.md).
-- [ADR-0004 metodologico](docs/decisions/ADR-0004-sdd-tdd-ai-audit-workflow.md).
+- API: `http://localhost:4000`
+- Web: `http://localhost:3000`
+- `NEXT_PUBLIC_API_BASE_URL=http://localhost:4000`
+- `CORS_ORIGIN` debe coincidir con el origen real del frontend.
 
-## Uso de agentes IA
+Consulta [apps/web/README.md](apps/web/README.md) para rutas y verificaciones del
+frontend.
 
-Los agentes IA pueden ayudar a documentar, analizar, proponer, implementar tareas controladas y revisar cambios. Trabajan en Plan Mode (solo lectura) y, tras `PLAN_APPROVED`, en Execution Mode autonomo, completando las fases internas del plan sin micro-prompts por defecto. Deben respetar siempre el alcance aprobado, mantener cambios reversibles y entregar un resumen final. El control paso a paso se reserva para Nivel 3, incidentes o cambios de alcance.
+## Calidad y pruebas
 
-Las reglas operativas para agentes estan en [AGENTS.md](AGENTS.md); el contrato operativo canonico completo es [JobIT Operating Model v2](docs/agents/jobit-operating-model-v2.md).
+Comandos equivalentes a los gates principales:
 
-## Siguiente paso
+```bash
+pnpm --filter @jobit/api exec prisma generate
+pnpm --filter @jobit/api typecheck
+pnpm --filter @jobit/api test
+pnpm --filter @jobit/api build
 
-El nucleo candidate-first esta implementado y verificado (backend + frontend, CI en verde), destinado a produccion y en fase de hardening. Los siguientes pasos recomendados son:
+pnpm --filter @jobit/web lint
+pnpm --filter @jobit/web typecheck
+pnpm --filter @jobit/web test
+pnpm --filter @jobit/web build
+```
 
-- **Deploy dev/staging real (gate 20.6)**: ejecutar el runbook ya escrito y verificado en local (Docker + VPS + DNS + reverse proxy/SSL), con autorizacion expresa y ventana de rollback. Ver [`docs/deployment/staging-vps-deploy-runbook.md`](docs/deployment/staging-vps-deploy-runbook.md) y [`docs/sprints/sprint-20-final-report.md`](docs/sprints/sprint-20-final-report.md).
-- **Deuda de accesibilidad y UX (Sprint 21E y posteriores)**: A11Y-01…05 (auditoria WCAG completa) y hallazgos diferidos (PROF-01/02, PORT-02, SAVED-02, MATCH-04). Ver [`docs/sprints/sprint-21-final-report.md`](docs/sprints/sprint-21-final-report.md).
+El smoke E2E se ejecuta localmente contra el stack preparado:
 
-Cada nuevo modulo o mejora sigue el flujo SDD + TDD + AI Audit + PR descrito arriba: spec previa, tests minimos, verificaciones locales, auditoria y PR hacia `dev`.
+```bash
+pnpm --filter @jobit/web test:e2e
+```
+
+Los conteos cambian con cada entrega; el workflow `JobIT CI` y la ejecución local
+son la fuente de verdad. Las PR hacia `dev` deben superar los jobs independientes
+`API (typecheck + test + build)` y `Web (lint + typecheck + test + build)`.
+
+## Seguridad y límites operativos
+
+- Los `.env` reales y secretos nunca se versionan ni se copian a logs o PR.
+- `DATABASE_URL_TEST` es obligatoria para los tests de API y debe apuntar a una base
+  dedicada que el runner pueda migrar y truncar.
+- El seed interno valida el destino antes de conectar, opera solo sobre su namespace
+  `jobit-seed-*` y conserva ofertas externas o internas ajenas a ese namespace.
+- Jooble requiere una API key solo en backend; Greenhouse usa su Job Board API
+  pública y una lista curada versionada.
+- No hay scraping ni consultas a proveedores durante las requests del candidato.
+- El access token del frontend vive en memoria; el refresh token se gestiona en una
+  cookie HttpOnly. No existe todavía un endpoint de refresh de sesión.
+- Las superficies legales públicas siguen sujetas al gate documentado en
+  [Sprint 24](docs/sprints/sprint-24-legal-decision-gate-report.md).
+- Docker y el runbook de staging están preparados, pero DNS, proxy/SSL, secretos de
+  entorno y despliegue real requieren autorización y verificación separadas.
+
+## Flujo de trabajo
+
+JobIT usa el contrato SDD + TDD + AI Audit:
+
+```text
+dev actualizado
+  -> rama corta
+  -> spec
+  -> tests mínimos
+  -> implementación
+  -> verificación local
+  -> auditoría quality/security
+  -> documentación
+  -> revisión humana
+  -> commit/push autorizados
+  -> PR hacia dev
+```
+
+No se trabaja directamente en `main` ni en `dev`. El modelo operativo canónico es
+[docs/agents/jobit-operating-model-v2.md](docs/agents/jobit-operating-model-v2.md).
+
+## Documentación principal
+
+- [Product brief](docs/product/00-product-brief.md)
+- [Entorno local](docs/development/local-env.md)
+- [Specs de funcionalidades](docs/specs/features/)
+- [ADRs](docs/decisions/)
+- [Preparación de staging](docs/deployment/staging-env.md)
+- [Runbook de staging](docs/deployment/staging-vps-deploy-runbook.md)
+- [Informes de sprint](docs/sprints/)
+
+Los nombres históricos que incluyen `mvp` se mantienen para preservar enlaces y
+trazabilidad; no describen a JobIT como prototipo ni autorizan ampliar alcance.

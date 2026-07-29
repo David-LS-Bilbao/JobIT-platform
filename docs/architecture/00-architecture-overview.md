@@ -1,78 +1,175 @@
-# Arquitectura 00: Vision general
+# Arquitectura 00: Visión general
 
-## Vision general
+## Propósito
 
-JobIT-platform se plantea como una plataforma fullstack modular de empleo tecnologico. La arquitectura debe permitir evolucionar desde un MVP candidate-first hacia una plataforma mas amplia sin introducir complejidad prematura.
+Este documento describe la arquitectura implementada de JobIT y sus límites
+operativos actuales. JobIT es un monorepo fullstack candidate-first con dos
+aplicaciones activas: frontend Next.js y API Express.
 
-Esta documentacion define la arquitectura prevista. No implementa codigo, configuracion, infraestructura ni carpetas tecnicas.
+## Vista de alto nivel
 
-## MVP candidate-first
+```text
+Navegador
+  |
+  | HTTPS/HTTP + JSON, Bearer access token y cookie de refresh
+  v
+apps/web (Next.js, React, App Router)
+  |
+  | NEXT_PUBLIC_API_BASE_URL
+  v
+apps/api (Express, Zod, módulos de dominio)
+  |
+  | Prisma
+  v
+PostgreSQL
 
-La primera version debe priorizar la experiencia del candidato:
+Proveedores externos
+  -> scripts backend-only de ingesta manual
+  -> normalización y upsert
+  -> PostgreSQL
+  -> API pública sanitizada
+```
 
-- Gestionar perfil profesional.
-- Representar CV/perfil tech.
-- Organizar skills, experiencia, educacion y proyectos.
-- Explorar o guardar ofertas.
-- Obtener un match basico explicable.
-- Ofrecer un dashboard inicial del candidato.
+Las requests del candidato no consultan Jooble ni Greenhouse en vivo. Trabajan con
+ofertas ya persistidas.
 
-Recruiters, ATS, comunidad, monetizacion e IA avanzada quedan fuera del MVP inicial.
+## Aplicación web
 
-## Monorepo previsto
+`apps/web` usa Next.js 16, React 19, TypeScript, Tailwind CSS 4 y App Router.
 
-El proyecto se documenta como un monorepo futuro para mantener cerca las piezas principales del producto, compartir tipos y separar responsabilidades.
+Responsabilidades:
 
-La estructura se creara solo cuando exista una spec tecnica aprobada.
+- superficies públicas de landing, auth y portfolio;
+- rutas privadas de dashboard, perfil, jobs, guardados y match;
+- estados de carga, error y vacío;
+- navegación responsive y accesibilidad;
+- cliente HTTP tipado contra la API;
+- gestión del access token exclusivamente en memoria.
 
-## Separacion futura de capas
+El web no conoce secretos de proveedores ni accede directamente a PostgreSQL.
 
-Separacion prevista:
+## API
 
-- `apps/web`: aplicacion frontend.
-- `apps/api`: API backend.
-- `packages/database`: schema, cliente y utilidades de base de datos.
-- `packages/shared`: tipos, contratos y utilidades compartidas.
-- `packages/ui`: componentes reutilizables.
-- `docs/`: documentacion de producto, arquitectura, decisiones y agentes.
+`apps/api` usa Node.js 20, Express 5, TypeScript, Zod, Prisma y PostgreSQL.
 
-Estas carpetas son una propuesta arquitectonica. No existen todavia por decision del Pre-Sprint 00B.1.
+Módulos montados:
 
-## Backend modular API-first
+- health;
+- auth;
+- profile y portfolio;
+- portfolio público;
+- dashboard;
+- jobs;
+- saved jobs;
+- match.
 
-El backend se concibe como una API modular, con separacion clara por dominios funcionales. La API debe servir primero a la experiencia web del candidato y dejar espacio para futuras superficies sin acoplar la logica a una unica interfaz.
+La API valida entradas, aplica autenticación y ownership donde corresponde, separa
+routers, servicios y persistencia, y usa un DTO público de oferta para ocultar
+`externalId` e `ingestedAt`.
 
-Principios previstos:
+## Datos
 
-- Modulos por dominio.
-- Contratos claros entre frontend y backend.
-- Validacion de entrada.
-- Separacion entre rutas, casos de uso y persistencia.
-- Evolucion incremental segun specs aprobadas.
+Prisma mantiene el modelo y las migraciones de PostgreSQL dentro de `apps/api/prisma`.
+Las pruebas de integración requieren `DATABASE_URL_TEST` y rechazan destinos que no
+se clasifiquen como base dedicada de test.
 
-## Base de datos prevista
+El seed interno:
 
-La base prevista es PostgreSQL con Prisma como capa de modelado y acceso a datos.
+- valida el destino antes de crear el cliente;
+- usa identificadores estáticos `jobit-seed-*`;
+- hace upsert idempotente;
+- actualiza solo campos permitidos de su namespace;
+- no ejecuta un borrado global;
+- preserva ofertas externas y ofertas internas ajenas al dataset.
 
-Esta decision es documental. En esta fase no se crea schema, cliente, migraciones ni configuracion de Prisma.
+## Autenticación y sesión
 
-## Deploy futuro
+- Registro y login emiten un access token para el cliente.
+- El access token se conserva en memoria del frontend.
+- El refresh token se persiste en backend y se entrega mediante cookie HttpOnly.
+- Las requests autenticadas usan `Authorization: Bearer` y
+  `credentials: "include"`.
+- Logout revoca la sesión y el cliente limpia su estado aunque la llamada falle.
+- No existe todavía `POST /api/auth/refresh`; una recarga o expiración obliga a
+  iniciar sesión de nuevo.
 
-El despliegue futuro se orienta a Docker sobre VPS, con Nginx o Nginx Proxy Manager como capa de entrada.
+Cookies, CORS y URLs públicas deben revisarse con valores reales antes de cualquier
+despliegue.
 
-En esta fase no se crea Docker, `docker-compose.yml`, configuracion de VPS, Nginx, certificados ni workflows de despliegue.
+## Ofertas multi-fuente
 
-## Seguridad desde el inicio
+La arquitectura externa sigue el patrón:
 
-Aunque no se implemente todavia, la arquitectura debe considerar seguridad desde las primeras specs:
+```text
+client -> normalizer -> ingest service -> PostgreSQL -> JobPublicDto
+```
 
-- No introducir secretos en el repositorio.
-- Validar datos de entrada.
-- Definir autenticacion antes de implementarla.
-- Separar permisos y roles cuando existan.
-- Revisar riesgos antes de mergear.
-- Mantener cambios pequenos y revisables.
+- `INTERNAL`: dataset local controlado.
+- `JOOBLE`: proveedor activo, con API key backend-only.
+- `GREENHOUSE`: proveedor activo sobre Job Board API pública y empresas curadas.
+- `ADZUNA`: reservado en el enum; sin integración activa.
 
-## Estado de implementacion
+Las ingestas son scripts manuales, idempotentes y no exponen endpoints de
+administración. No hay scheduler ni scraping.
 
-No hay implementacion tecnica en este sprint. La arquitectura queda descrita para guiar specs y tareas futuras.
+## Calidad
+
+Vitest cubre unidades e integración; Supertest prueba la API; Testing Library prueba
+el frontend; Playwright cubre flujos E2E localizados. GitHub Actions ejecuta dos jobs
+independientes:
+
+- `API (typecheck + test + build)`;
+- `Web (lint + typecheck + test + build)`.
+
+El E2E completo sigue siendo una verificación local/manual y no sustituye los gates
+del CI.
+
+## Despliegue
+
+Existen Dockerfiles, `docker-compose.staging.yml`, documentación de entorno y un
+runbook de VPS. Esa preparación se verificó localmente, pero no acredita:
+
+- servidor provisionado;
+- DNS;
+- reverse proxy ni certificados;
+- secretos de staging;
+- observabilidad;
+- backups;
+- despliegue real.
+
+Toda acción de infraestructura requiere autorización separada.
+
+## Seguridad, privacidad y legal
+
+- No se versionan secretos ni `.env` reales.
+- Helmet, CORS explícito, validación y ownership forman parte de la API.
+- Las ofertas públicas ocultan campos internos de ingesta.
+- La landing usa preview y copy sintéticos.
+- Los documentos legales privados permanecen locales, ignorados y fuera de tracking.
+- La documentación pública de Sprint 24 no equivale a asesoramiento ni certificación
+  de cumplimiento.
+- No deben publicarse rutas o textos legales hasta resolver el gate especializado.
+
+## Límites arquitectónicos
+
+No existen actualmente:
+
+- paquetes compartidos activos en `packages/`;
+- servicio recruiter o empresarial;
+- ATS o candidatura interna;
+- IA avanzada;
+- ingesta programada;
+- refresh completo de sesión;
+- deploy productivo acreditado.
+
+Una nueva capa, integración o superficie requiere spec y, cuando cambie una decisión
+estructural, ADR.
+
+## Referencias
+
+- [Estructura del repositorio](01-repository-structure.md)
+- [Módulos candidate-first](02-mvp-modules.md)
+- [Fuentes de ofertas](03-job-sources-and-search.md)
+- [Entorno local](../development/local-env.md)
+- [ADRs](../decisions/)
+- [Modelo operativo](../agents/jobit-operating-model-v2.md)
