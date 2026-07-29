@@ -1,119 +1,147 @@
 # Product Brief 00: JobIT-platform
 
-## Resumen del producto
+## Resumen
 
-JobIT es una plataforma modular de empleo tecnologico orientada inicialmente a candidatos. Su proposito es ayudar a profesionales tech a ordenar su perfil, gestionar oportunidades y avanzar en procesos de seleccion con mas claridad.
+JobIT es una plataforma modular de empleo tecnológico destinada a producción y
+orientada primero a candidatos. Ayuda a representar el perfil profesional, descubrir
+y guardar oportunidades, comprender la afinidad con una oferta y publicar un
+portfolio.
 
-El proyecto empieza desde cero. La fase actual es documental y no incluye implementacion de codigo, infraestructura ni configuracion tecnica.
+La base candidate-first ya está implementada en web y API. El producto se encuentra
+en hardening: mejora progresiva de experiencia, accesibilidad, seguridad de datos,
+gobernanza legal y preparación operativa. Esto no equivale a afirmar que exista un
+despliegue productivo ni que se hayan resuelto todas las obligaciones legales.
 
-## Usuarios principales
+## Usuario prioritario
 
-Usuarios prioritarios para el MVP:
+El usuario actual es un profesional tecnológico junior, mid o senior que quiere:
 
-- Candidatos tech junior, mid y senior.
-- Profesionales que buscan cambiar de empleo.
-- Personas que quieren organizar candidaturas, skills y preferencias laborales.
+- mantener un perfil y CV estructurados;
+- presentar un portfolio público;
+- buscar ofertas por texto, ubicación y criterios laborales;
+- guardar oportunidades;
+- entender un match básico mediante reglas visibles;
+- ver próximos pasos desde un dashboard personal.
 
-Usuarios futuros, fuera del MVP inicial:
+Recruiters, empresas, comunidad y partners son actores futuros. No existe todavía una
+superficie funcional completa para ellos.
 
-- Recruiters.
-- Empresas.
-- Administradores de comunidad.
-- Partners o integraciones externas.
+## Propuesta de valor actual
 
-## Modulos previstos
+JobIT concentra en una experiencia candidate-first:
 
-Modulos conceptuales a considerar en la evolucion del producto:
+- identidad y perfil profesional;
+- CV tech con skills, experiencia, educación y proyectos;
+- portfolio público controlado por el candidato;
+- agregación de ofertas persistidas de distintas procedencias;
+- guardado de ofertas y continuidad de búsqueda;
+- afinidad explicable, sin modelos opacos;
+- dashboard que resume estado y acciones.
 
-- Perfil de candidato.
-- Skills y experiencia profesional.
-- Preferencias laborales.
-- Ofertas y oportunidades.
-- Seguimiento de candidaturas.
-- Preparacion de candidatura.
-- Panel recruiter futuro.
-- Administracion y moderacion futura.
-- Analitica futura.
+Las ofertas externas se ingieren de forma backend-only y controlada. Las búsquedas del
+candidato leen la base de datos de JobIT y no llaman a proveedores en tiempo real.
 
-Estos modulos son una vision de producto, no una autorizacion para implementarlos en el Pre-Sprint 00A.
+## Superficies implementadas
 
-## Vision modular oficial
+### Públicas
 
-La vision modular oficial de JobIT se organiza en los siguientes bloques:
+- Landing `/`.
+- Registro e inicio de sesión.
+- Portfolio publicado `/u/[slug]`.
 
-- JobIT Talent: zona del candidato.
-- JobIT CV: perfil y curriculum tech.
-- JobIT Jobs: buscador de ofertas.
-- JobIT Match: matching explicable basico.
-- JobIT Recruit: futuro, fuera del MVP inicial.
-- JobIT Radar: futuro.
-- JobIT Community: futuro.
-- JobIT Admin: administracion interna.
+La landing usa contenido ilustrativo sintético y no presenta datos reales de
+candidatos, empresas ni proveedores. Las superficies legales públicas permanecen
+bloqueadas hasta cerrar las decisiones especializadas documentadas en Sprint 24.
 
-Para el MVP inicial, la prioridad esta en los modulos candidate-first. Los modulos futuros no deben implementarse ni detallarse funcionalmente sin aprobacion expresa.
+### Privadas
 
-## MVP candidate-first
+- Dashboard.
+- Perfil y CV.
+- Edición y configuración de portfolio.
+- Listado y detalle de ofertas.
+- Ofertas guardadas.
+- Match explicable.
 
-El MVP debe validar primero la experiencia del candidato.
+## Módulos de producto
 
-Objetivos del MVP:
+| Módulo | Estado |
+|---|---|
+| JobIT Talent | Base candidate-first activa |
+| JobIT CV | Perfil, CV y portfolio activos |
+| JobIT Jobs | Exploración multi-fuente activa |
+| JobIT Match | Match básico explicable activo |
+| JobIT Recruit | Futuro; fuera del alcance actual |
+| JobIT Radar | Futuro; sin contrato aprobado |
+| JobIT Community | Futuro; fuera del alcance actual |
+| JobIT Admin | No existe un panel administrativo completo |
 
-- Dar al candidato un espacio claro para representar su perfil profesional.
-- Permitir una gestion inicial de oportunidades o candidaturas.
-- Reducir complejidad operativa frente a hojas de calculo o notas dispersas.
-- Preparar una base modular para futuras ampliaciones.
+El nombre histórico “MVP” se conserva en algunos archivos para mantener enlaces y
+trazabilidad. El trabajo nuevo debe describir el estado del producto como base
+candidate-first en hardening, no como prototipo o demo.
 
-El MVP no debe intentar resolver todo el mercado de empleo. Debe ser pequeno, verificable y centrado en valor directo para candidatos.
+## Fuentes de ofertas
 
-## Fuera de alcance
+- `INTERNAL`: dataset controlado de desarrollo; no representa todavía publicación
+  empresarial ni candidatura interna.
+- `JOOBLE`: proveedor implementado con API key solo en backend.
+- `GREENHOUSE`: Job Board API pública con lista pequeña de empresas curadas.
+- `ADZUNA`: valor reservado en el modelo de datos; no hay proveedor ni filtro público
+  implementados.
 
-Queda fuera del MVP:
+Las ofertas externas enlazan a su origen cuando existe una URL `http`/`https` válida.
+JobIT no gestiona actualmente la candidatura dentro de la plataforma.
 
-- Recruiter completo.
-- Panel empresarial completo.
-- IA avanzada.
-- Matching complejo.
-- Monetizacion.
-- Comunidad real o red social.
-- Aplicacion movil.
-- Integraciones externas avanzadas.
-- Automatizaciones complejas.
+## Principios
 
-Queda fuera del Pre-Sprint 00A:
+- **Candidate-first:** el valor directo para candidatos precede a nuevas superficies.
+- **Claridad y honestidad:** distinguir datos sintéticos, capacidades activas,
+  preparación técnica y operación real.
+- **Explicabilidad:** las decisiones visibles para el candidato usan reglas
+  comprensibles; no se presentan inferencias opacas como hechos.
+- **Privacidad por defecto:** minimizar exposición y no publicar datos o documentos
+  sensibles sin gate explícito.
+- **Modularidad:** separar dominios y ampliar solo mediante specs aprobadas.
+- **SDD + TDD + auditoría:** especificar, probar, implementar, verificar y documentar
+  antes de integrar.
 
-- Frontend.
-- Backend.
-- Base de datos.
-- Docker.
-- Autenticacion.
-- CI/CD.
-- Instalacion de dependencias.
-- Configuracion tecnica.
+## Límites actuales
 
-## Principios de producto
+No forman parte del producto implementado:
 
-- Candidate-first: priorizar siempre el valor para candidatos.
-- Modularidad: separar responsabilidades para permitir crecimiento ordenado.
-- Simplicidad: evitar funcionalidades avanzadas antes de validar lo basico.
-- Claridad: cada modulo debe tener un objetivo comprensible.
-- Iteracion: avanzar por sprints con criterios de aceptacion verificables.
-- Especificacion antes de implementacion: no escribir codigo sin una definicion previa.
-- Calidad y seguridad desde el flujo: cada feature futura debe pasar por spec, tests minimos, verificacion local, auditoria quality/security y documentacion actualizada antes de PR.
+- módulo recruiter y panel empresarial completos;
+- ATS o candidaturas internas;
+- recuperación/refresh completo de sesión;
+- IA avanzada, LLM, embeddings o scoring opaco;
+- automatización u orquestación periódica de ingestas;
+- monetización;
+- comunidad o red social;
+- aplicación móvil;
+- despliegue real acreditado en VPS;
+- declaración de cumplimiento legal.
 
-## Riesgos de scope creep
+La incorporación de usuarios o datos reales exige resolver los gates de seguridad,
+privacidad, soporte y operación correspondientes.
 
-Riesgos principales:
+## Estado de las entregas recientes
 
-- Intentar construir al mismo tiempo experiencia de candidato, recruiter y empresa.
-- Introducir IA avanzada antes de tener datos y flujos basicos.
-- Crear infraestructura prematura sin requisitos tecnicos cerrados.
-- Abrir monetizacion o comunidad antes de validar el uso principal.
-- Convertir el MVP en una plataforma completa antes de probar el nucleo candidate-first.
+- **Sprint 23:** seguridad de tests y seed de base de datos.
+- **Sprint 24:** documentación pública de gobernanza legal sanitizada; decisiones
+  privadas y revisión especializada pendientes.
+- **Sprint 25:** hardening de la landing pública, integrado en `dev`.
 
-Mitigacion:
+Los informes de sprint registran el resultado de cada entrega, pero no sustituyen la
+documentación viva ni autorizan por sí mismos una ampliación de alcance.
 
-- Mantener cada sprint con alcance explicito.
-- Registrar fuera de alcance en cada documento.
-- Rechazar ampliaciones no aprobadas.
-- Priorizar entregables pequenos y verificables.
-- Usar auditoria de calidad/seguridad como gate antes de Pull Request.
+## Evolución
+
+La evolución debe seguir entregables pequeños y verificables. Antes de abrir nuevas
+áreas de producto se priorizan:
+
+1. cierre de gates legales y de uso de datos reales;
+2. continuidad de sesión y hardening de seguridad pendiente;
+3. observabilidad, operación y despliegue controlado;
+4. validación del flujo candidate-first con usuarios autorizados;
+5. solo después, evaluación explícita de superficies recruiter o empresariales.
+
+Cada paso requiere spec, criterios de aceptación, tests mínimos, auditoría y
+autorizaciones operativas separadas.

@@ -1,96 +1,138 @@
-# Fuentes de ofertas y búsqueda (arquitectura)
+# Fuentes de ofertas y búsqueda
 
-Nota de arquitectura sobre la **procedencia de las ofertas**, la **búsqueda por
-ubicación** y cómo el sistema queda **preparado para incorporar más fuentes**
-(APIs externas y RSS) sin reescribir el módulo Jobs. Complementa la spec funcional
-`docs/specs/features/jobs.md` y la de visibilidad `jobs-api-visibility.md`.
+## Propósito
 
-## Modelo de fuentes (`Job.source`)
+Esta nota describe la procedencia de las ofertas, la búsqueda por ubicación y el
+patrón implementado para agregar proveedores sin acoplarlos a las requests del
+candidato. Complementa las specs
+[`jobs.md`](../specs/features/jobs.md),
+[`jobs-api-visibility.md`](../specs/features/jobs-api-visibility.md) y
+[`job-sources-aggregation.md`](../specs/features/job-sources-aggregation.md).
 
-Cada oferta tiene una procedencia (`source`) y, si aplica, una URL de origen
-(`sourceUrl`). El contrato público expone `source` y `sourceUrl` y **oculta** los
-campos internos de ingesta (`externalId`, `ingestedAt`).
+## Modelo de procedencia
 
-| `source` | Hoy | Dirección futura |
+Cada `Job` guarda `source` y, cuando procede, `sourceUrl`, `externalId` e
+`ingestedAt`. El contrato público:
+
+- expone `source` y `sourceUrl`;
+- oculta `externalId` e `ingestedAt`;
+- se reutiliza en Jobs, Saved Jobs, Match y Dashboard.
+
+| `source` | Estado actual | Comportamiento |
 |---|---|---|
-| `INTERNAL` | Ofertas seed/mock de ejemplo (sin `sourceUrl`). | **Ofertas publicadas por empresas en la propia web de JobIT.** Serán ofertas reales con candidatura gestionada dentro de JobIT (no un enlace externo). |
-| `JOOBLE` | Ofertas ingeridas de la API de Jooble (con `sourceUrl` real). La inscripción ocurre en el origen (Jooble). | Igual, más fuentes externas del mismo tipo. |
-| *(futuras)* | — | Nuevas APIs de empleo y **feeds RSS**, cada una como una `source` nueva del enum. |
+| `INTERNAL` | Activo para dataset controlado de desarrollo | Ofertas sintéticas sin inscripción. No representa aún publicación empresarial. |
+| `JOOBLE` | Provider e ingesta activos | Requiere API key backend-only; la candidatura ocurre en el origen. |
+| `GREENHOUSE` | Provider e ingesta activos | Usa Job Board API pública y una lista versionada de empresas curadas. |
+| `ADZUNA` | Reserva de modelo | Existe en el enum y una migración, pero no hay client, ingesta ni filtro público. |
 
-Implicación de producto: cuando existan ofertas `INTERNAL` publicadas por empresas,
-el copy actual de "oferta de ejemplo para el MVP" (detalle de oferta) deberá
-diferenciarse de las ofertas internas reales, que tendrán candidatura propia. Hoy,
-al ser todas seed, el aviso honesto es correcto.
+El filtro backend `source` acepta actualmente `INTERNAL`, `JOOBLE` y `GREENHOUSE`.
+La UI del candidato no obliga a elegir proveedor.
 
-## Búsqueda por ubicación (eje principal)
+## Búsqueda por ubicación
 
-Las fuentes externas de empleo (Jooble y las que vendrán) buscan **por ubicación**.
-Por eso la búsqueda de JobIT se alinea con ese eje:
+`GET /api/jobs` opera sobre ofertas persistidas y admite:
 
-- `GET /api/jobs` acepta `location` (búsqueda parcial, insensible a mayúsculas, sobre
-  `Job.location`), además de `q` (texto en título/descripción) y los filtros
-  estructurales (`remote`, `seniority`, `contractType`, `tags`).
-- En la UI de `/jobs`, el antiguo **selector de "Fuente" se sustituyó por un campo de
-  "Ubicación"**. El motivo: con varias fuentes activas, el usuario no debería elegir
-  "de qué portal" busca; buscará por sus parámetros (ubicación, rol, etc.) y el
-  sistema devolverá resultados de **todas las fuentes disponibles**.
-- El parámetro `source` **sigue existiendo** en el contrato del backend (útil para
-  depuración/administración), pero ya no se expone como filtro en la UI del candidato.
+- `q`, sobre título y descripción;
+- `location`, parcial e insensible a mayúsculas;
+- `remote`;
+- `seniority`;
+- `contractType`;
+- `source`;
+- `tags`;
+- `page` y `limit`.
 
-## Preparado para más fuentes (APIs y RSS)
+La UI prioriza ubicación y criterios laborales. Con varias fuentes, el candidato
+debe buscar una oportunidad, no elegir el portal que la suministra.
 
-El módulo Jooble (`apps/api/src/jobs/external/jooble/`) es el **patrón de referencia**
-para añadir una fuente nueva sin tocar el resto del sistema:
+Existe deuda conocida en sinónimos geográficos y lenguas cooficiales, por ejemplo
+`Vizcaya`/`Bizkaia` o `País Vasco`/`Euskadi`. No hay normalización de ubicaciones
+implementada.
 
-1. **Client** (`*.client.ts`): obtiene y valida la forma cruda de la fuente. La
-   configuración (API key, base URL, timeout) se inyecta por `deps` (no se lee de
-   `process.env` dentro del cliente), de modo que los tests no usan red.
-2. **Normalizer** (`*.normalizer.ts`): mapea el payload crudo a un DTO interno
-   autónomo (`NormalizedExternalJob`), descartando registros inválidos sin abortar.
-3. **Ingest service** (`*.ingest.service.ts`): backend-only y manual/controlado (no
-   se invoca desde routers ni requests). Persiste con `source = <FUENTE>` y **upsert
-   idempotente por `(source, externalId)`**.
-4. El listado `GET /api/jobs` sirve todas las fuentes desde la DB de forma uniforme
-   (mismo `serializeJob` / `JobPublicDto`).
+## Patrón de provider
 
-Para una **fuente RSS** el patrón es el mismo, cambiando el client (parseo del feed
-RSS en vez de JSON de API) y el normalizer; el ingest service y el contrato público
-no cambian. Cada fuente nueva es un valor más del enum `JobSource`.
+Jooble y Greenhouse comparten la separación:
 
-Pendiente al añadir fuentes (deuda técnica / decisiones futuras, fuera del alcance
-actual):
+1. **Client:** obtiene y valida el payload externo. Configuración y dependencias se
+   inyectan para que los tests no usen red.
+2. **Normalizer:** convierte registros válidos a un DTO interno común y descarta
+   entradas inválidas sin exponer el payload crudo.
+3. **Ingest service:** persiste con upsert idempotente por `(source, externalId)`.
+4. **Script:** dispara la ingesta manual desde backend, fuera de routers y requests.
+5. **Lectura:** la API sirve la base local mediante `JobPublicDto`.
 
-- **Orquestación de ingesta**: hoy la ingesta es manual (script controlado, ver abajo).
-  Con varias fuentes convendrá un disparador programado (comando/cron/endpoint admin),
-  aún por decidir. No hay scraping.
-- **Sinónimos de ubicación**: Jooble usa nombres en español ("Vizcaya", no "Bizkaia");
-  buscar por el nombre en euskera no encuentra resultados. Análogo en otras lenguas
-  cooficiales. Futuro: normalización/mapa de sinónimos (Vizcaya↔Bizkaia, País
-  Vasco↔Euskadi…). No implementado aún.
-- **Búsqueda que dispara ingesta**: a futuro, una búsqueda por ubicación podría
-  consultar las fuentes externas en vivo (además de la DB). Requiere diseño (caché,
-  rate limits, deduplicación) y decisión de producto.
+Una futura API o fuente RSS debería seguir el mismo patrón y requerir una ampliación
+del enum, spec y tests explícitos. La presencia de `ADZUNA` en el enum no autoriza a
+implementar ese provider.
 
-## Ingesta controlada (dev/staging)
+## Jooble
 
-JobIT **no** consulta Jooble en cada request: la búsqueda `GET /api/jobs` lee la **DB
-local**. Las ofertas externas se **ingieren** de forma controlada y quedan persistidas.
+Configuración:
 
-- **Host configurable**: `JOOBLE_API_BASE_URL` (opcional; default `https://jooble.org/api`).
-  Algunas API keys son **regionales**: la de España responde en `https://es.jooble.org/api`
-  y el host global devuelve `403`. Se valida http/https y se normaliza sin barra final.
-- **Comandos (backend-only, manual)**: `apps/api/src/jobs/scripts/ingest-jooble.ts` (una
-  ubicación) e `ingest-jooble-locations.ts` (varias, **en serie**), con `tsx`. No exponen
-  endpoint, no borran seed, no crean usuarios; upsert idempotente por `(source, externalId)`.
-- **Estrategia recomendada por ubicación**: cubrir las plazas del MVP —`Bilbao`, `Madrid`,
-  `Barcelona`, `Remoto`, `España`— con el comando multi-ubicación
-  (`ING_LOCATIONS="Bilbao,Madrid,Barcelona,Remoto,España"`). Ingesta en serie con **fallo
-  parcial tolerado** (continúa ante error de una ubicación; exit `1` si alguna falló) y
-  resumen agregado. La `JOOBLE_API_KEY` nunca se imprime.
+- `JOOBLE_API_KEY`: secreta y solo backend.
+- `JOOBLE_API_BASE_URL`: opcional; por defecto `https://jooble.org/api`. Algunas
+  claves requieren un host regional.
+- `ING_KEYWORDS`, `ING_LOCATION`, `ING_LOCATIONS` e `ING_LIMIT`: parámetros
+  operativos de scripts.
 
-## Seguridad y honestidad (recordatorio)
+Comandos:
 
-- Enlaces externos: `target="_blank"` + `rel="noopener noreferrer"`, y solo se
-  renderizan si la `sourceUrl` es `http`/`https` válida.
-- Nunca se exponen `externalId`/`ingestedAt` ni la API key (viaja solo servidor→fuente).
-- Las ofertas de ejemplo (seed) se marcan como tales y no muestran enlace de inscripción.
+```bash
+JOOBLE_API_KEY=<KEY> ING_LOCATION=Bilbao \
+  pnpm --filter @jobit/api exec tsx src/jobs/scripts/ingest-jooble.ts
+
+JOOBLE_API_KEY=<KEY> \
+  ING_LOCATIONS="Bilbao,Madrid,Barcelona,Remoto,España" \
+  ING_LIMIT=20 \
+  pnpm --filter @jobit/api exec tsx src/jobs/scripts/ingest-jooble-locations.ts
+```
+
+No pegues la clave en documentación, logs, chats o PR. Los ejemplos muestran
+placeholders, no valores reales.
+
+## Greenhouse
+
+La Job Board API es pública y no necesita API key. La lista pequeña de
+`boardToken -> company` vive en
+`apps/api/src/jobs/external/greenhouse/greenhouse.companies.ts` para ser revisable.
+
+Configuración:
+
+- `GREENHOUSE_API_BASE_URL`: opcional; por defecto el endpoint público documentado.
+- `ING_GREENHOUSE_TOKENS`: subset opcional de la lista curada.
+- `ING_LIMIT`: límite por board.
+
+Comando:
+
+```bash
+ING_GREENHOUSE_TOKENS=vercel ING_LIMIT=3 \
+  pnpm --filter @jobit/api exec tsx src/jobs/scripts/ingest-greenhouse.ts
+```
+
+Si la selección no contiene boards curados, el script aborta antes de hacer llamadas.
+Añadir empresas exige revisar procedencia, términos, calidad y riesgo reputacional.
+
+## Seguridad y operación
+
+- No hay scraping.
+- No hay ingesta programada ni endpoint administrativo.
+- No se llama a proveedores durante `GET /api/jobs`.
+- Los tests usan fixtures e inyección de dependencias, no red ni credenciales reales.
+- Los enlaces externos se muestran solo para URLs `http`/`https` válidas y se abren
+  con `noopener noreferrer`.
+- Los scripts no deben imprimir secretos.
+- El seed interno conserva ofertas `JOOBLE` y `GREENHOUSE`.
+
+## Límites y decisiones futuras
+
+Fuera del estado actual:
+
+- scheduler/cron o cola de ingestas;
+- deduplicación semántica entre proveedores;
+- ranking multi-fuente avanzado;
+- normalización geográfica;
+- búsqueda que dispara consultas externas en vivo;
+- provider ADZUNA;
+- publicación empresarial y candidatura interna.
+
+Cada ampliación debe evaluar rate limits, términos del proveedor, privacidad,
+observabilidad, reintentos, deduplicación y retirada de datos.

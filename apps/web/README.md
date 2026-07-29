@@ -1,36 +1,110 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# JobIT Web
 
-## Getting Started
+Frontend candidate-first de JobIT. Es una aplicación Next.js con App Router,
+TypeScript, React y Tailwind CSS que consume la API de `apps/api`.
 
-First, run the development server:
+## Requisitos
+
+- Node.js 20.
+- `pnpm@10.0.0`.
+- Dependencias instaladas desde la raíz del monorepo.
+- API local disponible y configurada.
+
+Consulta antes [la guía de entorno local](../../docs/development/local-env.md).
+
+## Configuración
+
+El cliente necesita una URL pública de API:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+NEXT_PUBLIC_API_BASE_URL=http://localhost:4000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Puede definirse en `apps/web/.env.local`, que debe permanecer fuera de Git. Para las
+URLs absolutas y QR del portfolio público se usa `NEXT_PUBLIC_PUBLIC_BASE_URL` cuando
+el entorno lo requiera. No inventes un dominio de producción si todavía no está
+aprobado.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+El backend debe permitir mediante `CORS_ORIGIN` el origen exacto donde corre el web.
+Si Next.js cambia del puerto `3000` al `3001`, ajusta CORS y reinicia la API.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Desarrollo
 
-## Learn More
+Desde la raíz del repositorio:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+pnpm --filter @jobit/web dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+La dirección habitual es `http://localhost:3000`. Para fijar otro puerto:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+pnpm --filter @jobit/web exec next dev -p 3001
+```
 
-## Deploy on Vercel
+## Rutas implementadas
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Ruta | Acceso | Propósito |
+|---|---|---|
+| `/` | Público | Landing candidate-first accesible y responsive |
+| `/login` | Público | Inicio de sesión |
+| `/register` | Público | Registro de candidato |
+| `/dashboard` | Privado | Resumen del candidato |
+| `/profile` | Privado | Edición de perfil y CV |
+| `/profile/portfolio` | Privado | Edición del portfolio |
+| `/profile/portfolio/settings` | Privado | Publicación y configuración |
+| `/u/[slug]` | Público | Portfolio publicado |
+| `/jobs` | Privado | Búsqueda y filtros de ofertas |
+| `/jobs/[id]` | Privado | Detalle, guardado y match explicable |
+| `/saved-jobs` | Privado | Ofertas guardadas |
+| `/match` | Privado | Mejores afinidades explicadas |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Las páginas privadas usan el contexto de autenticación. El access token se mantiene
+solo en memoria y las peticiones se envían con `credentials: "include"`. Un `401`
+limpia la sesión cliente y conduce de nuevo al login. Actualmente no existe un
+endpoint de refresh de sesión.
+
+## Verificaciones
+
+```bash
+pnpm --filter @jobit/web lint
+pnpm --filter @jobit/web typecheck
+pnpm --filter @jobit/web test
+pnpm --filter @jobit/web build
+```
+
+Tests E2E contra el stack local preparado:
+
+```bash
+pnpm --filter @jobit/web test:e2e
+```
+
+Para ejecutar solo el hardening de la landing:
+
+```bash
+pnpm --filter @jobit/web exec vitest run src/app/page.test.tsx
+pnpm --filter @jobit/web exec playwright test \
+  e2e/landing-public-surface.spec.ts --project=chromium
+```
+
+Playwright necesita navegadores instalados y servicios locales compatibles con su
+configuración. No instales dependencias ni navegadores como efecto lateral de una
+revisión.
+
+## Límites actuales
+
+- No hay candidaturas internas: cuando una oferta externa tiene una URL válida, la
+  inscripción ocurre en el origen.
+- El match es heurístico, determinista y explicable; no usa IA avanzada.
+- La landing y el preview usan contenido sintético sin marcas de terceros.
+- No hay rutas legales públicas autorizadas mientras siga abierto el gate de Sprint
+  24.
+- La configuración de deploy real no se deduce del boilerplate de Next.js; consulta
+  la documentación de staging del repositorio.
+
+## Referencias
+
+- [README principal](../../README.md)
+- [Arquitectura](../../docs/architecture/00-architecture-overview.md)
+- [Fuentes de ofertas](../../docs/architecture/03-job-sources-and-search.md)
+- [Spec de la landing](../../docs/specs/features/landing-public-surface.md)

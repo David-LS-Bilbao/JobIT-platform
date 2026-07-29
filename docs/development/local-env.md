@@ -1,159 +1,259 @@
 # Entorno local — API y Web
 
-Guía para arrancar JobIT en local sin sorpresas de configuración (CORS / base de
-datos). Resuelve el fallo típico de **login bloqueado por CORS** cuando el
-frontend corre en un puerto distinto al configurado en el backend.
+## Entorno soportado
 
-## Por qué existe `apps/api/.env.example`
+Ejecuta el tooling desde el clon nativo de WSL:
 
-El backend (`apps/api`) lee su configuración de variables de entorno
-(`NODE_ENV`, `PORT`, `CORS_ORIGIN`, `DATABASE_URL`, `DATABASE_URL_TEST`,
-`JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `JOOBLE_API_KEY`). Al arrancar con
-`tsx`/`pnpm`, `dotenv` carga el `.env` del **directorio de trabajo** (`apps/api`),
-no el `.env` de la raíz. Por eso el backend necesita **su propio** `apps/api/.env`.
+```text
+/home/david/projects/JobIT-platform
+```
 
-`apps/api/.env.example` es la **plantilla versionada, sin secretos**. El archivo
-real `apps/api/.env` **NO** se commitea (está en `.gitignore`).
+No uses un checkout de Windows/OneDrive ni compartas `node_modules` entre sistemas.
+Consulta también [`docs/agents/operating-environment.md`](../agents/operating-environment.md).
 
-## Crear tu `.env` local
+Requisitos:
+
+- Node.js 20;
+- `pnpm@10.0.0`;
+- PostgreSQL accesible;
+- dependencias instaladas desde la raíz.
+
+```bash
+pnpm install --frozen-lockfile
+```
+
+No instales dependencias durante un gate de revisión o una tarea documental.
+
+## Configuración de la API
+
+El backend carga `apps/api/.env`, no un `.env` de la raíz:
 
 ```bash
 cp apps/api/.env.example apps/api/.env
-# edita apps/api/.env con tus valores locales (DB, secretos, CORS)
 ```
 
-`apps/api/.env` está ignorado por Git (`.env`, `.env.*`; solo se versiona
-`.env.example`). Nunca publiques sus valores ni los pegues en logs/PRs.
+La plantilla está versionada con placeholders. El archivo real está ignorado y nunca
+debe copiarse a logs, chats, commits o PR.
 
-## Puerto del frontend y CORS (causa del fallo de login)
+Variables principales:
 
-El backend permite CORS **con credenciales** solo desde `CORS_ORIGIN`. Ese valor
-**debe coincidir con el puerto real del frontend**.
+| Variable | Uso |
+|---|---|
+| `NODE_ENV` | `development`, `test` o `production` |
+| `PORT` | Puerto Express; por defecto `4000` |
+| `CORS_ORIGIN` | Origen exacto permitido para el frontend |
+| `DATABASE_URL` | Base de desarrollo/operación local |
+| `DATABASE_URL_TEST` | Base exclusiva para tests |
+| `JWT_ACCESS_SECRET` | Firma de access tokens |
+| `JWT_REFRESH_SECRET` | Firma de refresh tokens |
+| `JOOBLE_API_KEY` | Clave backend-only, opcional salvo ingesta Jooble |
+| `JOOBLE_API_BASE_URL` | Host global o regional de Jooble |
+| `GREENHOUSE_API_BASE_URL` | Job Board API pública de Greenhouse |
 
-- El frontend por defecto usa el **3000**.
-- Si el 3000 está ocupado (p. ej. por un contenedor Docker), arráncalo en **3001**.
-- En ese caso, `CORS_ORIGIN` **debe** ser `http://localhost:3001`.
+Genera secretos JWT largos y aleatorios para local. No reutilices valores de staging
+o producción.
 
-Si `CORS_ORIGIN=http://localhost:3000` pero el web corre en `:3001`, el navegador
-bloquea el preflight y el login falla con:
+## Bases de desarrollo y test
 
-```
-Access to fetch at 'http://localhost:4000/api/auth/login' from origin
-'http://localhost:3001' has been blocked by CORS policy...
-```
+Usa bases separadas, por ejemplo:
 
-El `apps/api/.env.example` ya trae `CORS_ORIGIN=http://localhost:3001` por este
-motivo. Ajústalo si tu frontend corre en otro puerto.
+- `jobit_dev` para desarrollo;
+- `jobit_test` para Vitest.
 
-## Arrancar API y Web
+Genera el cliente y aplica migraciones a la base seleccionada por `DATABASE_URL`:
 
 ```bash
-# 1) Backend (lee apps/api/.env). Escucha en http://localhost:4000
+pnpm --filter @jobit/api exec prisma generate
+pnpm --filter @jobit/api exec prisma migrate deploy
+```
+
+Los tests de API:
+
+- exigen `DATABASE_URL_TEST`;
+- no hacen fallback a `DATABASE_URL`;
+- validan que el nombre se clasifique inequívocamente como test;
+- migran esa base en `globalSetup`;
+- truncan sus tablas durante la suite.
+
+Nunca apuntes `DATABASE_URL_TEST` a desarrollo, staging o producción.
+
+## Seed interno protegido
+
+El seed de desarrollo se ejecuta explícitamente:
+
+```bash
+pnpm --filter @jobit/api exec tsx prisma/seed.ts
+```
+
+Antes de conectar valida que `DATABASE_URL` sea un destino permitido para seed. El
+servicio usa upsert sobre el namespace `jobit-seed-*`, no hace `deleteMany()` global y
+preserva:
+
+- ofertas Jooble;
+- ofertas Greenhouse;
+- ofertas internas ajenas al dataset controlado;
+- relaciones de candidatos que no pertenezcan a ese namespace.
+
+Si la guarda rechaza el destino, no intentes sortearla ni cambies el nombre de una
+base real para que parezca local.
+
+## Configuración del frontend
+
+El web necesita:
+
+```bash
+NEXT_PUBLIC_API_BASE_URL=http://localhost:4000
+```
+
+Puede guardarse en `apps/web/.env.local`, ignorado por Git. El portfolio público usa
+`NEXT_PUBLIC_PUBLIC_BASE_URL` cuando necesita construir URLs absolutas; en local suele
+ser el origen real del web. No configures un dominio de producción no aprobado.
+
+## Puertos y CORS
+
+Valores habituales:
+
+- API: `http://localhost:4000`;
+- Web: `http://localhost:3000`.
+
+`CORS_ORIGIN` debe coincidir exactamente con el origen del navegador. Si Next.js
+arranca en `3001`, configura:
+
+```text
+CORS_ORIGIN=http://localhost:3001
+```
+
+y reinicia la API.
+
+La plantilla `.env.example` usa `3001` para cubrir entornos donde `3000` ya está
+ocupado. No asumas el puerto: comprueba la salida de Next.js.
+
+## Arranque
+
+En una terminal:
+
+```bash
 pnpm --filter @jobit/api dev
-
-# 2) Frontend. Si el 3000 está libre:
-pnpm --filter @jobit/web dev
-#    Si el 3000 está ocupado, usa el 3001 (y pon CORS_ORIGIN=http://localhost:3001):
-NEXT_PUBLIC_API_BASE_URL="http://localhost:4000" pnpm --filter @jobit/web exec next dev -p 3001
 ```
 
-El frontend necesita `NEXT_PUBLIC_API_BASE_URL` apuntando a la API
-(`http://localhost:4000` en dev).
-
-## Verificaciones (smoke)
-
-Health del backend:
+En otra:
 
 ```bash
-curl http://localhost:4000/health
-# -> {"status":"ok","service":"jobit-api"}
+pnpm --filter @jobit/web dev
 ```
 
-Preflight CORS para el origen del frontend (debe reflejar tu `CORS_ORIGIN`):
+Para fijar el web en `3001`:
+
+```bash
+NEXT_PUBLIC_API_BASE_URL=http://localhost:4000 \
+  pnpm --filter @jobit/web exec next dev -p 3001
+```
+
+## Smoke básico
+
+API:
+
+```bash
+curl -i http://localhost:4000/health
+```
+
+Respuesta esperada: HTTP `200` y un cuerpo con `status: "ok"`.
+
+Web:
+
+```bash
+curl -I http://localhost:3000/
+```
+
+Preflight, adaptando el origen al puerto real:
 
 ```bash
 curl -i -X OPTIONS http://localhost:4000/api/auth/login \
-  -H "Origin: http://localhost:3001" \
+  -H "Origin: http://localhost:3000" \
   -H "Access-Control-Request-Method: POST" \
   -H "Access-Control-Request-Headers: content-type"
 ```
 
-Resultado esperado (cabecera):
+`Access-Control-Allow-Origin` debe devolver exactamente el origen configurado.
 
-```
-Access-Control-Allow-Origin: http://localhost:3001
-```
+## Ingesta Jooble
 
-Si ves `http://localhost:3000` ahí, tu `CORS_ORIGIN` no coincide con el puerto del
-frontend: corrígelo en `apps/api/.env` y reinicia el backend.
+JobIT no consulta Jooble durante una búsqueda. Los scripts obtienen, normalizan y
+persisten ofertas de forma manual.
 
-## Base de datos de tests (`DATABASE_URL_TEST`)
-
-Los tests de `@jobit/api` usan una base **independiente** (`jobit_test`): el
-`globalSetup` de vitest ejecuta `prisma migrate deploy` y cada test trunca las
-tablas. **No** apuntes `DATABASE_URL_TEST` a `jobit_dev` (borraría tus datos).
+Una ubicación:
 
 ```bash
-# crear la base de test una vez (ejemplo con el contenedor local)
-docker exec -e PGPASSWORD=... jobit-postgres-dev \
-  psql -U <user> -d postgres -c "CREATE DATABASE jobit_test;"
-
-# ejecutar los tests backend con la base de test
-pnpm --filter @jobit/api test
-```
-
-`apps/api/.env` con `DATABASE_URL_TEST` definido basta; si no, expórtalo antes de
-lanzar los tests.
-
-## Jooble (ingesta de ofertas externas)
-
-JobIT **no** consulta Jooble en cada request: la búsqueda (`GET /api/jobs`) lee la DB
-local. Las ofertas Jooble se **ingieren** de forma controlada (backend-only, manual) y
-quedan guardadas en la DB con `source=JOOBLE` y `sourceUrl`.
-
-Variables (en `apps/api/.env`, **nunca** commitear el `.env` real):
-
-- `JOOBLE_API_KEY`: clave de Jooble. Solo backend; **nunca** se loguea ni se pega en
-  chats/PRs. Sin ella, la ingesta aborta sin llamar a la red.
-- `JOOBLE_API_BASE_URL` (opcional): host de la API. Default `https://jooble.org/api`.
-  **Algunas keys son regionales**: la de España responde en `https://es.jooble.org/api`
-  (el host global da `403`). Debe ser http/https.
-
-Comprobar rápidamente que la key funciona (elige el host correcto; **no** pegues la key
-en logs; sustituye `<KEY>` por la tuya):
-
-```bash
-curl -s -o /dev/null -w "%{http_code}\n" -X POST "https://es.jooble.org/api/<KEY>" \
-  -H "Content-Type: application/json" -d '{"keywords":"developer","location":"Bilbao"}'
-# 200 = host correcto para tu key; 403 = host equivocado (prueba el global o el regional)
-```
-
-Poblar ofertas reales en dev/staging (backend-only, no borra seed):
-
-```bash
-# Ajusta ING_LOCATION por plaza: Bilbao, Madrid, Barcelona, remoto, España…
-JOOBLE_API_KEY=<KEY> JOOBLE_API_BASE_URL=https://es.jooble.org/api ING_LOCATION=Bilbao \
+JOOBLE_API_KEY=<KEY> \
+  JOOBLE_API_BASE_URL=https://es.jooble.org/api \
+  ING_LOCATION=Bilbao \
   pnpm --filter @jobit/api exec tsx src/jobs/scripts/ingest-jooble.ts
-# Imprime un resumen (keywords/location/fetched/created/updated/skipped); nunca la key.
 ```
 
-Poblar **varias ubicaciones** de una vez (en serie; continúa si una falla; exit `1` si
-alguna falló):
+Varias ubicaciones:
 
 ```bash
-JOOBLE_API_KEY=<KEY> JOOBLE_API_BASE_URL=https://es.jooble.org/api \
-  ING_LOCATIONS="Bilbao,Madrid,Barcelona,Remoto,España" ING_LIMIT=20 \
+JOOBLE_API_KEY=<KEY> \
+  JOOBLE_API_BASE_URL=https://es.jooble.org/api \
+  ING_LOCATIONS="Bilbao,Madrid,Barcelona,Remoto,España" \
+  ING_LIMIT=20 \
   pnpm --filter @jobit/api exec tsx src/jobs/scripts/ingest-jooble-locations.ts
-# Resumen por ubicacion + agregado (locations/ok/failed + totales). Nunca imprime la key.
 ```
 
-Los datos ingeridos son locales de dev y se pierden al reseedear (`prisma db seed`
-vacía la tabla `Job`). No se commitean.
+Algunas claves son regionales. No pruebes una clave incluyéndola en comandos que
+vayan a compartirse o persistirse en logs.
 
-## Notas
+## Ingesta Greenhouse
 
-- No cambies la lógica de auth ni el CORS de producción desde aquí; esto es solo
-  documentación de entorno local.
-- En producción, `CORS_ORIGIN` debe ser el dominio real del frontend, y el
-  frontend necesita `NEXT_PUBLIC_PUBLIC_BASE_URL` para las URLs públicas/QR del
-  portfolio.
+Greenhouse usa una API pública sin secreto. La lista de empresas curadas vive en el
+código y `ING_GREENHOUSE_TOKENS` solo selecciona un subset:
+
+```bash
+ING_GREENHOUSE_TOKENS=vercel ING_LIMIT=3 \
+  pnpm --filter @jobit/api exec tsx src/jobs/scripts/ingest-greenhouse.ts
+```
+
+Una selección vacía o no reconocida aborta antes de hacer red. Mantén la lista pequeña
+y revisada. `ADZUNA` no dispone de script ni provider.
+
+## Verificaciones
+
+API:
+
+```bash
+pnpm --filter @jobit/api exec prisma generate
+pnpm --filter @jobit/api typecheck
+pnpm --filter @jobit/api test
+pnpm --filter @jobit/api build
+```
+
+Web:
+
+```bash
+pnpm --filter @jobit/web lint
+pnpm --filter @jobit/web typecheck
+pnpm --filter @jobit/web test
+pnpm --filter @jobit/web build
+```
+
+E2E local:
+
+```bash
+pnpm --filter @jobit/web test:e2e
+```
+
+Playwright puede reutilizar un web existente en `3000`, pero no levanta la API. La
+API y sus datos deben estar preparados antes de los escenarios que dependan de ella.
+
+## Diagnóstico rápido
+
+- **Login bloqueado por CORS:** compara `CORS_ORIGIN` con el origen exacto del web.
+- **API sin variables:** confirma que el archivo es `apps/api/.env`.
+- **Tests bloqueados por seguridad:** revisa que `DATABASE_URL_TEST` exista y apunte
+  a una base dedicada con nombre inequívoco de test.
+- **Jooble responde `403`:** verifica el host regional asignado a la key sin exponerla.
+- **Greenhouse no ingiere:** comprueba que los tokens estén en la lista curada.
+- **Playwright no alcanza backend:** levanta la API en `4000` y prepara la base.
+
+No ajustes auth, CORS de producción, secretos o infraestructura desde esta guía sin
+una tarea y autorización específicas.
