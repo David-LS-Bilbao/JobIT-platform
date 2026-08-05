@@ -99,6 +99,8 @@ No se reservó ningún número de sprint. El roadmap condicionado usa exclusivam
 
 ## 12. Estado Git
 
+**Estado histórico en el momento de la entrega previa a commit, push, PR y merge:**
+
 ```text
 Rama: docs/ops-04-job-radar-strategy-canonicalization
 HEAD: 91b0d449751756d715cb589d2d8ed0bf6cb56020 (sin commits nuevos)
@@ -118,7 +120,20 @@ MERGE_APPROVED: NO
 
 ## 13. Desviaciones
 
-Ninguna respecto al alcance aprobado. Dos notas heredadas del plan, sin acción tomada:
+No hubo desviaciones de contenido, alcance o archivos durante Execution Mode. Posteriormente hubo una desviación de gobernanza en la secuencia conversacional del gate de merge:
+
+```text
+GIT_GATE_SEQUENCE_DEVIATION:
+MERGE_EXECUTED_OUTSIDE_THE_AUTHORIZED_CONVERSATION_GATE_SEQUENCE
+```
+
+- Claude no ejecutó el merge.
+- El propietario del repositorio ejecutó el merge directamente en GitHub.
+- Contenido, alcance y CI eran correctos.
+- No fue necesario revertir.
+- La observación queda registrada para mejorar la disciplina de gates.
+
+Dos notas heredadas del plan, sin acción tomada:
 
 - `docs/product/00-product-brief.md` contiene placeholders desactualizados de "JobIT Radar"/"JobIT Recruit" que idealmente enlazarían a la nueva estrategia; no está en la lista de archivos autorizados de este sprint y no se ha modificado.
 - El documento externo de estrategia (v2.0) presenta una inconsistencia interna entre su disclaimer de no autorización (§1) y el contenido sustantivo de sus secciones de CleanJobData/Lanbide (§8/§23), ya corregida en el documento canónico; se deja constancia para el Chat Orquestador.
@@ -129,7 +144,72 @@ Ninguna de las siguientes acciones se ha realizado ni se propone iniciar automá
 
 ---
 
+**Estado histórico al finalizar Execution Mode, antes de los gates Git:**
+
 ```text
 OPS_04_READY_FOR_REVIEW
 WAITING_FOR_DIRECTOR_REVIEW
+```
+
+---
+
+## 15. Cierre post-merge de la estrategia
+
+**PR #105**
+
+```text
+PROPÓSITO: Corrección documental previa del baseline de OPS-03
+MERGE_COMMIT: 91b0d449751756d715cb589d2d8ed0bf6cb56020
+```
+
+**PR #106**
+
+```text
+ESTADO: MERGED
+HEAD_COMMIT: 8725f5934aa86053afec55e6724dc3ec040817f3
+MERGE_COMMIT: 447142be472e3b1502f27a207b457018e6c0202a
+ARCHIVOS_INCLUIDOS: 3
+```
+
+**CI (workflow JobIT CI)**
+
+```text
+JobIT CI #64
+  evento: pull_request
+  commit: 8725f5934aa86053afec55e6724dc3ec040817f3
+  PASS
+
+JobIT CI #65
+  evento: push sobre dev
+  commit: 447142be472e3b1502f27a207b457018e6c0202a
+  PASS
+```
+
+```text
+OPS_04_STRATEGY_MERGE_COMMIT:
+447142be472e3b1502f27a207b457018e6c0202a
+
+CURRENT_DEV_BASELINE:
+VERIFY_WITH_GIT
+
+STRATEGY_STATUS:
+APPROVED_FOR_PLANNING_WITH_CONDITIONS
+
+JOB_RADAR_IMPLEMENTATION:
+HOLD
+
+RECRUIT_IMPLEMENTATION:
+HOLD
+
+CANDIDATE_DISCOVERY_IMPLEMENTATION:
+HOLD
+
+IMPLEMENTATION_AUTHORIZATION:
+NONE
+
+GIT_GATE_SEQUENCE_DEVIATION:
+RECORDED
+
+NEXT_WORK:
+PENDING_ORCHESTRATOR_DECISION
 ```
