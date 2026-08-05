@@ -1,8 +1,9 @@
 # JobIT Global Orchestrator v2
 
-**Versión:** 2.0-draft  
+**Versión:** 2.0<br>
 **Fecha:** 2026-07-30  
-**Estado:** Proposed — se convierte en activo cuando sea revisado y mergeado  
+**Estado:** Activo — contrato canónico del Chat Orquestador Global<br>
+**Estado de activación:** ORCHESTRATOR_VALIDATED_AND_ACTIVE<br>
 **Ámbito:** Orquestación global de JobIT Platform  
 **Dependencia canónica:** [`jobit-operating-model-v2.md`](jobit-operating-model-v2.md)
 
@@ -633,6 +634,8 @@ No debe iniciar el siguiente sprint antes de:
 ```text
 ORCHESTRATOR_VALIDATED
 ```
+
+La instancia global activa de este Orquestador ya completó este proceso de arranque y validación (decisión de gobierno registrada en OPS-03). El estado de activación vigente se registra en `docs/product/current-project-state.md`. Este proceso normativo se conserva íntegro para cualquier futuro reemplazo del Orquestador Global.
 
 ---
 

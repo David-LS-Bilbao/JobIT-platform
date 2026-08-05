@@ -1,8 +1,8 @@
 # Auditorías de JobIT
 
-**Versión:** 1.0-draft  
+**Versión:** 1.0<br>
 **Fecha:** 2026-07-30  
-**Estado:** Proposed
+**Estado:** Activo — política canónica de auditorías
 
 Esta carpeta define cómo se conservan, revisan y utilizan las auditorías del proyecto.
 
@@ -361,6 +361,13 @@ Para versionar una auditoría pública:
 4. se aplican Git gates;
 5. se mergea a `dev`.
 
+**Nota adicional.** Una corrección final sobre una auditoría ya revisada se integra
+directamente en el informe consolidado, sin crear un documento separado. La deduplicación de
+hallazgos entre bloques o entre auditorías pertenece a la revisión del Orquestador, no al
+propio auditor. Un informe aceptado fuera de este repositorio (`ACCEPTED` o
+`ACCEPTED_WITH_ADJUSTMENTS`) sigue este mismo flujo de versionado (pasos 1-5) antes de
+considerarse publicado en `docs/audits/`.
+
 ---
 
 ## 14. Índice recomendado
@@ -372,6 +379,12 @@ Cuando existan varias auditorías, mantener una tabla:
 | — | — | — | — | — | — |
 
 No añadir auditorías todavía inexistentes.
+
+**Nota operativa.** El flujo descrito en este documento fue ejercitado mediante una auditoría
+global independiente sobre el baseline `9995a8d`, aceptada para gobernanza y priorización con
+correcciones finales (`GLOBAL_INDEPENDENT_AUDIT: ACCEPTED_WITH_FINAL_CORRECTIONS`). El informe
+consolidado no está versionado todavía dentro de `docs/audits/`; esta tabla se actualizará
+cuando exista un archivo real que enlazar.
 
 ---
 

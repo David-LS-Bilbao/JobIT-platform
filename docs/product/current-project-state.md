@@ -1,7 +1,7 @@
 # Estado actual de JobIT Platform
 
-**Fecha del snapshot:** 2026-07-30  
-**Estado:** Draft para revisión y posterior versionado  
+**Fecha del snapshot:** 2026-08-05<br>
+**Estado:** Activo — snapshot canónico de estado<br>
 **Rama canónica:** `dev`  
 **Repositorio:** `David-LS-Bilbao/JobIT-platform`
 
@@ -12,10 +12,12 @@
 ## 1. Baseline actual
 
 ```text
-dev @ 7c759d0206da9731a18e2a5994883ac5a2f7a77b
+dev @ 9995a8dd7caee487ce2cc8ffaab6cec7627c8edc
 ```
 
-Últimos checkpoints relevantes:
+Baseline de referencia auditado. Debe revalidarse contra Git al iniciar cualquier trabajo nuevo.
+
+Checkpoints relevantes:
 
 ```text
 194684ade335b0623b2586e53adee61a5b858d28
@@ -28,14 +30,34 @@ dev @ 7c759d0206da9731a18e2a5994883ac5a2f7a77b
 
 7c759d0206da9731a18e2a5994883ac5a2f7a77b
 → merge de PR #102
-→ planificación documental InfoJobs gateada
-```
+→ Sprint 26A, plan documental InfoJobs
+→ merge histórico; no es el baseline vigente
 
-El baseline debe volver a comprobarse al arrancar un nuevo Orquestador.
+9995a8dd7caee487ce2cc8ffaab6cec7627c8edc
+→ merge de PR #103
+→ incorporación de gobernanza (Global Orchestrator v2, Audits README, este snapshot)
+→ baseline vigente
+```
 
 ---
 
-## 2. Estado del producto
+## 2. Estado ejecutivo
+
+```text
+Candidate-first:                        PRESERVED
+Core product:                           FUNCTIONALLY COMPLETE WITH DEBT
+Development/CI:                         OPERATIONAL WITH LIMITATIONS
+Private staging:                        POTENTIALLY READY WITH CONFIG
+Public staging:                         BLOCKED
+Production with real candidates:        BLOCKED
+Material scope creep:                   NOT FOUND
+```
+
+No se declara staging desplegado ni producción real activa.
+
+---
+
+## 3. Estado del producto
 
 JobIT es una plataforma modular de empleo tecnológico destinada a producción y en hardening candidate-first.
 
@@ -59,7 +81,7 @@ No deben utilizarse candidatos ni datos personales reales hasta cerrar los gates
 
 ---
 
-## 3. Sprints y bloques cerrados relevantes
+## 4. Sprints y bloques cerrados relevantes
 
 ### Sprint 22 — Production Readiness & Real Data Audit
 
@@ -98,23 +120,40 @@ No deben utilizarse candidatos ni datos personales reales hasta cerrar los gates
 
 ### Sprint 26A — Plan documental InfoJobs
 
-- PR #102 mergeada;
+```text
+Sprint 26A:
+DOCUMENTATION_ONLY
+CLOSED
+```
+
+- PR #102 mergeada, merge commit `7c759d0206da9731a18e2a5994883ac5a2f7a77b`;
 - añadió una spec y un plan condicionado;
 - no implementó API, Prisma, provider, frontend, OAuth ni llamadas reales;
-- no levantó el bloqueo legal/partner.
+- no levantó el bloqueo legal/partner;
+- informe final incorporado retrospectivamente mediante OPS-03: `docs/sprints/sprint-26a-infojobs-provider-final-report.md`. No reabre el sprint técnicamente.
+
+### PR #103 — Incorporación de gobernanza
+
+```text
+PR #103:
+MERGED_DOCUMENTATION_IN_BASELINE
+```
+
+Contenido: Global Orchestrator v2 (`docs/agents/jobit-global-orchestrator-v2.md`), Audits README (`docs/audits/README.md`) y este snapshot (`docs/product/current-project-state.md`). No constituye cambio técnico.
 
 ---
 
-## 4. Bloqueos de producción
-
-### PRIV-01
+## 5. Bloqueos de producción
 
 ```text
-Estado:
-OPEN_FOR_PRODUCTION
-```
+Production blockers técnicos:
+- B3-ABUSE-01 — rate limiting ausente.
+- B3-SUPPLY-01 — Next.js pendiente de actualización segura.
+- B3-BACKUP-01 — backup/restore real no acreditado.
 
-La fase documental está preparada, pero faltan decisiones definitivas, revisión especializada e implementación de superficies.
+Gate legal principal:
+- S22-PRIV-01 — PARTIALLY_REMEDIATED / LEGAL GATE OPEN.
+```
 
 ### PRIV-02
 
@@ -143,7 +182,21 @@ Debe realizarse antes del despliegue real e incluir la implementación legal apr
 
 ---
 
-## 5. Integraciones de ofertas
+## 6. Deuda candidate-first prioritaria
+
+```text
+B4-STATE-02:
+OPEN — tratamiento transversal de 401/sesión expirada en mutaciones.
+
+S22-AUTH-06 / B4-OPS-02:
+OPEN — ciclo de vida de cuenta, exportación y eliminación.
+```
+
+Ninguno de los dos es un production blocker técnico independiente; ambos informan prioridad y deuda, sin bloquear por sí solos un staging privado bajo las condiciones de la sección 5.
+
+---
+
+## 7. Integraciones de ofertas
 
 ### Arquitectura vigente
 
@@ -198,71 +251,50 @@ Sprint 26B de InfoJobs no está autorizado.
 
 ---
 
-## 6. Auditoría global independiente
+## 8. Auditoría global independiente
 
 ```text
-Estado:
-STARTUP_OR_PLAN_PHASE
+GLOBAL_INDEPENDENT_AUDIT:
+ACCEPTED_WITH_FINAL_CORRECTIONS
 ```
 
-Existe o se está preparando un Chat Auditor Global independiente.
-
-Reglas:
-
-- solo lectura;
-- no modifica código, docs, Git, roadmap ni despliegues;
-- compara intención original y estado real;
-- diferencia desviaciones negativas y evoluciones justificadas;
-- entrega informe para revisión del Orquestador;
-- sus hallazgos no cambian el roadmap automáticamente.
-
-No consta todavía en este snapshot una auditoría global aceptada posterior al baseline actual.
+Baseline auditado: `9995a8dd7caee487ce2cc8ffaab6cec7627c8edc`. El informe consolidado fue aceptado para gobernanza y priorización con correcciones finales, pero **no está versionado todavía** dentro de `docs/audits/` (ver nota operativa en `docs/audits/README.md`). Sus hallazgos informan gobernanza y prioridades; no autorizan implementación automáticamente.
 
 ---
 
-## 7. Próxima prioridad técnica
+## 9. Orquestador Global
 
 ```text
-Propuesta:
-Auth & Session Hardening
+Chat Orquestador original:
+ARCHIVED_READ_ONLY
+
+Orquestador Global v2:
+VALIDATED_AND_ACTIVE
 ```
 
-Objetivos previsibles:
-
-- refresh operativo;
-- rotación y revocación;
-- restauración de sesión;
-- logout y expiración coherentes;
-- rate limiting;
-- cookies y CORS por entorno;
-- errores seguros;
-- tests API, web y E2E.
-
-### Numeración
-
-La numeración debe confirmarse al validar el nuevo Orquestador porque `Sprint 26A` ya se utilizó para el plan documental de InfoJobs.
-
-No crear automáticamente un “Sprint 26” distinto sin resolver la numeración.
+El proceso normativo de arranque y validación (`ORCHESTRATOR_READY_FOR_VALIDATION` → `ORCHESTRATOR_VALIDATED`, definido en `docs/agents/jobit-global-orchestrator-v2.md`) fue completado por decisión de gobierno de OPS-03. Solo existe un Orquestador Global activo. Su activación no autoriza implementación directa y no sustituye a los Chats Directores.
 
 ---
 
-## 8. Roadmap próximo propuesto
+## 10. Próxima prioridad técnica
 
-Orden lógico, pendiente de validación del Orquestador y de la auditoría:
+```text
+NEXT_FUNCTIONAL_PRIORITY:
+PENDING_ORCHESTRATOR_DECISION_AFTER_OPS_03
+```
 
-1. migración y validación del nuevo Chat Orquestador;
-2. revisión de la auditoría global independiente;
-3. Auth & Session Hardening;
-4. Candidate Account Lifecycle;
-5. cierre de otros bloqueos de production readiness;
-6. Sprint 24B antes del despliegue;
-7. staging y despliegue cuando los gates lo permitan.
+Condiciones conocidas que enmarcan la decisión, sin asignar todavía número de sprint:
 
-InfoJobs permanece fuera del roadmap activo.
+- los tres production blockers técnicos (sección 5);
+- el gate legal principal `S22-PRIV-01` (sección 5);
+- `B4-STATE-02` (sección 6);
+- ciclo de vida de cuenta `S22-AUTH-06` / `B4-OPS-02` (sección 6).
+
+La numeración del siguiente sprint técnico debe confirmarse al validar la decisión, porque `Sprint 26A` ya se utilizó para el plan documental de InfoJobs. No crear automáticamente un "Sprint 26" distinto sin resolver la numeración.
 
 ---
 
-## 9. Decisiones diferidas
+## 11. Decisiones diferidas
 
 - implementación legal pública;
 - canal operativo definitivo de derechos y soporte;
@@ -281,7 +313,7 @@ InfoJobs permanece fuera del roadmap activo.
 
 ---
 
-## 10. Documentos canónicos de arranque
+## 12. Documentos canónicos de arranque
 
 ```text
 AGENTS.md
@@ -301,31 +333,7 @@ Además, leer únicamente las specs, ADR, auditorías e informes vinculados a la
 
 ---
 
-## 11. Chat Orquestador
-
-```text
-Chat Orquestador original:
-ARCHIVED_READ_ONLY
-
-Nuevo Chat Orquestador:
-PENDING_STARTUP_VALIDATION
-```
-
-El nuevo chat no será canónico hasta emitir:
-
-```text
-ORCHESTRATOR_READY_FOR_VALIDATION
-```
-
-y recibir:
-
-```text
-ORCHESTRATOR_VALIDATED
-```
-
----
-
-## 12. Condiciones para actualizar este documento
+## 13. Condiciones para actualizar este documento
 
 Actualizar después de:
 
