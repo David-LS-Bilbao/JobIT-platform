@@ -9,13 +9,13 @@
 
 ---
 
-## 1. Baseline actual
+## 1. Baseline canónico de referencia
 
 ```text
-dev @ 9995a8dd7caee487ce2cc8ffaab6cec7627c8edc
+Baseline canónico de cierre de OPS-03: 84ba62eff7f4a304f6fbd40ebcec3752500048b9 (merge de PR #104)
 ```
 
-Baseline de referencia auditado. Debe revalidarse contra Git al iniciar cualquier trabajo nuevo.
+El HEAD operativo del repositorio debe verificarse directamente mediante Git.
 
 Checkpoints relevantes:
 
@@ -36,7 +36,12 @@ Checkpoints relevantes:
 9995a8dd7caee487ce2cc8ffaab6cec7627c8edc
 → merge de PR #103
 → incorporación de gobernanza (Global Orchestrator v2, Audits README, este snapshot)
-→ baseline vigente
+→ checkpoint histórico anterior al cierre de OPS-03
+
+84ba62eff7f4a304f6fbd40ebcec3752500048b9
+→ merge de PR #104
+→ cierre de OPS-03 (canonicalización de gobernanza)
+→ baseline canónico de cierre de OPS-03
 ```
 
 ---
