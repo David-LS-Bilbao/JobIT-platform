@@ -297,6 +297,21 @@ Condiciones conocidas que enmarcan la decisión, sin asignar todavía número de
 
 La numeración del siguiente sprint técnico debe confirmarse al validar la decisión, porque `Sprint 26A` ya se utilizó para el plan documental de InfoJobs. No crear automáticamente un "Sprint 26" distinto sin resolver la numeración.
 
+### 10.1 Estrategia de Job Radar y Candidate Discovery (OPS-04)
+
+```text
+JOB_RADAR_IMPLEMENTATION:
+HOLD
+
+RECRUIT_IMPLEMENTATION:
+HOLD
+
+CANDIDATE_DISCOVERY_IMPLEMENTATION:
+HOLD
+```
+
+Estrategia canónica: [`docs/product/jobit-job-radar-candidate-discovery-strategy.md`](jobit-job-radar-candidate-discovery-strategy.md) (`ORCHESTRATOR DECISION: APPROVED_FOR_PLANNING_WITH_CONDITIONS`, `IMPLEMENTATION AUTHORIZATION: NONE`). La readiness candidate-first (production blockers y gate legal de la sección 5, `B4-STATE-02` y ciclo de vida de cuenta de la sección 6) precede a cualquier fuente nueva o a la construcción de Job Radar local; la secuencia condicionada completa está en la estrategia canónica.
+
 ---
 
 ## 11. Decisiones diferidas
