@@ -1,6 +1,6 @@
 # Estado actual de JobIT Platform
 
-**Fecha del snapshot:** 2026-08-05<br>
+**Fecha del snapshot:** 2026-08-06<br>
 **Estado:** Activo — snapshot canónico de estado<br>
 **Rama canónica:** `dev`  
 **Repositorio:** `David-LS-Bilbao/JobIT-platform`
@@ -12,7 +12,7 @@
 ## 1. Baseline canónico de referencia
 
 ```text
-Baseline operativo vigente: da5fd3030c48944768c702bbf3511c4ba2fc7ca7 (merge de PR #108)
+Baseline operativo vigente: 4102c94e38bc0df8bb73ef05f49357cd8f8b69df (merge de PR #110)
 ```
 
 El HEAD operativo del repositorio debe verificarse directamente mediante Git.
@@ -46,6 +46,11 @@ Checkpoints relevantes:
 da5fd3030c48944768c702bbf3511c4ba2fc7ca7
 → merge de PR #108
 → cierre técnico de B3-SUPPLY-01 (actualización segura de Next.js)
+→ checkpoint histórico de cierre técnico de B3-SUPPLY-01
+
+4102c94e38bc0df8bb73ef05f49357cd8f8b69df
+→ merge de PR #110
+→ cierre técnico de B3-ABUSE-01 (rate limiting integrado en la API)
 → baseline operativo vigente
 ```
 
@@ -157,13 +162,15 @@ Contenido: Global Orchestrator v2 (`docs/agents/jobit-global-orchestrator-v2.md`
 
 ```text
 Production blockers técnicos:
-- B3-ABUSE-01 — rate limiting ausente.
 - B3-BACKUP-01 — backup/restore real no acreditado.
 
 Gate legal principal:
 - S22-PRIV-01 — PARTIALLY_REMEDIATED / LEGAL GATE OPEN.
 
 Resuelto:
+- B3-ABUSE-01 — RESOLVED. Rate limiting integrado en la API.
+  PR #110, merge commit 4102c94e38bc0df8bb73ef05f49357cd8f8b69df.
+  Informe: docs/sprints/b3-abuse-01-api-rate-limiting-final-report.md
 - B3-SUPPLY-01 — RESOLVED. Next.js 16.2.12 y eslint-config-next 16.2.12.
   PR #108, merge commit da5fd3030c48944768c702bbf3511c4ba2fc7ca7.
   Informe: docs/sprints/b3-supply-01-nextjs-security-hardening-final-report.md
@@ -299,7 +306,7 @@ PENDING_ORCHESTRATOR_DECISION_AFTER_OPS_03
 
 Condiciones conocidas que enmarcan la decisión, sin asignar todavía número de sprint:
 
-- los dos production blockers técnicos (sección 5);
+- el production blocker técnico abierto (sección 5);
 - el gate legal principal `S22-PRIV-01` (sección 5);
 - `B4-STATE-02` (sección 6);
 - ciclo de vida de cuenta `S22-AUTH-06` / `B4-OPS-02` (sección 6).
@@ -319,7 +326,7 @@ CANDIDATE_DISCOVERY_IMPLEMENTATION:
 HOLD
 ```
 
-Estrategia canónica: [`docs/product/jobit-job-radar-candidate-discovery-strategy.md`](jobit-job-radar-candidate-discovery-strategy.md) (`ORCHESTRATOR DECISION: APPROVED_FOR_PLANNING_WITH_CONDITIONS`, `IMPLEMENTATION AUTHORIZATION: NONE`). La readiness candidate-first (production blockers y gate legal de la sección 5, `B4-STATE-02` y ciclo de vida de cuenta de la sección 6) precede a cualquier fuente nueva o a la construcción de Job Radar local; la secuencia condicionada completa está en la estrategia canónica.
+Estrategia canónica: [`docs/product/jobit-job-radar-candidate-discovery-strategy.md`](jobit-job-radar-candidate-discovery-strategy.md) (`ORCHESTRATOR DECISION: APPROVED_FOR_PLANNING_WITH_CONDITIONS`, `IMPLEMENTATION AUTHORIZATION: NONE`). La readiness candidate-first (el production blocker abierto y el gate legal de la sección 5, `B4-STATE-02` y ciclo de vida de cuenta de la sección 6) precede a cualquier fuente nueva o a la construcción de Job Radar local; la secuencia condicionada completa está en la estrategia canónica.
 
 ---
 

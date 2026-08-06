@@ -143,17 +143,15 @@ JobIT ya dispone de un modelo multi-fuente (`Job`, con `source`, `externalId`, `
 
 Ninguna fase de fuentes nuevas ni de Job Radar local puede anteponerse a esta etapa. Son las condiciones vigentes de producción y de deuda candidate-first, heredadas del repositorio y de la auditoría global independiente aceptada, sin modificación:
 
-**Production blockers técnicos — exactamente dos:**
+**Production blockers técnicos — exactamente uno:**
 
 ```text
-B3-ABUSE-01
-Rate limiting ausente
-PRODUCTION_BLOCKER / P1 / OPEN
-
 B3-BACKUP-01
 Backup y restore no probados
 PRODUCTION_BLOCKER / P1 / OPEN
 ```
+
+El blocker de abuso de API (`B3-ABUSE-01`) quedó resuelto: rate limiting integrado en la API. PR #110, merge commit `4102c94e38bc0df8bb73ef05f49357cd8f8b69df`.
 
 El blocker de supply chain de Next.js (`B3-SUPPLY-01`) quedó resuelto: la versión integrada en `dev` es `16.2.12`. Esta estrategia no fija una versión objetivo ni convierte `16.2.12` en un valor permanente; la comprobación de la versión vigente corresponde a cada futura ejecución sobre el repositorio en ese momento.
 
@@ -186,7 +184,7 @@ LEGAL_AND_ACCOUNT_LIFECYCLE_HANDOFF
 
 Las futuras entidades de Job Radar (`SavedJobSearch` y las que se deriven) deberán definir, como parte de su propia spec y no de esta estrategia, al menos: exportación, eliminación, retención, anonimización, revocación y propagación del borrado, alineadas con este mismo ciclo de vida de cuenta.
 
-Ninguna de las condiciones anteriores se combina en una condición técnica adicional equivalente a los dos production blockers.
+Ninguna de las condiciones anteriores se combina en una condición técnica adicional equivalente al production blocker técnico vigente.
 
 ## 8. Gobernanza de fuentes externas
 
@@ -306,7 +304,7 @@ Sin numeración de sprint. Se retiran como numeración oficial: `Sprint 27A`–`
 
 ```text
 Etapa previa — Readiness candidate-first
-  rate limiting; backup y restore; gate legal; sesión; ciclo de vida de cuenta.
+  backup y restore; gate legal; sesión; ciclo de vida de cuenta.
 
 Fase A — Specs de Job Radar (conceptual, no creadas en esta estrategia)
   SavedJobSearch; ejecuciones; resultados; interacción; ownership; retención; seguridad; UI.
