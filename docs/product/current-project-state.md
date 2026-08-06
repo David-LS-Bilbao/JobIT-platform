@@ -12,7 +12,7 @@
 ## 1. Baseline canónico de referencia
 
 ```text
-Baseline canónico de cierre de OPS-03: 84ba62eff7f4a304f6fbd40ebcec3752500048b9 (merge de PR #104)
+Baseline operativo vigente: da5fd3030c48944768c702bbf3511c4ba2fc7ca7 (merge de PR #108)
 ```
 
 El HEAD operativo del repositorio debe verificarse directamente mediante Git.
@@ -41,7 +41,12 @@ Checkpoints relevantes:
 84ba62eff7f4a304f6fbd40ebcec3752500048b9
 → merge de PR #104
 → cierre de OPS-03 (canonicalización de gobernanza)
-→ baseline canónico de cierre de OPS-03
+→ checkpoint histórico de cierre de OPS-03
+
+da5fd3030c48944768c702bbf3511c4ba2fc7ca7
+→ merge de PR #108
+→ cierre técnico de B3-SUPPLY-01 (actualización segura de Next.js)
+→ baseline operativo vigente
 ```
 
 ---
@@ -153,11 +158,15 @@ Contenido: Global Orchestrator v2 (`docs/agents/jobit-global-orchestrator-v2.md`
 ```text
 Production blockers técnicos:
 - B3-ABUSE-01 — rate limiting ausente.
-- B3-SUPPLY-01 — Next.js pendiente de actualización segura.
 - B3-BACKUP-01 — backup/restore real no acreditado.
 
 Gate legal principal:
 - S22-PRIV-01 — PARTIALLY_REMEDIATED / LEGAL GATE OPEN.
+
+Resuelto:
+- B3-SUPPLY-01 — RESOLVED. Next.js 16.2.12 y eslint-config-next 16.2.12.
+  PR #108, merge commit da5fd3030c48944768c702bbf3511c4ba2fc7ca7.
+  Informe: docs/sprints/b3-supply-01-nextjs-security-hardening-final-report.md
 ```
 
 ### PRIV-02
@@ -290,7 +299,7 @@ PENDING_ORCHESTRATOR_DECISION_AFTER_OPS_03
 
 Condiciones conocidas que enmarcan la decisión, sin asignar todavía número de sprint:
 
-- los tres production blockers técnicos (sección 5);
+- los dos production blockers técnicos (sección 5);
 - el gate legal principal `S22-PRIV-01` (sección 5);
 - `B4-STATE-02` (sección 6);
 - ciclo de vida de cuenta `S22-AUTH-06` / `B4-OPS-02` (sección 6).
