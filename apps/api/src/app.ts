@@ -4,10 +4,17 @@ import express from "express";
 import helmet from "helmet";
 
 import { env } from "./config/env.js";
+import { rateLimitConfig } from "./config/rate-limit.config.js";
 import { authRouter } from "./auth/auth.router.js";
 import { dashboardRouter } from "./dashboard/dashboard.router.js";
 import { errorHandlerMiddleware } from "./middlewares/error-handler.middleware.js";
 import { notFoundMiddleware } from "./middlewares/not-found.middleware.js";
+import {
+  generalRateLimiter,
+  loginRateLimiter,
+  publicReadRateLimiter,
+  registerRateLimiter
+} from "./middlewares/rate-limit.middleware.js";
 import { jobsRouter } from "./jobs/jobs.router.js";
 import { savedJobsRouter } from "./saved-jobs/saved-jobs.router.js";
 import { matchRouter } from "./match/match.router.js";
@@ -21,6 +28,13 @@ export const app = express();
 
 app.disable("x-powered-by");
 
+// Número de saltos de proxy de confianza (B3-ABUSE-01, spec api-rate-limiting).
+// Debe fijarse ANTES de que cualquier limitador lea `req.ip`. Nunca `true`: eso
+// haría que Express tomase el extremo izquierdo de `X-Forwarded-For`, que el
+// cliente controla, permitiendo falsificar la IP y evadir el límite.
+// 0 en local/test/CI (sin proxy); 1 en staging/producción tras Nginx Proxy Manager.
+app.set("trust proxy", rateLimitConfig.trustProxyHops);
+
 app.use(helmet());
 app.use(
   cors({
@@ -31,10 +45,15 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 
+// Health check ANTES de los limitadores: `GET /health` queda exento por montaje,
+// no por lista de exclusión. Es la sonda de liveness de NPM, Docker y CI.
+app.use(healthRouter);
+
 // Almacenamiento local MVP de avatares: servido estáticamente. `Cross-Origin-Resource-Policy: cross-origin`
 // permite que el frontend (otro origen) pinte la imagen pese al CORP same-origin por defecto de helmet.
 app.use(
   "/uploads",
+  generalRateLimiter,
   express.static(UPLOADS_ROOT, {
     index: false,
     dotfiles: "ignore",
@@ -44,7 +63,17 @@ app.use(
   })
 );
 
-app.use(healthRouter);
+// Limitadores reforzados antes del general: sobre rutas más específicas, de modo
+// que agotar el cupo reforzado corta aunque quede cupo general. Estas superficies
+// consumen ambos limitadores.
+app.use("/api/auth/register", registerRateLimiter);
+app.use("/api/auth/login", loginRateLimiter);
+app.use("/api/public/portfolios", publicReadRateLimiter);
+
+// Limitador general de la API. No se monta sobre toda la app para preservar la
+// exención de `GET /health`.
+app.use("/api", generalRateLimiter);
+
 app.use("/api/auth", authRouter);
 // Rutas de gestión del portfolio (más específicas): antes del router de profile.
 app.use("/api/profile/me/portfolio", portfolioRouter);
