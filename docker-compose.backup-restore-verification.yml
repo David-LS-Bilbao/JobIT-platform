@@ -1,0 +1,108 @@
+# docker-compose.backup-restore-verification.yml — harness de verificación de
+# backup y restore (B3-BACKUP-01). Spec: docs/specs/features/backup-restore-verification.md
+#
+# NO es staging ni producción. Levanta DOS instancias PostgreSQL 16 aisladas y
+# desechables (origen y destino) más los cuatro volúmenes propios del run, todos
+# etiquetados con el RUN_ID para que el cleanup solo pueda tocar lo suyo.
+#
+# Se invoca SIEMPRE con project name explícito y env-file explícito:
+#   docker compose -p "$B3B_PROJECT" \
+#     -f docker-compose.backup-restore-verification.yml \
+#     --env-file "$B3B_WORKSPACE/env" up -d
+# El --env-file explícito evita que Compose cargue automáticamente un `.env` del
+# repositorio: este harness nunca lee ficheros de entorno del proyecto.
+#
+# Puertos: solo origin-db publica, en 127.0.0.1 y con puerto DINÁMICO, porque
+# `prisma migrate deploy` se ejecuta desde el host. target-db NO publica nada.
+
+name: ${B3B_PROJECT:?B3B_PROJECT is required}
+
+x-run-labels: &run-labels
+  com.jobit.task: "b3-backup-01-verification"
+  com.jobit.run-id: "${B3B_RUN_ID:?B3B_RUN_ID is required}"
+
+services:
+  origin-db:
+    image: postgres:16
+    container_name: ${B3B_PROJECT}-origin-db
+    environment:
+      POSTGRES_DB: ${B3B_ORIGIN_DB:?B3B_ORIGIN_DB is required}
+      POSTGRES_USER: ${B3B_ORIGIN_USER:?B3B_ORIGIN_USER is required}
+      POSTGRES_PASSWORD: ${B3B_ORIGIN_PASSWORD:?B3B_ORIGIN_PASSWORD is required}
+    volumes:
+      - origin-db-data:/var/lib/postgresql/data
+      # Anclaje de creación del volumen de uploads de origen. Se monta en SOLO
+      # LECTURA: este contenedor nunca escribe en él; las escrituras las hace un
+      # contenedor auxiliar efímero. Sin este anclaje Compose no crearía el
+      # volumen y `down -v` no podría eliminarlo.
+      - origin-uploads:/mnt/b3backup-origin-uploads:ro
+    # Puerto dinámico en loopback: el host necesita alcanzar esta base para
+    # ejecutar `prisma migrate deploy`. Nunca 0.0.0.0, nunca un puerto fijo.
+    ports:
+      - "127.0.0.1::5432"
+    networks:
+      - net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${B3B_ORIGIN_USER} -d ${B3B_ORIGIN_DB}"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+    labels: *run-labels
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  target-db:
+    image: postgres:16
+    container_name: ${B3B_PROJECT}-target-db
+    environment:
+      # Base de arranque deliberadamente DISTINTA de la base destino: así
+      # `b3backup_target` no existe hasta que el harness la crea explícitamente y
+      # puede demostrarse vacía antes del restore.
+      POSTGRES_DB: ${B3B_TARGET_BOOTSTRAP_DB:?B3B_TARGET_BOOTSTRAP_DB is required}
+      POSTGRES_USER: ${B3B_TARGET_USER:?B3B_TARGET_USER is required}
+      POSTGRES_PASSWORD: ${B3B_TARGET_PASSWORD:?B3B_TARGET_PASSWORD is required}
+    volumes:
+      - target-db-data:/var/lib/postgresql/data
+      # Mismo anclaje de creación, también en solo lectura.
+      - target-uploads:/mnt/b3backup-target-uploads:ro
+    # Sin `ports:`. El destino no se expone al host en ningún caso.
+    networks:
+      - net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${B3B_TARGET_USER} -d ${B3B_TARGET_BOOTSTRAP_DB}"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+    labels: *run-labels
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+networks:
+  net:
+    name: ${B3B_PROJECT}_net
+    labels: *run-labels
+
+# Exactamente cuatro volúmenes, todos propios del run y NINGUNO `external`:
+# `docker compose -p <project> down -v` solo elimina volúmenes con nombre
+# declarados aquí, y nunca elimina volúmenes external (documentación oficial).
+volumes:
+  origin-db-data:
+    name: ${B3B_PROJECT}_origin-db-data
+    labels: *run-labels
+  target-db-data:
+    name: ${B3B_PROJECT}_target-db-data
+    labels: *run-labels
+  origin-uploads:
+    name: ${B3B_PROJECT}_origin-uploads
+    labels: *run-labels
+  target-uploads:
+    name: ${B3B_PROJECT}_target-uploads
+    labels: *run-labels
