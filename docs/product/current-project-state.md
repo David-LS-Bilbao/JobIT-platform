@@ -1,6 +1,6 @@
 # Estado actual de JobIT Platform
 
-**Fecha del snapshot:** 2026-08-06<br>
+**Fecha del snapshot:** 2026-08-07<br>
 **Estado:** Activo — snapshot canónico de estado<br>
 **Rama canónica:** `dev`  
 **Repositorio:** `David-LS-Bilbao/JobIT-platform`
@@ -12,7 +12,7 @@
 ## 1. Baseline canónico de referencia
 
 ```text
-Baseline operativo vigente: 4102c94e38bc0df8bb73ef05f49357cd8f8b69df (merge de PR #110)
+Baseline operativo vigente: 1044ed745eb925057497681bed266dd43437b220 (merge de PR #112)
 ```
 
 El HEAD operativo del repositorio debe verificarse directamente mediante Git.
@@ -51,6 +51,11 @@ da5fd3030c48944768c702bbf3511c4ba2fc7ca7
 4102c94e38bc0df8bb73ef05f49357cd8f8b69df
 → merge de PR #110
 → cierre técnico de B3-ABUSE-01 (rate limiting integrado en la API)
+→ checkpoint histórico de cierre técnico de B3-ABUSE-01
+
+1044ed745eb925057497681bed266dd43437b220
+→ merge de PR #112
+→ cierre técnico de B3-BACKUP-01 (backup y restore verificados)
 → baseline operativo vigente
 ```
 
@@ -162,12 +167,17 @@ Contenido: Global Orchestrator v2 (`docs/agents/jobit-global-orchestrator-v2.md`
 
 ```text
 Production blockers técnicos:
-- B3-BACKUP-01 — backup/restore real no acreditado.
+OPEN_TECHNICAL_PRODUCTION_BLOCKERS: 0
+- Los tres blockers técnicos B3 están resueltos (ver «Resuelto»).
 
 Gate legal principal:
 - S22-PRIV-01 — PARTIALLY_REMEDIATED / LEGAL GATE OPEN.
 
 Resuelto:
+- B3-BACKUP-01 — RESOLVED. Backup y restore verificados sobre PostgreSQL y uploads
+  mediante entorno local, sintético, aislado y desechable.
+  PR #112, merge commit 1044ed745eb925057497681bed266dd43437b220.
+  Informe: docs/sprints/b3-backup-01-backup-restore-verification-final-report.md
 - B3-ABUSE-01 — RESOLVED. Rate limiting integrado en la API.
   PR #110, merge commit 4102c94e38bc0df8bb73ef05f49357cd8f8b69df.
   Informe: docs/sprints/b3-abuse-01-api-rate-limiting-final-report.md
@@ -175,6 +185,8 @@ Resuelto:
   PR #108, merge commit da5fd3030c48944768c702bbf3511c4ba2fc7ca7.
   Informe: docs/sprints/b3-supply-01-nextjs-security-hardening-final-report.md
 ```
+
+Cero production blockers técnicos abiertos no autoriza staging público, producción ni datos reales: el gate legal, las deudas de la sección 6 y las condiciones de esta sección siguen vigentes.
 
 ### PRIV-02
 
@@ -306,7 +318,6 @@ PENDING_ORCHESTRATOR_DECISION_AFTER_OPS_03
 
 Condiciones conocidas que enmarcan la decisión, sin asignar todavía número de sprint:
 
-- el production blocker técnico abierto (sección 5);
 - el gate legal principal `S22-PRIV-01` (sección 5);
 - `B4-STATE-02` (sección 6);
 - ciclo de vida de cuenta `S22-AUTH-06` / `B4-OPS-02` (sección 6).
@@ -326,7 +337,7 @@ CANDIDATE_DISCOVERY_IMPLEMENTATION:
 HOLD
 ```
 
-Estrategia canónica: [`docs/product/jobit-job-radar-candidate-discovery-strategy.md`](jobit-job-radar-candidate-discovery-strategy.md) (`ORCHESTRATOR DECISION: APPROVED_FOR_PLANNING_WITH_CONDITIONS`, `IMPLEMENTATION AUTHORIZATION: NONE`). La readiness candidate-first (el production blocker abierto y el gate legal de la sección 5, `B4-STATE-02` y ciclo de vida de cuenta de la sección 6) precede a cualquier fuente nueva o a la construcción de Job Radar local; la secuencia condicionada completa está en la estrategia canónica.
+Estrategia canónica: [`docs/product/jobit-job-radar-candidate-discovery-strategy.md`](jobit-job-radar-candidate-discovery-strategy.md) (`ORCHESTRATOR DECISION: APPROVED_FOR_PLANNING_WITH_CONDITIONS`, `IMPLEMENTATION AUTHORIZATION: NONE`). La readiness candidate-first (el gate legal de la sección 5, `B4-STATE-02` y ciclo de vida de cuenta de la sección 6) precede a cualquier fuente nueva o a la construcción de Job Radar local; la secuencia condicionada completa está en la estrategia canónica.
 
 ---
 
