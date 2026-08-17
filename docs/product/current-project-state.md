@@ -1,6 +1,6 @@
 # Estado actual de JobIT Platform
 
-**Fecha del snapshot:** 2026-08-07<br>
+**Fecha del snapshot:** 2026-08-17<br>
 **Estado:** Activo — snapshot canónico de estado<br>
 **Rama canónica:** `dev`  
 **Repositorio:** `David-LS-Bilbao/JobIT-platform`
@@ -12,7 +12,7 @@
 ## 1. Baseline canónico de referencia
 
 ```text
-Baseline operativo vigente: 1044ed745eb925057497681bed266dd43437b220 (merge de PR #112)
+Baseline operativo vigente: abcd1c65a7040c251f94f24f6c02841abcb892b5 (merge de PR #114)
 ```
 
 El HEAD operativo del repositorio debe verificarse directamente mediante Git.
@@ -56,6 +56,16 @@ da5fd3030c48944768c702bbf3511c4ba2fc7ca7
 1044ed745eb925057497681bed266dd43437b220
 → merge de PR #112
 → cierre técnico de B3-BACKUP-01 (backup y restore verificados)
+→ checkpoint histórico de cierre técnico de B3-BACKUP-01
+
+3251b72a2aec88decafa9fa6a1cf2a54a0664e12
+→ merge de PR #113
+→ B3-BACKUP-01 Canonical State Reconciliation
+→ checkpoint histórico
+
+abcd1c65a7040c251f94f24f6c02841abcb892b5
+→ merge de PR #114
+→ S22-PRIV-01 Legal Evidence Baseline Reconciliation
 → baseline operativo vigente
 ```
 
@@ -172,6 +182,19 @@ OPEN_TECHNICAL_PRODUCTION_BLOCKERS: 0
 
 Gate legal principal:
 - S22-PRIV-01 — PARTIALLY_REMEDIATED / LEGAL GATE OPEN.
+
+LEGAL_EVIDENCE_BASELINE:
+RECONCILED
+- PR #114 reconcilió la evidencia factual y técnica del inventario legal:
+  G-03 — tratamiento de dirección IP por el rate limiting de la API: se procesa de forma
+         efímera y en memoria; sigue sin persistirse y sin registrarse en logs.
+  G-06 — backups verificados: cubren PostgreSQL y el estado persistente de uploads
+         (avatares), en entorno local y con datos sintéticos.
+- Evidencia: docs/legal/data-inventory.md §2.2 y §6.1 (CURRENT_EVIDENCE_ADDENDUM).
+- Alcance estrictamente factual y técnico: no constituye conclusión jurídica.
+
+LEGAL_DECISIONS_APPROVED:
+NO
 
 Resuelto:
 - B3-BACKUP-01 — RESOLVED. Backup y restore verificados sobre PostgreSQL y uploads

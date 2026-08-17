@@ -74,15 +74,30 @@ El repositorio es público.
 Los identificadores fiscales, direcciones formales, canales privados, contratos y evidencias
 confidenciales se mantienen fuera de Git.
 
-El repositorio conserva únicamente:
-- estado de cada decisión;
-- categoría;
-- responsable lógico;
-- fecha o versión cuando proceda;
-- referencia abstracta al expediente privado;
-- impacto técnico;
-- revisión pendiente.
+VERSIONED_REPOSITORY conserva únicamente:
+- estado agregado del gate;
+- el recuento canónico 34 / 7 / 1;
+- la taxonomía de etiquetado;
+- referencias abstractas D-NN, sin estado ni valor;
+- información técnica y de gobernanza sanitizada.
+
+PRIVATE_SEGREGATED_REGISTER conserva:
+- el estado individual de cada decisión D-NN;
+- los valores de las decisiones;
+- las evidencias y aprobaciones privadas;
+- los datos identificativos y sensibles;
+- el detalle operativo privado.
+
+PER_DECISION_STATE_IN_PUBLIC_REPOSITORY:
+NO
 ```
+
+**Reconciliación de custodia** (`ORCHESTRATOR_DECISION_O02: B`, 17 de agosto de 2026). La
+enumeración anterior de esta sección afirmaba que el repositorio conservaba el estado, la
+categoría, el responsable lógico y la fecha o versión **de cada decisión**. Esa representación
+queda sustituida por la separación de arriba: el repositorio versionado conserva estado
+**agregado**, y el estado individual permanece en el registro privado segregado. No se ha creado
+ningún inventario público de decisiones y no se ha modificado ningún valor privado.
 
 El expediente privado se referencia como `EVIDENCIA_SEGREGADA_FUERA_DEL_REPOSITORIO`, bajo custodia del
 responsable, con acceso restringido y **sin ubicación registrada en el repositorio**.
@@ -213,21 +228,48 @@ Recuento obtenido **fila por fila** sobre el registro de decisiones del responsa
 34 + 7 + 1 = 42
 ```
 
+```text
+CANONICAL_SPRINT24_GATE_INVENTORY:
+34 / 7 / 1
+```
+
 Identificadores D-01 a D-42, **sin duplicados y sin huecos**.
 
-**Discrepancia con el recuento esperado.** La revisión indicó **32 / 9 / 1**; la verificación
-arroja **34 / 7 / 1**. Ambas suman 42. Diferencias respecto al recuento previo (33 / 8 / 1):
+**Discrepancia con el recuento esperado (registro histórico).** La revisión indicó
+**32 / 9 / 1**; la verificación arroja **34 / 7 / 1**. Ambas suman 42. Diferencias respecto al
+recuento previo (33 / 8 / 1):
+
+```text
+HISTORICAL_NON_CANONICAL_EXPECTATION:
+32 / 9 / 1
+```
 
 1. **D-07 (DPO)** pasa a bloqueante: si existe DPO, sus datos forman parte de la información
    ampliada, y la segunda capa no puede cerrarse sin conocer el resultado.
 2. El resumen anterior declaraba 27 / 12 / 3, cifras que no coincidían con su propia tabla.
 
-No se ha ajustado ninguna fila para cuadrar con la cifra esperada. **Si el Chat Director
-mantiene 32 / 9 / 1, se necesita saber qué dos decisiones considera no bloqueantes.**
+No se ha ajustado ninguna fila para cuadrar con la cifra esperada. En su momento este informe
+dejó abierta la pregunta de qué dos decisiones considerarían no bloqueantes quienes esperaban
+**32 / 9 / 1**. Esa pregunta queda cerrada por la nota siguiente.
+
+### 11.bis Nota de reconciliación del recuento
+
+`ORCHESTRATOR_DECISION_O01: A` · 17 de agosto de 2026.
+
+- **`34 / 7 / 1` es el recuento canónico** del inventario del gate del Sprint 24, ratificado por
+  decisión del Orquestador.
+- **`32 / 9 / 1` fue una expectativa histórica no canónica** de una revisión previa. Se conserva
+  en este documento como registro cronológico, no como recuento vigente.
+- **No se ha reclasificado ninguna decisión D-NN** para cuadrar la cifra histórica, y **no se
+  identifican** las dos decisiones que la habrían cuadrado.
+- **No se ha modificado ningún valor ni estado privado.**
+- La cronología anterior de esta sección —incluidas las menciones a `33 / 8 / 1` y
+  `27 / 12 / 3`— se conserva sin borrado.
 
 ## 12. Identidad y contactos
 
-D-01 a D-06 pendientes. D-03 reformulado: disponer del identificador fiscal, necesidad de
+El bloque de identidad y contacto comprende D-01 a D-06; su estado individual permanece en el
+registro privado segregado. D-03 reformulado: disponer del identificador fiscal, necesidad de
 publicarlo y superficie procedente son cuestiones distintas; **no se presenta como requisito
 automático de la información de privacidad**.
 
