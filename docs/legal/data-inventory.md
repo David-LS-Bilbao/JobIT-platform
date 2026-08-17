@@ -20,6 +20,13 @@ y en runtime local. Etiquetado conforme a la taxonomía de
 **Baseline de la observación:** `98492754d5dd00ebd081e7d5b82b36600b6c9372`
 **Fecha:** 28 de julio de 2026
 
+> **Nota de adendas de evidencia actual.** El cuerpo de este inventario corresponde al baseline
+> indicado. Las secciones marcadas como `CURRENT_EVIDENCE_ADDENDUM` reconcilian hechos técnicos
+> verificados con posterioridad, contra el baseline `3251b72a2aec88decafa9fa6a1cf2a54a0664e12`.
+> Las adendas **no sustituyen** la observación original ni reescriben los informes históricos:
+> solo corrigen o completan el estado factual vigente. Su clasificación es
+> `FACTUAL_TECHNICAL_STATE`; ninguna adenda decide cuestión jurídica alguna.
+
 ## 1. Alcance y método
 
 Se inventarían únicamente categorías **observadas**. No se han inferido ni añadido categorías
@@ -61,12 +68,52 @@ indicado en §5.3.
 
 | Categoría | Resultado |
 |---|---|
-| Dirección IP | **No se recoge ni persiste.** `grep` de `req.ip`, `x-forwarded-for` sin coincidencias |
+| Dirección IP | **Reclasificada.** En el baseline de la observación no había coincidencias de `req.ip` ni `x-forwarded-for`. Hoy **sí se procesa**, de forma efímera y en memoria; **sigue sin persistirse**. Ver §2.2 |
 | User-agent | **No se recoge ni persiste.** `grep` de `userAgent`, `user-agent` sin coincidencias |
 | Fecha de nacimiento / edad | No existe campo |
 | Tabla de logs | No existe |
 | Tabla de telemetría | No existe |
 | Resultados de match persistidos | No existe modelo |
+
+La fila «Dirección IP» se conserva por trazabilidad con la observación original y queda
+reclasificada en §2.2. El resto de la tabla mantiene su resultado.
+
+### 2.2 Dirección IP — adenda de evidencia actual
+
+`CURRENT_EVIDENCE_ADDENDUM` · `FACTUAL_TECHNICAL_STATE` · verificado sobre
+`3251b72a2aec88decafa9fa6a1cf2a54a0664e12`.
+
+Tras la integración del rate limiting de la API (`B3-ABUSE-01`, posterior al baseline de esta
+observación), la dirección IP **sí se procesa**. La afirmación original de ausencia total de
+tratamiento ha dejado de ser correcta y se sustituye por la siguiente. **Procesamiento y
+persistencia son planos distintos:** lo que sigue afirma el primero y niega el segundo.
+
+| Aspecto | Estado observado |
+|---|---|
+| Tratamiento | **Sí.** La IP se procesa en cada petición sujeta a limitación |
+| Finalidad técnica observada | Limitación de peticiones de la API (`API_RATE_LIMITING`) |
+| Identificador de cliente | `req.ip` de Express, mediante el generador de clave por defecto de `express-rate-limit` |
+| Limitadores afectados | **4** (general de la API y de `/uploads`, login, registro y portfolio público) |
+| Persistencia en base de datos | **Ninguna evidencia** en el código autorizado actual |
+| Modelo o columna Prisma | **Ninguno identificado** |
+| Persistencia en disco | **Ninguna identificada** |
+| Registro en logs de aplicación | **Ninguno identificado** |
+| Almacén utilizado | `MemoryStore` de `express-rate-limit` |
+| Naturaleza del almacén | Memoria efímera del proceso; no compartida entre instancias y no sobrevive a un reinicio |
+| Vida temporal aproximada | Acotada por la ventana del limitador: como máximo **≈ 2 × la ventana configurada** desde la última petición (ventanas vigentes: 15 min general, login y portfolio público; 60 min registro) |
+| Transmisión a terceros por la implementación de rate limiting | **Ninguna identificada** |
+
+La vida temporal indicada es una **propiedad técnica del limitador**, no un plazo de
+conservación: no constituye ni sustituye una política de conservación.
+
+`[DECISIÓN DEL RESPONSABLE]` · `[REVISIÓN ESPECIALIZADA]` — el efecto jurídico de este
+tratamiento (finalidad declarada, base jurídica, calificación y consecuencias) **no se decide
+aquí**.
+
+```text
+LEGAL_EFFECT:
+NOT_DECIDED
+```
 
 ## 3. Matriz de tratamientos
 
@@ -85,7 +132,7 @@ declarada ni una base jurídica.** La finalidad formal y su base son
 | Ubicación | Perfil | Match y presentación | **Público por defecto al publicar** | ídem | **Alto** |
 | Disponibilidad | Perfil | Match y presentación | **Público por defecto al publicar** | ídem | **Alto** |
 | Preferencia remoto | Perfil | Match y presentación | Público si `showAvailability` | ídem | Medio |
-| Avatar | Upload | Presentación | **Público si publica** | Filesystem, **sin borrado** | **Alto** |
+| Avatar | Upload | Presentación | **Público si publica** | Filesystem sobre volumen persistente, **sin borrado** (§6.1) | **Alto** |
 | Skills | Perfil | CV y match | **Público si publica** | `Skill` | Medio |
 | Experiencia | Perfil | CV | **Público si publica** | `Experience` | Medio |
 | Educación | Perfil | CV | **Público si publica** | `Education` | Medio |
@@ -209,6 +256,48 @@ tras revisión especializada.
 `[DECISIÓN DEL RESPONSABLE]` — plazos de conservación por categoría, política de inactividad y
 criterio de cierre de cuenta.
 
+### 6.1 Uploads, avatares y backup — adenda de evidencia actual
+
+`CURRENT_EVIDENCE_ADDENDUM` · `FACTUAL_TECHNICAL_STATE` · verificado sobre
+`3251b72a2aec88decafa9fa6a1cf2a54a0664e12`.
+
+Esta adenda completa un hueco de evidencia del inventario original, que describía el avatar solo
+como fichero en filesystem y no registraba ni el mecanismo de persistencia ni la capacidad de
+copia y restauración verificada posteriormente (`B3-BACKUP-01`).
+
+| Aspecto | Estado observado |
+|---|---|
+| Uploads / avatares | **Estado persistente de la aplicación**, no artefacto transitorio |
+| Relación con `avatarUrl` | `avatarUrl` referencia el recurso o ruta del avatar subido, conforme a la implementación actual |
+| Mecanismo de persistencia | Volumen persistente, según la topología verificada |
+| Alcance de la verificación de backup y restore | Base de datos **y** estado persistente de uploads |
+| Capacidad de backup y restore | **Verificada en local y con datos sintéticos** |
+| Programación productiva de backups | **No establecida** por `B3-BACKUP-01` |
+| Backups de datos reales de candidatos | **No autorizados** |
+| Backups de datos reales verificados | **No** |
+| Almacenamiento fuera del host | **No establecido** |
+| Retención técnica | `DOCUMENTATION_ONLY`. Esta evidencia **no** establece ninguna política de retención productiva implantada |
+
+Delimitación expresa, para evitar lecturas que la evidencia no sostiene:
+
+- capacidad de backup y restore verificada **no** equivale a backups productivos operativos;
+- volumen persistente **no** equivale a política de retención;
+- verificación local con datos sintéticos **no** equivale a backups de datos reales de
+  candidatos.
+
+No se afirma programación productiva, cron productivo, almacenamiento fuera del host, backups
+reales, redundancia geográfica, política jurídica de conservación ni entorno productivo
+autorizado.
+
+`[DECISIÓN DEL RESPONSABLE]` · `[REVISIÓN ESPECIALIZADA]` — la conservación jurídica de uploads
+y avatares, y los plazos que le correspondan, **no se deciden aquí**. `AVATAR-02` (ausencia de
+borrado físico) permanece abierto y sin cambio de estado.
+
+```text
+RETENTION_LEGAL_DECISION:
+NOT_DECIDED
+```
+
 ## 7. Logs y telemetría observados
 
 - **No existe logger de peticiones** (sin `morgan`, `pino`, `winston`).
@@ -216,6 +305,7 @@ criterio de cierre de cuenta.
   **solo fuera de producción**; en producción responde `"Internal server error."` sin detalle.
 - Los `console.log` restantes son de arranque del servidor y de scripts de ingesta manual.
 - **No se han observado registros persistentes que contengan datos personales.**
+- El limitador de peticiones **no escribe la IP en logs** ni añade logging o métricas (§2.2).
 
 ## 8. Cuestiones de aplicabilidad pendientes
 
