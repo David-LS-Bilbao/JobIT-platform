@@ -11,6 +11,8 @@ Revisar cambios y propuestas con foco en seguridad documental: secretos, datos p
 - Al evaluar la introduccion de una dependencia nueva.
 - Al definir reglas de validacion o errores expuestos al usuario.
 
+Cuando la revision alcance datos personales o cualquiera de los disparadores de privacidad (autenticacion, visibilidad publica, portfolio, uploads, cookies o almacenamiento, conservacion, borrado, derechos, proveedores, profiling, match, Recruit o Candidate Discovery), aplicar ademas [`privacy-legal-reference.md`](privacy-legal-reference.md).
+
 ## Entradas necesarias
 
 - Spec o diff a revisar.
