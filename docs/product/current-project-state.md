@@ -1,7 +1,7 @@
 # Estado actual de JobIT Platform — Lean Snapshot
 
 **Fecha:** 2026-08-18
-**Estado:** candidato a snapshot canónico para la transición a Orchestrator v3
+**Estado:** snapshot canónico vigente bajo Orchestrator v3 Lean
 **Rama canónica:** `dev`
 **Repositorio:** `David-LS-Bilbao/JobIT-platform`
 
@@ -10,13 +10,17 @@
 ## BASELINE
 
 ```text
-dev remoto verificado:
-095b3fe9cb9fa11a9d2453ff3ee70e2f41b062a2
+MANDATE_CREATION_CHECKPOINT:
+a68066b2782c1b491dcb90dd8928c89d73118ba2
 
-Origen:
-merge PR #116
-docs(legal): add S22-PRIV-01 reference baseline and privacy agent gate
+STATE_CHECKPOINT:
+a68066b2782c1b491dcb90dd8928c89d73118ba2
+
+CURRENT_DEV:
+VERIFY_FROM_GIT
 ```
+
+`STATE_CHECKPOINT` es el commit histórico de `origin/dev` desde el que se realizó esta reconciliación (merge PR #117, `docs(agents): add lean orchestrator v3 governance`). No se actualiza para perseguir merges posteriores. `CURRENT_DEV` se obtiene de Git cuando sea necesario.
 
 ## EXECUTIVE_STATUS
 
@@ -36,29 +40,26 @@ Original Orchestrator:
 ARCHIVED_READ_ONLY
 
 Orchestrator v2:
-ARCHIVE_TARGET_DUE_TO_CONTEXT_SATURATION
+ARCHIVED_READ_ONLY
 
 Orchestrator v3 Lean:
-PREPARED_FOR_ACTIVATION
-NOT_YET_ACTIVE_CANONICAL
+ACTIVE_CANONICAL
 ```
 
-Solo puede existir un Orquestador activo tras validar v3.
+Solo puede existir un Orquestador Global activo.
 
 ## NOW
 
 ```text
-ORCHESTRATOR_V3_LEAN_MIGRATION
+ORCHESTRATOR_V3_LEAN_MIGRATION:
+CLOSED
+
+ACTIVE_FUNCTIONAL_UNIT:
+NONE
+
+Decisión inmediata:
+ORCHESTRATOR_DECISION_REQUIRED_FOR_NEXT_UNIT
 ```
-
-Objetivo:
-
-- versionar contrato v3;
-- versionar Chat Director Contract v1;
-- actualizar este snapshot;
-- añadir bootstrap v3 a archivos del proyecto ChatGPT;
-- arrancar y validar un Orquestador v3;
-- archivar v2.
 
 ## NEXT
 
@@ -169,9 +170,8 @@ Las superficies legales públicas pueden diferirse al gate final, pero privacy-b
 ## OPEN_DECISIONS
 
 ```text
-1. Merge y activación de Orchestrator v3 Lean.
-2. Numeración de la unidad Session Continuity & 401 Recovery.
-3. Contrato exacto de refresh/rotation tras Plan Mode.
+1. Numeración de la unidad Session Continuity & 401 Recovery.
+2. Contrato exacto de refresh/rotation tras Plan Mode.
 ```
 
 No reservar `Sprint 26B` para el roadmap general; InfoJobs permanece bloqueado.
