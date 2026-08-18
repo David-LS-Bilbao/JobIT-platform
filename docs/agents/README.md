@@ -61,6 +61,7 @@ Bajo `docs/agents/skills/`. Todas siguen el mismo esquema (objetivo, cuando usar
 - `frontend-ui.md`: diseno documental de pantallas y estados.
 - `database-prisma.md`: diseno documental de modelo de datos.
 - `devops-vps.md`: criterios para futuras tareas de despliegue en VPS.
+- `privacy-legal-reference.md`: precheck de impacto de privacidad y consulta controlada de la baseline juridica preparatoria de `docs/legal/reference/`.
 
 ## Guias especificas para Codex
 

@@ -108,6 +108,22 @@ El contrato operativo es: spec antes de feature, tests minimos antes de implemen
 - No modificar workflows, despliegues o infraestructura sin una especificacion aprobada.
 - En tareas de servidor o produccion, diagnosticar primero y aplicar cambios solo con autorizacion clara.
 
+## Puerta de referencia legal / privacidad
+
+Antes de disenar o implementar cualquier cambio que pueda afectar a datos personales, autenticacion, visibilidad publica, portfolio, uploads, cookies o almacenamiento en terminal, conservacion, borrado, derechos, proveedores, profiling, match, Recruit o Candidate Discovery, el agente debe aplicar la skill documental [`docs/agents/skills/privacy-legal-reference.md`](docs/agents/skills/privacy-legal-reference.md).
+
+Reglas minimas (el detalle vive en la skill):
+
+- Ejecutar el `PRIVACY_IMPACT_PRECHECK` de 12 preguntas. Si alguna respuesta es `YES`, el resultado es `LEGAL_REFERENCE_REQUIRED: YES`.
+- En ese caso, leer `docs/legal/reference/README.md` y solo los paquetes SR relevantes segun la tabla de ruteo de la skill.
+- Todo lo que vive en `docs/legal/reference/` es `PREPARATORY_REFERENCE_ONLY`. No es aprobacion juridica y no se modifica sin autorizacion documental explicita.
+- Prohibido convertir `PRELIMINARY`, `CONDITIONAL`, `TO_VERIFY`, `RECOMMENDATION` o `HUMAN_REVIEW_REQUIRED` en `LEGAL_REQUIREMENT`, `APPROVED` o `COMPLIANT`.
+- `SAFE_TO_IMPLEMENT_NOW` no autoriza implementar: sigue haciendo falta autorizacion del orquestador y spec aprobada cuando proceda.
+- Prohibido introducir en el repositorio: identidad fiscal o domicilio privados del responsable; credenciales, secrets o claves de API; contratos reales o completos con proveedores o encargados; valores privados de proveedores; incidentes o brechas reales; evidencias reales de ejercicio de derechos o de consentimiento; datos reales de personas candidatas. Esta regla no bloquea plantillas sanitizadas, modelos abstractos ni documentacion autorizada que no contenga valores privados.
+- Si el trabajo depende de una conclusion juridica no resuelta, activar `LEGAL_INTERPRETATION_REQUIRED`: detener toda la ejecucion, no modificar mas archivos y emitir `BLOCKED` conforme a [`docs/agents/kill-switch-rules.md`](docs/agents/kill-switch-rules.md). Solo puede reanudarse tras decision humana explicita.
+
+El estado juridico vigente (`LEGAL_DECISION_GATE: OPEN`, `HUMAN_LEGAL_VALIDATION: PENDING`, `TRAMO_B` y `PRODUCTION` no autorizados) no puede levantarlo ningun agente.
+
 ## Control de alcance
 
 Los agentes no pueden ampliar el alcance sin permiso.
