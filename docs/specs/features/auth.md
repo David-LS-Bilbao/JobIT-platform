@@ -88,6 +88,7 @@ No se almacena la contraseña en texto plano. El campo `role` prepara la futura 
 | POST | /auth/register | Registro de nuevo candidato |
 | POST | /auth/login | Login con email y contraseña |
 | POST | /auth/logout | Cierre de sesión |
+| POST | /auth/refresh | Renovación del access token mediante la cookie `refresh_token`. Especificado en [`session-continuity-401-recovery.md`](session-continuity-401-recovery.md) |
 | GET | /auth/me | Datos del usuario autenticado (ruta privada) |
 
 Todos los endpoints de mutación validan en el servidor. El frontend no es fuente de verdad para validaciones de seguridad.

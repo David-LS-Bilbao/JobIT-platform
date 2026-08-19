@@ -6,7 +6,8 @@ import { useEffect, useRef, useState, type SyntheticEvent } from "react";
 import { SiteShell } from "@/components/layout/site-shell";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/feedback";
 import { useAuth } from "@/features/auth/auth-context";
-import { redirectOnMissingSession, redirectToLogin } from "@/features/auth/auth-navigation";
+import { redirectToLogin } from "@/features/auth/auth-navigation";
+import { useSessionGuard } from "@/features/auth/use-session-guard";
 import { getSavedJobs, saveJob, unsaveJob } from "@/features/saved-jobs/saved-jobs-api";
 import { isSessionExpiredError } from "@/lib/api-client";
 import type { JobContractType, JobFilters, JobPublicDto, JobRemoteFilter, JobSeniorityFilter } from "@/types/api";
@@ -23,7 +24,7 @@ type ActionMsg = { kind: "success" | "error"; text: string };
 /** `/jobs`: listado privado de ofertas con filtros básicos y guardar/quitar. */
 export function JobsPage() {
   const router = useRouter();
-  const { accessToken, clearSession, endReason } = useAuth();
+  const { accessToken, clearSession } = useAuth();
 
   const [filters, setFilters] = useState<JobFilters>({});
   const [qInput, setQInput] = useState("");
@@ -45,9 +46,10 @@ export function JobsPage() {
   // no afecta al render, solo al efecto de scroll post-respuesta.
   const pendingPaginationScrollRef = useRef(false);
 
-  useEffect(() => {
-    if (!accessToken) redirectOnMissingSession(router, endReason);
-  }, [accessToken, endReason, router]);
+  // Guarda unica de ruta privada (ADR-0014): distingue arranque, sesion terminal
+  // y fallo transitorio, de modo que ni se redirige durante el bootstrap ni se
+  // trata un error de infraestructura como sesion invalida.
+  const sessionGuard = useSessionGuard(router);
 
   // Ofertas guardadas (una vez) para reflejar el estado del toggle en las cards.
   useEffect(() => {
@@ -186,7 +188,18 @@ export function JobsPage() {
   }
 
   const body = (() => {
-    if (!accessToken) return <p className="text-sm text-slate-600">Redirigiendo al login…</p>;
+    if (sessionGuard.state === "unavailable") {
+      return (
+        <ErrorState
+          title="No se ha podido verificar tu sesión."
+          description="No hemos podido comprobar si tu sesión sigue activa. Revisa tu conexión e inténtalo de nuevo."
+          onRetry={sessionGuard.retry}
+        />
+      );
+    }
+    if (sessionGuard.state !== "ready") {
+      return <p className="text-sm text-slate-600">Comprobando tu sesión…</p>;
+    }
     if (errored)
       return (
         <ErrorState

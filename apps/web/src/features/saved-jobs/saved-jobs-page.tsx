@@ -6,7 +6,8 @@ import { useEffect, useState } from "react";
 import { SiteShell } from "@/components/layout/site-shell";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/feedback";
 import { useAuth } from "@/features/auth/auth-context";
-import { redirectOnMissingSession, redirectToLogin } from "@/features/auth/auth-navigation";
+import { redirectToLogin } from "@/features/auth/auth-navigation";
+import { useSessionGuard } from "@/features/auth/use-session-guard";
 import { JobCard } from "@/features/jobs/job-card";
 import { isSessionExpiredError } from "@/lib/api-client";
 import type { SavedJobDto } from "@/types/api";
@@ -28,7 +29,7 @@ function isJobUnavailable(job: SavedJobDto["job"]): boolean {
 /** `/saved-jobs`: listado privado de ofertas guardadas, con quitar y estado vacío. */
 export function SavedJobsPage() {
   const router = useRouter();
-  const { accessToken, clearSession, endReason } = useAuth();
+  const { accessToken, clearSession } = useAuth();
 
   const [items, setItems] = useState<SavedJobDto[] | null>(null);
   const [errored, setErrored] = useState(false);
@@ -39,9 +40,10 @@ export function SavedJobsPage() {
   // Reintento manual (17D.3): incrementarlo relanza el efecto de carga.
   const [reloadKey, setReloadKey] = useState(0);
 
-  useEffect(() => {
-    if (!accessToken) redirectOnMissingSession(router, endReason);
-  }, [accessToken, endReason, router]);
+  // Guarda unica de ruta privada (ADR-0014): distingue arranque, sesion terminal
+  // y fallo transitorio, de modo que ni se redirige durante el bootstrap ni se
+  // trata un error de infraestructura como sesion invalida.
+  const sessionGuard = useSessionGuard(router);
 
   // El estado de carga se deriva de `items === null` (evita setState síncrono en el efecto).
   useEffect(() => {
@@ -93,8 +95,16 @@ export function SavedJobsPage() {
   }
 
   let body;
-  if (!accessToken) {
-    body = <p className="text-sm text-slate-600">Redirigiendo al login…</p>;
+  if (sessionGuard.state === "unavailable") {
+    body = (
+      <ErrorState
+        title="No se ha podido verificar tu sesión."
+        description="No hemos podido comprobar si tu sesión sigue activa. Revisa tu conexión e inténtalo de nuevo."
+        onRetry={sessionGuard.retry}
+      />
+    );
+  } else if (sessionGuard.state !== "ready") {
+    body = <p className="text-sm text-slate-600">Comprobando tu sesión…</p>;
   } else if (errored) {
     body = (
       <ErrorState

@@ -6,7 +6,8 @@ import { useEffect, useState, type ReactNode } from "react";
 import { SiteShell } from "@/components/layout/site-shell";
 import { ErrorState, LoadingState } from "@/components/ui/feedback";
 import { useAuth } from "@/features/auth/auth-context";
-import { redirectOnMissingSession, redirectToLogin } from "@/features/auth/auth-navigation";
+import { redirectToLogin } from "@/features/auth/auth-navigation";
+import { useSessionGuard } from "@/features/auth/use-session-guard";
 import { getCandidateDashboard } from "@/features/dashboard/dashboard-api";
 import { DashboardContent } from "@/features/dashboard/dashboard-content";
 import { isSessionExpiredError } from "@/lib/api-client";
@@ -16,19 +17,17 @@ type LoadError = "generic" | "expired";
 
 export function DashboardPage() {
   const router = useRouter();
-  const { accessToken, clearSession, endReason } = useAuth();
+  const { accessToken, clearSession } = useAuth();
 
   const [dashboard, setDashboard] = useState<CandidateDashboardDto | null>(null);
   const [loadError, setLoadError] = useState<LoadError | null>(null);
   // Reintento manual (17D.2): incrementarlo relanza el efecto de carga.
   const [reloadKey, setReloadKey] = useState(0);
 
-  // Guard: sin sesión en memoria (p. ej. tras recargar la página) → login.
-  useEffect(() => {
-    if (!accessToken) {
-      redirectOnMissingSession(router, endReason);
-    }
-  }, [accessToken, endReason, router]);
+  // Guarda unica de ruta privada (ADR-0014): distingue arranque, sesion terminal
+  // y fallo transitorio, de modo que ni se redirige durante el bootstrap ni se
+  // trata un error de infraestructura como sesion invalida.
+  const sessionGuard = useSessionGuard(router);
 
   useEffect(() => {
     if (!accessToken) return;
@@ -62,8 +61,16 @@ export function DashboardPage() {
   let body: ReactNode;
   if (loadError === "expired") {
     body = <p className="text-sm text-slate-600">Tu sesión ha caducado. Vuelve a iniciar sesión.</p>;
-  } else if (!accessToken) {
-    body = <p className="text-sm text-slate-600">Redirigiendo al login…</p>;
+  } else if (sessionGuard.state === "unavailable") {
+    body = (
+      <ErrorState
+        title="No se ha podido verificar tu sesión."
+        description="No hemos podido comprobar si tu sesión sigue activa. Revisa tu conexión e inténtalo de nuevo."
+        onRetry={sessionGuard.retry}
+      />
+    );
+  } else if (sessionGuard.state !== "ready") {
+    body = <p className="text-sm text-slate-600">Comprobando tu sesión…</p>;
   } else if (loadError === "generic") {
     body = (
       <ErrorState

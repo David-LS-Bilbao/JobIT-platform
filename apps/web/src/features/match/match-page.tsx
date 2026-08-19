@@ -7,7 +7,8 @@ import { useEffect, useState } from "react";
 import { SiteShell } from "@/components/layout/site-shell";
 import { ErrorState, LoadingState } from "@/components/ui/feedback";
 import { useAuth } from "@/features/auth/auth-context";
-import { redirectOnMissingSession, redirectToLogin } from "@/features/auth/auth-navigation";
+import { redirectToLogin } from "@/features/auth/auth-navigation";
+import { useSessionGuard } from "@/features/auth/use-session-guard";
 import { getMyProfile } from "@/features/profile/profile-api";
 import { getSavedJobs, saveJob, unsaveJob } from "@/features/saved-jobs/saved-jobs-api";
 import { isSessionExpiredError } from "@/lib/api-client";
@@ -25,7 +26,7 @@ import { MatchCard } from "./match-card";
  */
 export function MatchPage() {
   const router = useRouter();
-  const { accessToken, clearSession, endReason } = useAuth();
+  const { accessToken, clearSession } = useAuth();
 
   const [profile, setProfile] = useState<CandidateProfileDto | null>(null);
   const [matches, setMatches] = useState<ProfileJobMatchDto[] | null>(null);
@@ -38,9 +39,10 @@ export function MatchPage() {
   // Reintento manual (17D.5): incrementarlo relanza el efecto de carga.
   const [reloadKey, setReloadKey] = useState(0);
 
-  useEffect(() => {
-    if (!accessToken) redirectOnMissingSession(router, endReason);
-  }, [accessToken, endReason, router]);
+  // Guarda unica de ruta privada (ADR-0014): distingue arranque, sesion terminal
+  // y fallo transitorio, de modo que ni se redirige durante el bootstrap ni se
+  // trata un error de infraestructura como sesion invalida.
+  const sessionGuard = useSessionGuard(router);
 
   // Ofertas guardadas (una vez) para reflejar el estado del toggle en las cards.
   useEffect(() => {
@@ -144,7 +146,18 @@ export function MatchPage() {
   }
 
   const body = (() => {
-    if (!accessToken) return <p className="text-sm text-slate-600">Redirigiendo al login…</p>;
+    if (sessionGuard.state === "unavailable") {
+      return (
+        <ErrorState
+          title="No se ha podido verificar tu sesión."
+          description="No hemos podido comprobar si tu sesión sigue activa. Revisa tu conexión e inténtalo de nuevo."
+          onRetry={sessionGuard.retry}
+        />
+      );
+    }
+    if (sessionGuard.state !== "ready") {
+      return <p className="text-sm text-slate-600">Comprobando tu sesión…</p>;
+    }
     if (errored)
       return (
         <ErrorState

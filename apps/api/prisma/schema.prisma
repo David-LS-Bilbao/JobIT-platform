@@ -21,13 +21,20 @@ model User {
 }
 
 model RefreshToken {
-  id        String    @id @default(uuid())
-  userId    String
-  tokenHash String
-  expiresAt DateTime
-  revokedAt DateTime?
-  createdAt DateTime  @default(now())
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String    @id @default(uuid())
+  userId       String
+  familyId     String
+  tokenHash    String    @unique
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  replacedById String?   @unique
+
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  replacedBy RefreshToken? @relation("RefreshTokenRotation", fields: [replacedById], references: [id], onDelete: SetNull)
+  replaces   RefreshToken? @relation("RefreshTokenRotation")
+
+  @@index([familyId])
 }
 
 enum AvailabilityStatus {

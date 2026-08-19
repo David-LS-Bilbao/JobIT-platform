@@ -71,6 +71,43 @@ describe("POST /api/auth/login", () => {
     expect(responseNoUser.body.error.message).toBe(responseWrongPw.body.error.message);
   });
 
+  it("B30 · la cookie emitida en login lleva HttpOnly y SameSite=Lax", async () => {
+    await request(testApp)
+      .post("/api/auth/register")
+      .send({ email: VALID_EMAIL, password: VALID_PASSWORD });
+
+    const response = await request(testApp)
+      .post("/api/auth/login")
+      .send({ email: VALID_EMAIL, password: VALID_PASSWORD });
+
+    const setCookie = (response.headers["set-cookie"] as unknown as string[]).find((c) =>
+      c.startsWith("refresh_token=")
+    );
+    expect(setCookie).toBeDefined();
+    expect(setCookie).toContain("HttpOnly");
+    expect(setCookie).toContain("SameSite=Lax");
+  });
+
+  it("B30b · cada autenticación crea una familia nueva e independiente", async () => {
+    await request(testApp)
+      .post("/api/auth/register")
+      .send({ email: VALID_EMAIL, password: VALID_PASSWORD });
+    await request(testApp)
+      .post("/api/auth/login")
+      .send({ email: VALID_EMAIL, password: VALID_PASSWORD });
+
+    const user = await prisma.user.findUnique({ where: { email: VALID_EMAIL } });
+    const tokens = await prisma.refreshToken.findMany({ where: { userId: user!.id } });
+
+    expect(tokens).toHaveLength(2);
+    expect(new Set(tokens.map((t) => t.familyId)).size).toBe(2);
+    for (const token of tokens) {
+      expect(token.familyId).toBeTruthy();
+      expect(token.replacedById).toBeNull();
+      expect(token.revokedAt).toBeNull();
+    }
+  });
+
   it("does not expose passwordHash or tokenHash in response", async () => {
     await request(testApp)
       .post("/api/auth/register")

@@ -7,6 +7,18 @@ import { AuthProvider } from "@/features/auth/auth-context";
 import LoginPage from "./page";
 
 const { searchParamsMock } = vi.hoisted(() => ({ searchParamsMock: { current: new URLSearchParams() } }));
+// El AuthProvider intenta recuperar la sesión al montar (ADR-0014). Aquí se
+// neutraliza ese arranque para que cada test controle el estado de sesión:
+// `session-lost` deja el contexto en anónimo terminal, como antes del bootstrap.
+vi.mock("@/lib/api-client", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/api-client")>();
+  return {
+    ...actual,
+    ensureRefreshed: vi.fn(async () => ({ status: "session-lost" as const })),
+    registerAuthBridge: vi.fn()
+  };
+});
+
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
   useSearchParams: () => searchParamsMock.current

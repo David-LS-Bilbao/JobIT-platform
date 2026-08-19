@@ -15,6 +15,18 @@ const { pushMock, routerMock, pathnameMock } = vi.hoisted(() => {
   const push = vi.fn();
   return { pushMock: push, routerMock: { push }, pathnameMock: { current: "/dashboard" } };
 });
+// El AuthProvider intenta recuperar la sesión al montar (ADR-0014). Aquí se
+// neutraliza ese arranque para que cada test controle el estado de sesión:
+// `session-lost` deja el contexto en anónimo terminal, como antes del bootstrap.
+vi.mock("@/lib/api-client", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/api-client")>();
+  return {
+    ...actual,
+    ensureRefreshed: vi.fn(async () => ({ status: "session-lost" as const })),
+    registerAuthBridge: vi.fn()
+  };
+});
+
 vi.mock("next/navigation", () => ({
   useRouter: () => routerMock,
   usePathname: () => pathnameMock.current
@@ -62,16 +74,30 @@ afterEach(() => {
 });
 
 describe("SiteShell navegación auth-aware", () => {
-  it("sin sesión muestra Login y Registro y oculta Dashboard/Cerrar sesión", () => {
+  it("sin sesión muestra Login y Registro y oculta Dashboard/Cerrar sesión", async () => {
     render(
       <AuthProvider>
         <SiteShell>contenido</SiteShell>
       </AuthProvider>
     );
-    expect(screen.getByRole("link", { name: "Login" })).toHaveAttribute("href", "/login");
+    // El shell público aparece cuando el arranque concluye que no hay sesión
+    // (ADR-0014): antes de eso se pinta un armazón neutro, no el público.
+    expect(await screen.findByRole("link", { name: "Login" })).toHaveAttribute("href", "/login");
     expect(screen.getByRole("link", { name: "Registro" })).toHaveAttribute("href", "/register");
     expect(screen.queryByRole("link", { name: "Dashboard" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Cerrar sesión" })).not.toBeInTheDocument();
+  });
+
+  it("durante el arranque no muestra el shell público ni el privado", () => {
+    render(
+      <AuthProvider>
+        <SiteShell>contenido</SiteShell>
+      </AuthProvider>
+    );
+    // Ni contenido privado ni enlaces públicos: todavía no se sabe si hay sesión.
+    expect(screen.queryByRole("link", { name: "Login" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Dashboard" })).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Comprobando tu sesión…");
   });
 
   it("con sesión muestra Dashboard y Cerrar sesión y oculta Login/Registro", () => {
