@@ -10,6 +10,18 @@ import type { AuthResponseDto, CandidateProfileDto } from "@/types/api";
 // Sprint 21D: el AuthContext cargará una identidad ligera del candidato (snapshot).
 // Default que no resuelve: los tests base no ejercen la identidad y así el efecto
 // no dispara actualizaciones fuera de act; el describe de identidad lo sobreescribe.
+// El AuthProvider intenta recuperar la sesión al montar (ADR-0014). Aquí se
+// neutraliza ese arranque para que cada test controle el estado de sesión:
+// `session-lost` deja el contexto en anónimo terminal, como antes del bootstrap.
+vi.mock("@/lib/api-client", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/api-client")>();
+  return {
+    ...actual,
+    ensureRefreshed: vi.fn(async () => ({ status: "session-lost" as const })),
+    registerAuthBridge: vi.fn()
+  };
+});
+
 vi.mock("@/features/profile/profile-api", () => ({ getMyProfile: vi.fn(() => new Promise(() => {})) }));
 
 function wrapper({ children }: { children: ReactNode }) {

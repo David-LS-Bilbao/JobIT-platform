@@ -1,11 +1,16 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 
 /**
- * Helpers E2E del flujo candidato (Sprint 18.2).
+ * Helpers E2E del flujo candidato (Sprint 18.2; actualizado por ADR-0014).
  *
- * Restricción de diseño (ADR-0006): la sesión vive solo en memoria React.
- * Tras autenticarse, navegar SOLO por clicks/enlaces client-side; nada de
- * `page.goto()` a rutas privadas ni reloads durante el journey.
+ * El access token sigue viviendo solo en memoria React (ADR-0006), pero desde
+ * ADR-0014 la sesión SÍ se recupera al arrancar la app a partir de la cookie
+ * `refresh_token` httpOnly. En consecuencia, la restricción original —«nada de
+ * reloads durante el journey»— ya no aplica: `session-continuity.spec.ts`
+ * verifica precisamente que una recarga real conserva la sesión.
+ *
+ * Los journeys que no ejercitan la recarga siguen navegando por clicks/enlaces
+ * client-side, que es lo más cercano al uso real.
  */
 
 export type E2eUser = {

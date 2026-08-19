@@ -17,6 +17,18 @@ const { pushMock, routerMock } = vi.hoisted(() => {
   const push = vi.fn();
   return { pushMock: push, routerMock: { push } };
 });
+// El AuthProvider intenta recuperar la sesión al montar (ADR-0014). Aquí se
+// neutraliza ese arranque para que cada test controle el estado de sesión:
+// `session-lost` deja el contexto en anónimo terminal, como antes del bootstrap.
+vi.mock("@/lib/api-client", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/api-client")>();
+  return {
+    ...actual,
+    ensureRefreshed: vi.fn(async () => ({ status: "session-lost" as const })),
+    registerAuthBridge: vi.fn()
+  };
+});
+
 vi.mock("next/navigation", () => ({ useRouter: () => routerMock, usePathname: () => "/dashboard" }));
 vi.mock("next/link", () => ({
   // Propaga el resto de props (aria-label, className…) como el Link real:
@@ -532,6 +544,22 @@ describe("DashboardPage", () => {
     expect(
       await screen.findByText("Tu sesión ha caducado. Vuelve a iniciar sesión.")
     ).toBeInTheDocument();
+  });
+
+  it("un fallo transitorio del refresh no se presenta como sesión caducada", async () => {
+    // El cliente API traduce un refresh 5xx/red a REFRESH_UNAVAILABLE con status 0:
+    // la feature debe tratarlo por su rama de error genérico, NO como expiración
+    // (ADR-0014, separación de clases A y B).
+    vi.mocked(getCandidateDashboard).mockRejectedValueOnce(
+      new ApiClientError(0, "REFRESH_UNAVAILABLE", "No se ha podido verificar tu sesión.")
+    );
+    renderWithSession();
+
+    expect(await screen.findByText("No se ha podido cargar tu panel.")).toBeInTheDocument();
+    expect(
+      screen.queryByText("Tu sesión ha caducado. Vuelve a iniciar sesión.")
+    ).not.toBeInTheDocument();
+    expect(pushMock).not.toHaveBeenCalledWith("/login?reason=expired");
   });
 
   it("logout limpia la sesión y redirige a /login", async () => {

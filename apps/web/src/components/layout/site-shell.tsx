@@ -208,7 +208,7 @@ export function SiteShell({
   title?: string;
   subtitle?: string;
 }) {
-  const { isAuthenticated, accessToken, clearSession, candidateIdentity } = useAuth();
+  const { isAuthenticated, accessToken, clearSession, candidateIdentity, sessionStatus } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false); // drawer móvil/tablet
@@ -275,6 +275,32 @@ export function SiteShell({
       clearSession("logout");
       redirectToLogin(router);
     }
+  }
+
+  // Durante el arranque todavía no se sabe si hay sesión: se pinta un armazón
+  // neutro en lugar del shell público, para no aparentar un cierre de sesión que
+  // quizá no ha ocurrido (ADR-0014).
+  if (!isAuthenticated && (sessionStatus === "bootstrapping" || sessionStatus === "unavailable")) {
+    return (
+      <div className="flex min-h-dvh flex-col bg-slate-50 text-slate-900">
+        <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/80 backdrop-blur">
+          <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-4">
+            <span className="flex items-center gap-2 font-bold tracking-tight">
+              <BrandMark />
+              <span className="text-lg">JobIT</span>
+            </span>
+          </div>
+        </header>
+        <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10">
+          <div role="status" aria-live="polite" className="text-sm text-slate-600">
+            {sessionStatus === "unavailable"
+              ? "No se ha podido verificar tu sesión."
+              : "Comprobando tu sesión…"}
+          </div>
+          {children}
+        </main>
+      </div>
+    );
   }
 
   // --- Shell público (sin sesión) ------------------------------------------
