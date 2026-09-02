@@ -66,17 +66,13 @@ ORCHESTRATOR_V3_LEAN_MIGRATION:
 CLOSED
 
 ACTIVE_FUNCTIONAL_UNIT:
-GLOBAL_REVIEW_PLUS_CANONICAL_RECONCILIATION
+NONE
 
-Tipo:
-DOCUMENTATION_GOVERNANCE
-
-Risk:
-LEVEL_3_GOVERNANCE
-
-Roadmap:
-A — CANONICAL RECONCILIATION
+A — CANONICAL RECONCILIATION:
+COMPLETED
 ```
+
+La fase `A` se cerró con el merge de PR #121 (`docs(governance): reconcile Global Review+ state`). No hay unidad funcional activa; la siguiente acción de gobernanza es el rollover del Orquestador (§OPEN_DECISIONS).
 
 ## CLOSED_UNITS
 
@@ -141,17 +137,20 @@ La aplicación de la migración en staging o producción requiere autorización 
 
 ```text
 NEXT_FUNCTIONAL_CANDIDATE:
-ORCHESTRATOR_DECISION_REQUIRED
+ACCOUNT_LIFECYCLE
+
+ACCOUNT_LIFECYCLE_AUTHORIZATION:
+NOT_GRANTED_YET
 
 Autorización:
 NOT_GRANTED_BY_THIS_SNAPSHOT
 ```
 
-El siguiente trabajo lo decide el Orquestador tras el merge y la validación de esta reconciliación.
+`ACCOUNT_LIFECYCLE` corresponde al P1 abierto `S22-AUTH-06 / B4-OPS-02` y a la fase `B1` del roadmap. Ser candidato no autoriza implementación: `B` y `B1`–`B4` permanecen `NOT_AUTHORIZED` y la autorización requiere decisión expresa del Orquestador.
 
 ## LATER
 
-Deuda técnica identificada con `OPEN_P1_CURRENT: 5`. Ninguno se implementa ni se cierra en la unidad actual; el detalle vive en el ledger.
+Deuda técnica identificada con `OPEN_P1_CURRENT: 5`. Ninguno se implementa ni se cierra por este snapshot; el detalle vive en el ledger.
 
 ```text
 S22-AUTH-06 / B4-OPS-02
@@ -377,7 +376,7 @@ Fases nombradas candidate-first. No es numeración de sprint y no reserva numera
 
 ```text
 A — CANONICAL RECONCILIATION
-    CURRENT UNIT
+    COMPLETED
 
 B — CANDIDATE-FIRST FUNCTIONAL CLOSURE
     NOT_AUTHORIZED
@@ -416,7 +415,7 @@ J — PRODUCTION
     NOT_AUTHORIZED
 ```
 
-Solo `A` está autorizada. `B`–`J` requieren decisión expresa del Orquestador y, donde corresponda, autorización humana adicional.
+`A` está completada. Ninguna fase posterior está autorizada: `B`–`J` requieren decisión expresa del Orquestador y, donde corresponda, autorización humana adicional.
 
 El desglose `B1`–`B4` tampoco es numeración de sprint, no reserva numeración y no autoriza implementación. `B4` significa únicamente que un P2 staging-critical podría incorporarse si una evidencia futura demuestra su necesidad; no designa ningún P2 existente y no altera los cinco P1 abiertos, que permanecen `OPEN`.
 
@@ -424,11 +423,11 @@ El desglose `B1`–`B4` tampoco es numeración de sprint, no reserva numeración
 
 ```text
 ORCHESTRATOR_ROLLOVER:
-RECOMMENDED
+NEXT_GOVERNANCE_ACTION
 NOT_EXECUTED
 ```
 
-Condicionado a que esta reconciliación esté mergeada y validada. El handoff mínimo exigido por `docs/agents/jobit-global-orchestrator-v3.md` §17 queda cubierto por este snapshot y por el ledger de Global Review+. El rollover no se ejecuta desde aquí.
+La condición previa se cumplió: la reconciliación está mergeada (PR #121). El handoff mínimo exigido por `docs/agents/jobit-global-orchestrator-v3.md` §17 queda cubierto por este snapshot y por el ledger de Global Review+. El rollover sigue sin ejecutarse desde aquí y requiere decisión humana.
 
 ## CANONICAL_REFERENCES
 
