@@ -1,7 +1,8 @@
 # JobIT Global Orchestrator v3 — Lean / Repository-Driven
 
 **Versión:** 3.0
-**Estado:** contrato preparado para activación
+**Estado:** ACTIVE_CANONICAL — contrato vigente del Chat Orquestador Global
+**Estado de activación:** ORCHESTRATOR_V3_VALIDATED
 **Ámbito:** orquestación global de JobIT
 **Dependencia canónica:** `docs/agents/jobit-operating-model-v2.md`
 
@@ -473,15 +474,26 @@ No repetir el informe completo del Director.
 
 ## 20. Estado de activación
 
-Hasta completar startup:
-
-```text
-ORCHESTRATOR_V3_PREPARED
-```
-
-Tras validación humana:
+Estado vigente:
 
 ```text
 ORCHESTRATOR_V3_VALIDATED
 ACTIVE_CANONICAL
 ```
+
+Predecesor:
+
+```text
+jobit-global-orchestrator-v2.md:
+SUPERSEDED
+ARCHIVED_READ_ONLY
+```
+
+`docs/agents/jobit-global-orchestrator-v2.md` se conserva íntegro como evidencia histórica y no se
+modifica. Su cabecera refleja el estado que tenía cuando era el contrato vigente; la autoridad
+actual la fijan este documento y `docs/product/current-project-state.md`. Solo puede existir un
+Orquestador Global activo (§4).
+
+Histórico de la transición: el contrato pasó por `ORCHESTRATOR_V3_PREPARED` hasta completar el
+startup, y alcanzó `ORCHESTRATOR_V3_VALIDATED` / `ACTIVE_CANONICAL` tras validación humana. Esa
+secuencia se conserva como historia, no como estado vigente.
