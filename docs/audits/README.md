@@ -376,15 +376,21 @@ Cuando existan varias auditorías, mantener una tabla:
 
 | Audit ID | Categoría | Baseline | Estado | Fecha | Decisión |
 |---|---|---|---|---|---|
-| — | — | — | — | — | — |
+| [GLOBAL-REVIEW-PLUS](global/global-review-plus-findings-ledger.md) | global | `55b9acc` | ACCEPTED_WITH_ADJUSTMENTS | 2026-09-02 | `GLOBAL_REVIEW_PLUS_CANONICAL_RECONCILIATION` |
 
 No añadir auditorías todavía inexistentes.
 
-**Nota operativa.** El flujo descrito en este documento fue ejercitado mediante una auditoría
-global independiente sobre el baseline `9995a8d`, aceptada para gobernanza y priorización con
-correcciones finales (`GLOBAL_INDEPENDENT_AUDIT: ACCEPTED_WITH_FINAL_CORRECTIONS`). El informe
-consolidado no está versionado todavía dentro de `docs/audits/`; esta tabla se actualizará
-cuando exista un archivo real que enlazar.
+**Nota operativa.** Deben distinguirse dos resultados globales distintos:
+
+- **Evidencia histórica previa.** El flujo descrito en este documento fue ejercitado mediante una
+  auditoría global independiente sobre el baseline `9995a8d`, aceptada para gobernanza y
+  priorización con correcciones finales
+  (`GLOBAL_INDEPENDENT_AUDIT: ACCEPTED_WITH_FINAL_CORRECTIONS`). Ese informe consolidado sigue sin
+  estar versionado dentro de `docs/audits/` y se conserva únicamente como evidencia histórica.
+- **Global Review+ ahora versionado.** El resultado de Global Review+ y de su follow-up técnico sí
+  está versionado en [`global/global-review-plus-findings-ledger.md`](global/global-review-plus-findings-ledger.md),
+  sobre el baseline `55b9acc`, con el ledger de hallazgos cerrados y de los que permanecen
+  abiertos. Ese archivo es el ledger; este README sigue siendo únicamente la política e índice.
 
 ---
 

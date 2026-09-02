@@ -1,7 +1,7 @@
 # JobIT Chat Director Contract v1
 
 **Versión:** 1.0
-**Estado:** preparado para adopción
+**Estado:** ADOPTED — ACTIVE, UNDER_ORCHESTRATOR_V3
 **Propósito:** contrato especializado para dirigir una única unidad de trabajo sin deriva de rol ni microgestión.
 
 ---
