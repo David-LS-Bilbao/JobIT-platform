@@ -50,7 +50,6 @@ const refreshCalls = (calls: Array<{ url: string }>): number =>
   calls.filter((c) => c.url.endsWith(REFRESH_PATH)).length;
 
 let bridge: {
-  getAccessToken: ReturnType<typeof vi.fn>;
   getSessionGeneration: ReturnType<typeof vi.fn>;
   onRefreshed: ReturnType<typeof vi.fn>;
   onSessionLost: ReturnType<typeof vi.fn>;
@@ -60,7 +59,6 @@ beforeEach(() => {
   vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", BASE);
   resetRefreshStateForTests();
   bridge = {
-    getAccessToken: vi.fn(() => "tok-actual"),
     getSessionGeneration: vi.fn(() => 0),
     onRefreshed: vi.fn(),
     onSessionLost: vi.fn()
@@ -173,7 +171,8 @@ describe("recuperación centralizada de 401 — apiRequest", () => {
 
   it("F08 · todos los waiters continúan tras un refresh correcto", async () => {
     let call = 0;
-    const fetchMock = vi.fn((url: string) => {
+    const protectedCalls: RequestInit[] = [];
+    const fetchMock = vi.fn((url: string, init: RequestInit) => {
       call++;
       if (url.endsWith(REFRESH_PATH)) {
         return Promise.resolve({
@@ -182,6 +181,7 @@ describe("recuperación centralizada de 401 — apiRequest", () => {
           text: () => Promise.resolve(JSON.stringify(authResponse("tok-nuevo")))
         } as unknown as Response);
       }
+      protectedCalls.push(init);
       const isRetry = call > 4;
       return Promise.resolve({
         status: isRetry ? 200 : 401,
@@ -201,6 +201,10 @@ describe("recuperación centralizada de 401 — apiRequest", () => {
     ]);
 
     expect(results).toEqual([{ ok: true }, { ok: true }, { ok: true }]);
+    expect(protectedCalls).toHaveLength(6);
+    expect(
+      protectedCalls.slice(3).map((init) => (init.headers as Record<string, string>)["Authorization"])
+    ).toEqual(["Bearer tok-nuevo", "Bearer tok-nuevo", "Bearer tok-nuevo"]);
   });
 
   it("F09 · tras un refresh 401 todos los waiters fallan igual y se avisa una sola vez", async () => {
@@ -281,12 +285,55 @@ describe("recuperación centralizada de 401 — apiRequest", () => {
       { status: 200, body: authResponse("tok-fresco") },
       { status: 200, body: { ok: true } }
     ]);
-    bridge.getAccessToken.mockReturnValue("tok-fresco");
+    // El bridge no expone ningún token alternativo: la única fuente válida para
+    // el retry es el resultado del refresh recién resuelto.
 
     await apiRequest("/api/a", { token: "tok-obsoleto" });
 
     const retry = calls[2];
     expect((retry.init.headers as Record<string, string>)["Authorization"]).toBe("Bearer tok-fresco");
+  });
+
+  it("F14b · si cambia la generación durante el refresh se cancela sin reintento", async () => {
+    const calls: Array<{ url: string; init: RequestInit }> = [];
+    let generation = 0;
+    let resolveRefresh!: (response: Response) => void;
+    bridge.getSessionGeneration.mockImplementation(() => generation);
+    const fetchMock = vi.fn((url: string, init: RequestInit) => {
+      calls.push({ url, init });
+      if (url.endsWith(REFRESH_PATH)) {
+        return new Promise<Response>((resolve) => {
+          resolveRefresh = resolve;
+        });
+      }
+      const isRetry = calls.filter((call) => !call.url.endsWith(REFRESH_PATH)).length > 1;
+      return Promise.resolve({
+        status: isRetry ? 200 : 401,
+        ok: isRetry,
+        text: () =>
+          Promise.resolve(
+            JSON.stringify(isRetry ? { ok: true } : { error: { code: "UNAUTHORIZED", message: "x" } })
+          )
+      } as unknown as Response);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const pending = apiRequest("/api/a", { token: "tok-viejo" }).catch((error: unknown) => error);
+    await vi.waitFor(() => expect(refreshCalls(calls)).toBe(1));
+
+    generation = 1;
+    resolveRefresh({
+      status: 200,
+      ok: true,
+      text: () => Promise.resolve(JSON.stringify(authResponse("tok-nuevo")))
+    } as unknown as Response);
+
+    const error = await pending;
+    expect(error).toBeInstanceOf(ApiClientError);
+    expect((error as ApiClientError).status).toBe(0);
+    expect((error as ApiClientError).code).toBe("SESSION_RECOVERY_CANCELLED");
+    expect(calls.filter((call) => !call.url.endsWith(REFRESH_PATH))).toHaveLength(1);
+    expect(bridge.onSessionLost).not.toHaveBeenCalled();
   });
 
   it("F15 · un 401 en la propia ruta de refresh no anida otro refresh", async () => {
@@ -392,8 +439,6 @@ describe("recuperación centralizada de 401 — apiUpload", () => {
       { status: 200, body: authResponse("tok-fresco") },
       { status: 200, body: { avatarUrl: "/uploads/a.png" } }
     ]);
-    bridge.getAccessToken.mockReturnValue("tok-fresco");
-
     const result = await apiUpload<{ avatarUrl: string }>("/api/profile/me/avatar", formData(), {
       token: "tok-viejo"
     });
@@ -423,6 +468,7 @@ describe("recuperación centralizada de 401 — apiUpload", () => {
     expect((retry.init.headers as Record<string, string>)["Content-Type"]).toBeUndefined();
     // El MISMO FormData se reutiliza en el reintento.
     expect(retry.init.body).toBe(body);
+    expect((retry.init.headers as Record<string, string>)["Authorization"]).toBe("Bearer tok-fresco");
   });
 
   it("F22 · apiUpload comparte el single-flight con apiRequest", async () => {

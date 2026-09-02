@@ -48,6 +48,7 @@ export const isUnauthorizedError = isSessionExpiredError;
  * error genérico con reintento manual, sin declarar la sesión inválida.
  */
 export const REFRESH_UNAVAILABLE = "REFRESH_UNAVAILABLE";
+export const SESSION_RECOVERY_CANCELLED = "SESSION_RECOVERY_CANCELLED";
 
 export function isRefreshUnavailableError(error: unknown): error is ApiClientError {
   return error instanceof ApiClientError && error.code === REFRESH_UNAVAILABLE;
@@ -58,6 +59,14 @@ function refreshUnavailableError(): ApiClientError {
     0,
     REFRESH_UNAVAILABLE,
     "No se ha podido verificar tu sesión. Inténtalo de nuevo."
+  );
+}
+
+function sessionRecoveryCancelledError(): ApiClientError {
+  return new ApiClientError(
+    0,
+    SESSION_RECOVERY_CANCELLED,
+    "La recuperación de sesión se canceló porque la sesión cambió."
   );
 }
 
@@ -128,8 +137,6 @@ async function parseResponse<T>(response: Response): Promise<T> {
 // ─── Puente con el contexto de sesión ────────────────────────────────────────
 
 export interface AuthBridge {
-  /** Access token vigente en memoria, o null. */
-  getAccessToken(): string | null;
   /**
    * Generación de sesión vigente. Se captura al INICIAR un refresh y se devuelve
    * al proveedor al terminar, para que un refresh que resuelva después de un
@@ -158,7 +165,7 @@ export const REFRESH_PATH = "/api/auth/refresh";
  * sesión inválida.
  */
 export type RefreshOutcome =
-  | { status: "refreshed"; accessToken: string }
+  | { status: "refreshed"; accessToken: string; generation: number }
   | { status: "session-lost" }
   | { status: "transient" };
 
@@ -189,7 +196,7 @@ async function doRefresh(): Promise<RefreshOutcome> {
       headers: { Accept: "application/json" }
     });
     authBridge?.onRefreshed(auth, generation);
-    return { status: "refreshed", accessToken: auth.accessToken };
+    return { status: "refreshed", accessToken: auth.accessToken, generation };
   } catch (error) {
     // Solo un 401 del propio refresh significa que la sesión no es recuperable.
     if (error instanceof ApiClientError && error.status === 401) {
@@ -240,7 +247,11 @@ function isRecoverable(error: unknown, path: string, hadToken: boolean, flags: I
 async function recoverOrThrow(originalError: unknown): Promise<string> {
   const outcome = await ensureRefreshed();
   if (outcome.status === "refreshed") {
-    return authBridge?.getAccessToken() ?? outcome.accessToken;
+    const currentGeneration = authBridge?.getSessionGeneration() ?? outcome.generation;
+    if (currentGeneration !== outcome.generation) {
+      throw sessionRecoveryCancelledError();
+    }
+    return outcome.accessToken;
   }
   if (outcome.status === "transient") {
     throw refreshUnavailableError();
