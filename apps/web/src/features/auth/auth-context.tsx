@@ -85,8 +85,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * que resuelva DESPUÉS de un logout no pueda reinstalar la sesión cerrada.
    */
   const generationRef = useRef(0);
+  /** Indicador síncrono para que el bridge distinga bootstrap anónimo de expiración. */
+  const hasAuthenticatedSessionRef = useRef(false);
 
   const setSession = useCallback((auth: AuthResponseDto) => {
+    hasAuthenticatedSessionRef.current = true;
     setAccessToken(auth.accessToken);
     setUser(auth.user);
     setCandidateIdentity(null);
@@ -96,6 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const clearSession = useCallback((reason?: Exclude<SessionEndReason, null>) => {
+    hasAuthenticatedSessionRef.current = false;
     generationRef.current += 1;
     setAccessToken(null);
     setUser(null);
@@ -115,20 +119,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setBootstrapAttempt((n) => n + 1);
   }, []);
 
-  // Espejo del token para que el bridge lea siempre el valor vigente sin
-  // reinstalarse en cada cambio.
-  const accessTokenRef = useRef<string | null>(null);
-  useEffect(() => {
-    accessTokenRef.current = accessToken;
-  }, [accessToken]);
-
   // Puente para el cliente API: le permite instalar una sesión renovada y avisar
   // de un fallo TERMINAL, sin que `api-client` dependa de React. La generación
   // se compara con la capturada al iniciar el refresh: si hubo un logout por
   // medio, el resultado se descarta.
   useEffect(() => {
     const bridge: AuthBridge = {
-      getAccessToken: () => accessTokenRef.current,
       getSessionGeneration: () => generationRef.current,
       onRefreshed: (auth, generation) => {
         if (generation !== generationRef.current) return;
@@ -136,7 +132,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       onSessionLost: (generation) => {
         if (generation !== generationRef.current) return;
-        clearSession("expired");
+        if (hasAuthenticatedSessionRef.current) {
+          clearSession("expired");
+          return;
+        }
+        clearSession();
       }
     };
     registerAuthBridge(bridge);
