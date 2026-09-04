@@ -124,18 +124,71 @@ export function unpublishMyPortfolio(token: string): Promise<PortfolioSettingsDt
 }
 
 /**
- * URL pública absoluta del portfolio a partir de `publicUrlPath` (relativo):
- * - `NEXT_PUBLIC_PUBLIC_BASE_URL` si está configurada;
- * - si no, `window.location.origin` en cliente;
- * - fallback SSR/test: la propia ruta relativa.
+ * ¿Estamos en un entorno desplegado (build de producción) o en desarrollo/test?
+ *
+ * `NODE_ENV` lo fija el propio Next: `development` con `next dev`, `test` bajo
+ * Vitest y `production` en cualquier build desplegado.
  */
-export function buildPublicPortfolioUrl(publicUrlPath: string): string {
-  const base = (process.env.NEXT_PUBLIC_PUBLIC_BASE_URL ?? "").trim().replace(/\/+$/, "");
+function isDeployedEnvironment(): boolean {
+  return process.env.NODE_ENV === "production";
+}
+
+/**
+ * Normaliza y VALIDA `NEXT_PUBLIC_PUBLIC_BASE_URL`.
+ *
+ * En un entorno desplegado se exige una URL absoluta y `https`. Devuelve `null`
+ * si falta o no cumple, de modo que quien llame no pueda confundir una base
+ * inválida con una válida.
+ *
+ * En desarrollo/test se admite además `http` (p. ej. `http://localhost:3000`).
+ */
+export function normalizePublicBaseUrl(
+  raw: string | undefined,
+  deployed = isDeployedEnvironment()
+): string | null {
+  const trimmed = (raw ?? "").trim();
+  if (!trimmed) return null;
+
+  let parsed: URL;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    // No es absoluta: una base relativa no puede producir un enlace compartible.
+    return null;
+  }
+
+  if (parsed.protocol === "https:") return trimmed.replace(/\/+$/, "");
+  if (parsed.protocol === "http:" && !deployed) return trimmed.replace(/\/+$/, "");
+
+  // `http` desplegado y cualquier otro esquema quedan rechazados: el enlace del
+  // portfolio se comparte y se codifica en un QR, así que emitirlo sin TLS
+  // degradaría la conexión de quien lo abra.
+  return null;
+}
+
+/**
+ * URL pública absoluta del portfolio a partir de `publicUrlPath` (relativo).
+ *
+ * Contrato (`AUDIT03-URL-SCHEME-01`):
+ * - `NEXT_PUBLIC_PUBLIC_BASE_URL` válida  → se usa;
+ * - desarrollo/test sin base              → `window.location.origin` (permitido);
+ * - **desplegado sin base válida          → `null`**.
+ *
+ * En un despliegue NO se recurre a `window.location.origin`: ese fallback es
+ * justo lo que permitía emitir un enlace `http://` a espaldas de la
+ * configuración. Ante una configuración ausente o inválida se prefiere no
+ * ofrecer enlace a ofrecer uno degradado.
+ */
+export function buildPublicPortfolioUrl(publicUrlPath: string): string | null {
+  const base = normalizePublicBaseUrl(process.env.NEXT_PUBLIC_PUBLIC_BASE_URL);
   if (base) return `${base}${publicUrlPath}`;
+
+  if (isDeployedEnvironment()) return null;
+
   if (typeof window !== "undefined" && window.location?.origin) {
     return `${window.location.origin}${publicUrlPath}`;
   }
-  return publicUrlPath;
+  return null;
 }
 
 /**

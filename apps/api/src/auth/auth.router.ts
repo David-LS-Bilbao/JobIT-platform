@@ -3,6 +3,8 @@ import { ZodError } from "zod";
 
 import { prisma } from "../lib/prisma.js";
 import { deleteAvatarImage } from "../profile/avatar.storage.js";
+import { logServerError } from "../lib/server-error-log.js";
+import { readRequestId } from "../middlewares/request-id.middleware.js";
 import { deleteAccountSchema, loginSchema, registerSchema, stepUpSchema } from "./auth.schemas.js";
 import {
   AppError,
@@ -76,7 +78,19 @@ function sendTerminalSessionFailure(res: Response): void {
  * desarrollo y en produccion y para que el objeto de error de Prisma —que puede
  * arrastrar parametros de consulta— no llegue a ningun log.
  */
-function sendInternalFailure(res: Response): void {
+function sendInternalFailure(req: Request, res: Response): void {
+  // Este camino NO pasa por el manejador final de errores —se responde aqui a
+  // proposito para que el cuerpo sea identico en todos los entornos y para que
+  // el objeto de Prisma no llegue a ningun log—, asi que la traza segura debe
+  // emitirse explicitamente (AUDIT05-OPS-PROD-ERROR-LOG-01).
+  logServerError({
+    requestId: readRequestId(req),
+    method: req.method,
+    path: req.originalUrl,
+    status: 500,
+    code: "INTERNAL_ERROR",
+    errorName: "TransactionFailure"
+  });
   sendError(res, 500, "INTERNAL_ERROR", "Internal server error.");
 }
 
@@ -159,7 +173,7 @@ authRouter.post("/refresh", async (req: Request, res: Response): Promise<void> =
       return;
 
     case "INTERNAL_TRANSACTION_FAILURE":
-      sendInternalFailure(res);
+      sendInternalFailure(req, res);
       return;
   }
 });
@@ -174,7 +188,7 @@ authRouter.post("/logout", async (req: Request, res: Response): Promise<void> =>
   clearRefreshCookie(res);
 
   if (outcome === "INTERNAL_TRANSACTION_FAILURE") {
-    sendInternalFailure(res);
+    sendInternalFailure(req, res);
     return;
   }
   res.status(204).send();
@@ -250,7 +264,20 @@ authRouter.delete(
       const body = deleteAccountSchema.parse(req.body);
       const { avatarUrl } = await deleteAccount(userId, body.password);
 
-      await deleteAvatarImage(avatarUrl).catch(() => undefined);
+      // El borrado ya esta consolidado: un fallo aqui NO revierte la cuenta ni
+      // convierte la respuesta en error. Pero deja un fichero huerfano, y ese
+      // residuo tiene que ser observable (AUDIT05-OPS-PROD-ERROR-LOG-01);
+      // hasta esta unidad se descartaba en silencio.
+      await deleteAvatarImage(avatarUrl).catch((cleanupError: unknown) => {
+        logServerError({
+          requestId: readRequestId(req),
+          method: req.method,
+          path: req.originalUrl,
+          status: 204,
+          code: "ORPHANED_AVATAR_AFTER_ACCOUNT_DELETE",
+          errorName: cleanupError instanceof Error ? cleanupError.name : typeof cleanupError
+        });
+      });
 
       clearRefreshCookie(res);
       res.status(204).send();

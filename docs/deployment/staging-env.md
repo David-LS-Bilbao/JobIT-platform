@@ -40,6 +40,8 @@ Si se genera una contraseña de DB nueva, recuerda actualizarla **en los dos sit
 |---|---|---|
 | `CORS_ORIGIN` | `https://jobit-staging.davlos.es` | Origen público EXACTO de la web (esquema+host, sin barra final); un mismatch rompe el login |
 | `NEXT_PUBLIC_API_BASE_URL` | `https://api-jobit-staging.davlos.es` | Pública por diseño; se INLINEA en el build de Next |
+| `NEXT_PUBLIC_PUBLIC_BASE_URL` | `https://jobit-staging.davlos.es` | URL pública ABSOLUTA de la web; **obligatoria y `https` en cualquier entorno desplegado**; se INLINEA en el build de Next |
+| `TRUST_PROXY_HOPS` | `1` | Un único salto de Nginx Proxy Manager delante de la API. El default del código sigue siendo `0` (local/test/CI, sin proxy) |
 
 - Ambos subdominios cuelgan de `davlos.es` (mismo eTLD+1) → **same-site**: la cookie
   `refresh_token` actual (`SameSite=Lax`, `httpOnly`, `secure` en producción) funciona sin
@@ -56,6 +58,10 @@ Si se genera una contraseña de DB nueva, recuerda actualizarla **en los dos sit
   ADR-0012): la exposición accidental de la DB no es posible por configuración.
 - `NEXT_PUBLIC_API_BASE_URL` se hornea en la imagen web durante `next build`: **cambiarla
   exige rebuild de la imagen** (`--build-arg`), no basta reiniciar el contenedor.
+- `NEXT_PUBLIC_PUBLIC_BASE_URL` se hornea igual y con la misma consecuencia. Construye el
+  enlace compartible y el QR del portfolio público (`AUDIT03-URL-SCHEME-01`). Si falta o no
+  es `https`, la aplicación **no ofrece enlace ni QR** en lugar de degradarlo a `http`: es
+  un fallo visible y deliberado, no un enlace silenciosamente inseguro.
 
 ## Checklist de revisión antes de un deploy real
 
@@ -66,5 +72,11 @@ Si se genera una contraseña de DB nueva, recuerda actualizarla **en los dos sit
 - [ ] `CORS_ORIGIN` coincide EXACTAMENTE con el origen público de la web.
 - [ ] `NEXT_PUBLIC_API_BASE_URL` apunta a la URL pública real de la API y la imagen web se
       reconstruyó con ese build-arg.
+- [ ] `NEXT_PUBLIC_PUBLIC_BASE_URL` apunta a la URL pública real de la web, es `https` y la
+      imagen web se reconstruyó con ese build-arg.
+- [ ] `TRUST_PROXY_HOPS` vale `1` y coincide con el número REAL de proxies delante de la API.
+      Un valor mayor que la topología real permite falsificar la IP del cliente vía
+      `X-Forwarded-For` y evadir el rate limiting; uno menor agrupa a todos los clientes bajo
+      la IP del proxy. Verificar contra la topología NPM real durante el despliegue.
 - [ ] `DATABASE_URL` usa el hostname interno de Docker y las credenciales reales.
 - [ ] Backups definidos y probados (DB + volumen de uploads) antes de la primera migración.

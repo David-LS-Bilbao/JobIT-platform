@@ -42,10 +42,10 @@ OPEN_P0:
 0
 
 OPEN_P1:
-5
+0
 ```
 
-Global Review+ y su follow-up técnico están cerrados. No queda ningún hallazgo P0 abierto. Permanecen cinco hallazgos P1 abiertos, registrados en §10.2. Este documento es el artefacto durable del resultado: sustituye la memoria conversacional como fuente de estado, conforme a `docs/agents/jobit-global-orchestrator-v3.md` §1.
+Global Review+ y su follow-up técnico están cerrados. No queda ningún hallazgo P0 ni P1 abierto: los cinco P1 se resolvieron en la fase B (`CANDIDATE_FIRST_FUNCTIONAL_CLOSURE`), registrados en §10.2. Este documento es el artefacto durable del resultado: sustituye la memoria conversacional como fuente de estado, conforme a `docs/agents/jobit-global-orchestrator-v3.md` §1.
 
 Este ledger **no autoriza implementación**. Una auditoría aceptada no autoriza trabajo (`docs/audits/README.md` §13 y `jobit-global-orchestrator-v3.md` §13).
 
@@ -248,14 +248,14 @@ RESOLVED_IN_DEV
 
 **Evidencia.** Resuelta por la unidad `HOTFIX_SESSION_RECOVERY` (PR #120, commit `311b6d0`, «use fresh token for session recovery»), verificada como contenida en `origin/dev`.
 
-### 10.2 Hallazgos P1 abiertos
+### 10.2 Hallazgos P1 — resueltos en la fase B
 
-Los cinco hallazgos siguientes **permanecen abiertos**. Esta unidad no los implementa, no los prioriza y no los cierra. Este apartado es un ledger de estado, no un roadmap de implementación.
+Los cinco hallazgos siguientes estaban abiertos cuando se creó este ledger y quedaron **resueltos en `dev`** por la fase B, en dos bloques: `B-CORE` (PR #123) y `B-HARDENING`. Se conserva la descripción original de cada uno como evidencia de qué se cerró y con qué.
 
 #### S22-AUTH-06 / B4-OPS-02 — Account lifecycle
 
 **Severidad:** P1
-**Estado:** OPEN
+**Estado:** RESOLVED
 **Categoría:** privacy
 **Tipo:** FACT
 
@@ -265,12 +265,17 @@ Los cinco hallazgos siguientes **permanecen abiertos**. Esta unidad no los imple
 
 **Condición de cierre.** Spec aprobada que cubra exportación, eliminación, retención, anonimización, revocación y propagación del borrado, con la revisión privacy/legal aplicable.
 
-**Esta unidad no lo implementa ni lo cierra.**
+```text
+S22-AUTH-06 / B4-OPS-02:
+RESOLVED_IN_DEV
+```
+
+**Resuelto en `B-CORE` (PR #123).** `DELETE /api/auth/me` y `POST /api/auth/me/export`, ambos con reverificación de contraseña. Borrado duro con propagación por las cascadas existentes, sin cambio de schema. Spec: `docs/specs/features/account-lifecycle.md`.
 
 #### AUDIT02-LIFE-AVATAR-01 — Physical avatar cleanup
 
 **Severidad:** P1
-**Estado:** OPEN
+**Estado:** RESOLVED
 **Categoría:** privacy
 **Tipo:** FACT
 
@@ -280,12 +285,17 @@ Los cinco hallazgos siguientes **permanecen abiertos**. Esta unidad no los imple
 
 **Condición de cierre.** Por definir en la spec de account lifecycle o en una unidad propia; debe cubrir el borrado físico y su verificación.
 
-**Esta unidad no lo implementa ni lo cierra.**
+```text
+AUDIT02-LIFE-AVATAR-01:
+RESOLVED_IN_DEV
+```
+
+**Resuelto entre `B-CORE` y `B-HARDENING`.** `deleteAvatarImage` con ruta derivada de base de datos, validada dentro de `AVATAR_DIR` e idempotente, cableada en los tres caminos que dejaban huérfanos: reemplazo por subida, sustitución o vaciado vía perfil, y borrado de cuenta. El residuo aceptado —fallo de sistema de ficheros posterior al commit— dejó de ser silencioso: `B-HARDENING` lo registra con `ORPHANED_AVATAR_AFTER_ACCOUNT_DELETE` y `ORPHANED_AVATAR_AFTER_REPLACEMENT`.
 
 #### AUDIT03-URL-SCHEME-01 — Public URL protocol hardening
 
 **Severidad:** P1
-**Estado:** OPEN
+**Estado:** RESOLVED
 **Categoría:** security
 **Tipo:** FACT
 
@@ -295,12 +305,17 @@ Los cinco hallazgos siguientes **permanecen abiertos**. Esta unidad no los imple
 
 **Condición de cierre.** Por definir. Debe fijar el esquema esperado y su verificación en las superficies públicas afectadas.
 
-**Esta unidad no lo implementa ni lo cierra.**
+```text
+AUDIT03-URL-SCHEME-01:
+RESOLVED_IN_DEV
+```
+
+**Resuelto en `B-HARDENING`.** En un entorno desplegado se exige `NEXT_PUBLIC_PUBLIC_BASE_URL` absoluta y `https`; se eliminó el fallback silencioso a `window.location.origin`, que era justo lo que permitía emitir un enlace `http`. Ante configuración ausente o inválida la interfaz no ofrece enlace ni QR en lugar de ofrecer uno degradado. La variable viaja hasta el build de Next (`Dockerfile`, compose, plantillas de entorno y `staging-env.md`).
 
 #### AUDIT05-DEPLOY-PROXY-RATELIMIT-01 — Proxy / TRUST_PROXY_HOPS
 
 **Severidad:** P1
-**Estado:** OPEN
+**Estado:** RESOLVED
 **Categoría:** operations
 **Tipo:** FACT
 
@@ -310,12 +325,17 @@ Los cinco hallazgos siguientes **permanecen abiertos**. Esta unidad no los imple
 
 **Condición de cierre.** Por definir en el eje `PRE_STAGING_TECHNICAL` / `PRE_PRODUCTION_TECHNICAL`.
 
-**Esta unidad no lo implementa ni lo cierra.**
+```text
+AUDIT05-DEPLOY-PROXY-RATELIMIT-01:
+RESOLVED_IN_DEV
+```
+
+**Resuelto en `B-HARDENING`.** El cableado y sus tests ya existían; lo que faltaba era el valor versionado. `.env.staging.example` declara `TRUST_PROXY_HOPS=1` (un salto de NPM) y el compose del smoke local declara `0`. El default del código sigue siendo `0` y no se ha tocado. Tests de contrato leen las plantillas reales para que no puedan regresar en silencio. La verificación contra la topología NPM real pertenece al despliegue de staging y **no se afirma aquí**.
 
 #### AUDIT05-OPS-PROD-ERROR-LOG-01 — Safe staging/production error observability
 
 **Severidad:** P1
-**Estado:** OPEN
+**Estado:** RESOLVED
 **Categoría:** operations
 **Tipo:** FACT
 
@@ -325,7 +345,12 @@ Los cinco hallazgos siguientes **permanecen abiertos**. Esta unidad no los imple
 
 **Condición de cierre.** Por definir en el eje `PRE_PRODUCTION_TECHNICAL`, con precheck de privacidad aplicable.
 
-**Esta unidad no lo implementa ni lo cierra.**
+```text
+AUDIT05-OPS-PROD-ERROR-LOG-01:
+RESOLVED_IN_DEV
+```
+
+**Resuelto en `B-HARDENING`.** Identificador de correlación por petición (generado siempre en el servidor, nunca heredado del cliente) y log estructurado por allowlist cerrada, activo también en producción. La respuesta externa sigue siendo genérica. Se cubrieron además los dos caminos de 500 que no pasaban por el manejador final: `STORAGE_ERROR` del avatar y el fallo transaccional de refresh/logout.
 
 ## 11. Evoluciones justificadas
 
@@ -337,7 +362,7 @@ Los cinco hallazgos siguientes **permanecen abiertos**. Esta unidad no los imple
 
 ## 13. Riesgos
 
-- Los cinco hallazgos P1 abiertos siguen siendo deuda técnica real y no están mitigados.
+- Los cinco hallazgos P1 quedaron resueltos en `dev` durante la fase B; ya no son deuda abierta.
 - La migración está mergeada en `dev` pero **no aplicada** en staging ni en producción.
 - La deuda aceptada de `ADR-0014` (ventana de concurrencia de 10 s, ausencia de causa persistida de compromiso, crecimiento de la tabla `RefreshToken`, `path` de cookie sin restringir) permanece vigente y documentada en esa ADR.
 
@@ -361,7 +386,7 @@ Los ejes `PRE_STAGING_TECHNICAL` y `PRE_PRODUCTION_TECHNICAL` definidos en `docs
 
 ## 18. Preguntas abiertas
 
-- Ubicación y momento de las condiciones de cierre aún por definir para `AUDIT02-LIFE-AVATAR-01`, `AUDIT03-URL-SCHEME-01`, `AUDIT05-DEPLOY-PROXY-RATELIMIT-01` y `AUDIT05-OPS-PROD-ERROR-LOG-01`.
+- Verificación en runtime de `TRUST_PROXY_HOPS` contra la topología real de Nginx Proxy Manager: pertenece al despliegue de staging, no a la fase B.
 - Creación futura del informe de unidad en `docs/sprints/` para PR #119 y PR #120.
 
 ## 19. Estado
@@ -377,11 +402,17 @@ OPEN_P0:
 0
 
 OPEN_P1:
-5
+0
 
 CUSTODY:
 PUBLIC_SAFE
 
 IMPLEMENTATION_AUTHORIZED_BY_THIS_DOCUMENT:
 NO
+
+PHASE_B:
+COMPLETED
 ```
+
+Los cinco hallazgos P1 se cerraron en la fase B `CANDIDATE_FIRST_FUNCTIONAL_CLOSURE`: `B-CORE`
+(PR #123) y `B-HARDENING`. Este ledger deja de tener deuda P0/P1 abierta.

@@ -11,6 +11,8 @@ import { ZodError } from "zod";
 import multer from "multer";
 
 import { requireAuth, type AuthenticatedRequest } from "../auth/require-auth.middleware.js";
+import { logServerError } from "../lib/server-error-log.js";
+import { readRequestId } from "../middlewares/request-id.middleware.js";
 import { avatarMulter } from "./avatar.upload.js";
 import { deleteAvatarImage, saveAvatarImage, sniffImageMime } from "./avatar.storage.js";
 import { ProfileError } from "./profile.ownership.js";
@@ -235,8 +237,18 @@ profileRouter.post(
       let avatarUrl: string;
       try {
         avatarUrl = await saveAvatarImage(file.buffer, sniffed, userId);
-      } catch {
-        // No propagamos el error de fs para no filtrar rutas internas absolutas.
+      } catch (storageError) {
+        // No propagamos el error de fs para no filtrar rutas internas absolutas,
+        // pero el fallo debe ser diagnosticable: este 500 no pasa por el
+        // manejador final (AUDIT05-OPS-PROD-ERROR-LOG-01).
+        logServerError({
+          requestId: readRequestId(req),
+          method: req.method,
+          path: req.originalUrl,
+          status: 500,
+          code: "STORAGE_ERROR",
+          errorName: storageError instanceof Error ? storageError.name : typeof storageError
+        });
         res
           .status(500)
           .json({ error: { code: "STORAGE_ERROR", message: "No se ha podido almacenar la imagen." } });
@@ -247,8 +259,18 @@ profileRouter.post(
       } catch (err) {
         // Compensacion: la imagen ya esta en disco pero ninguna fila la
         // referencia. Sin esto quedaria huerfana para siempre. El borrado es
-        // idempotente y su propio fallo no debe enmascarar el error original.
-        await deleteAvatarImage(avatarUrl).catch(() => undefined);
+        // idempotente y su propio fallo no debe enmascarar el error original,
+        // pero si dejar traza: es la unica senal de un fichero huerfano.
+        await deleteAvatarImage(avatarUrl).catch((cleanupError: unknown) => {
+          logServerError({
+            requestId: readRequestId(req),
+            method: req.method,
+            path: req.originalUrl,
+            status: 500,
+            code: "AVATAR_COMPENSATION_FAILED",
+            errorName: cleanupError instanceof Error ? cleanupError.name : typeof cleanupError
+          });
+        });
         throw err;
       }
       res.status(200).json({ avatarUrl });

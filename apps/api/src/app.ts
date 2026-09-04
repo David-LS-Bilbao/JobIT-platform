@@ -9,6 +9,7 @@ import { authRouter } from "./auth/auth.router.js";
 import { dashboardRouter } from "./dashboard/dashboard.router.js";
 import { errorHandlerMiddleware } from "./middlewares/error-handler.middleware.js";
 import { notFoundMiddleware } from "./middlewares/not-found.middleware.js";
+import { requestIdMiddleware } from "./middlewares/request-id.middleware.js";
 import {
   generalRateLimiter,
   loginRateLimiter,
@@ -34,6 +35,11 @@ app.disable("x-powered-by");
 // cliente controla, permitiendo falsificar la IP y evadir el límite.
 // 0 en local/test/CI (sin proxy); 1 en staging/producción tras Nginx Proxy Manager.
 app.set("trust proxy", rateLimitConfig.trustProxyHops);
+
+// Identificador de correlacion ANTES de cualquier router y de los limitadores:
+// toda traza de error debe poder unirse con su respuesta, incluidos los 429 y
+// los fallos que ocurren dentro de un limitador (AUDIT05-OPS-PROD-ERROR-LOG-01).
+app.use(requestIdMiddleware);
 
 app.use(helmet());
 app.use(

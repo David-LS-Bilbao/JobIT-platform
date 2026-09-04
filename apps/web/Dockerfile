@@ -2,6 +2,7 @@
 # Contexto de build: la RAÍZ del monorepo:
 #   docker build -f apps/web/Dockerfile \
 #     --build-arg NEXT_PUBLIC_API_BASE_URL=https://api-jobit-staging.davlos.es \
+#     --build-arg NEXT_PUBLIC_PUBLIC_BASE_URL=https://jobit-staging.davlos.es \
 #     -t jobit-web .
 # NEXT_PUBLIC_API_BASE_URL se INLINEA en el build de Next: cambiar de API
 # implica reconstruir la imagen, no solo reiniciarla (documentado en la spec).
@@ -23,6 +24,12 @@ RUN pnpm install --frozen-lockfile
 
 ARG NEXT_PUBLIC_API_BASE_URL
 ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
+
+# URL publica de la web (AUDIT03-URL-SCHEME-01). Tambien se inlinea en el build:
+# sin ella, un entorno desplegado no ofrece enlace ni QR del portfolio publico,
+# en lugar de emitir un enlace `http` derivado del origen del navegador.
+ARG NEXT_PUBLIC_PUBLIC_BASE_URL
+ENV NEXT_PUBLIC_PUBLIC_BASE_URL=$NEXT_PUBLIC_PUBLIC_BASE_URL
 
 COPY apps/web apps/web
 RUN pnpm --filter @jobit/web build

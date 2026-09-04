@@ -77,6 +77,25 @@ jobs:
         env:
           NODE_ENV: production
           PORT: 4000
+          # Limites de rate limiting SOLO para este harness de E2E.
+          #
+          # El journey de account lifecycle eleva la suite a 6 registros, y el
+          # default productivo es 5/hora: sin esto, el ultimo journey fallaria por
+          # rate limiting y no por un defecto real. La API corre aqui con
+          # NODE_ENV=production (paridad con la imagen desplegada), asi que los
+          # defaults de test no aplican y hay que declararlos.
+          #
+          # Esto NO relaja el limite productivo: los defaults del codigo
+          # (AUTH_REGISTER_MAX=5/h, AUTH_LOGIN_MAX=10/15min, RATE_LIMIT_MAX=300/15min,
+          # PUBLIC_READ_MAX=60/15min) quedan intactos, igual que la plantilla de
+          # staging. Solo este proceso efimero de CI usa valores altos, porque un
+          # runner es un unico cliente ejecutando toda la suite de forma secuencial.
+          AUTH_REGISTER_MAX: 1000
+          AUTH_LOGIN_MAX: 1000
+          RATE_LIMIT_MAX: 100000
+          PUBLIC_READ_MAX: 1000
+          # Sin proxy delante en el runner: el valor seguro y correcto es 0.
+          TRUST_PROXY_HOPS: 0
         working-directory: apps/api
         run: |
           nohup node dist/server.js > "$RUNNER_TEMP/jobit-api.log" 2>&1 &
@@ -97,6 +116,15 @@ jobs:
       # Decisión del Director (Sprint 19B): build de producción + next start
       # (sin compilación on-demand, menos flakiness que next dev en runner).
       - name: Build web
+        env:
+          # Se inlinea en el build (AUDIT03-URL-SCHEME-01). El runner construye en
+          # modo produccion, asi que este valor `http` queda RECHAZADO por
+          # contrato y la UI muestra el aviso de enlace no disponible en lugar de
+          # un enlace degradado. Es el comportamiento correcto y ningun journey
+          # depende del enlace absoluto: leen la ruta relativa `/u/<slug>`.
+          # Se declara igualmente para que un entorno https real solo tenga que
+          # cambiar el valor, no descubrir que falta la variable.
+          NEXT_PUBLIC_PUBLIC_BASE_URL: http://localhost:3000
         run: pnpm --filter @jobit/web build
 
       - name: Arrancar web en background (next start)

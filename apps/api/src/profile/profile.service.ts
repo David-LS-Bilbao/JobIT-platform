@@ -10,6 +10,7 @@ import {
 } from "@prisma/client";
 
 import { prisma } from "../lib/prisma.js";
+import { logServerError } from "../lib/server-error-log.js";
 import { deleteAvatarImage } from "./avatar.storage.js";
 import { ProfileError } from "./profile.ownership.js";
 import {
@@ -89,9 +90,19 @@ async function cleanupReplacedAvatarFile(
   if (!previousAvatarUrl || previousAvatarUrl === nextAvatarUrl) return;
   try {
     await deleteAvatarImage(previousAvatarUrl);
-  } catch {
+  } catch (cleanupError: unknown) {
     // Efecto secundario no critico y posterior al commit: no se propaga para no
-    // convertir una actualizacion correcta en un 500.
+    // convertir una actualizacion correcta en un 500. Pero deja un fichero
+    // huerfano, asi que debe quedar traza (AUDIT05-OPS-PROD-ERROR-LOG-01).
+    // No hay `req` en la capa de servicio: se correlaciona por codigo y momento.
+    logServerError({
+      requestId: "n/a-service-layer",
+      method: "INTERNAL",
+      path: "/api/profile/me/avatar",
+      status: 200,
+      code: "ORPHANED_AVATAR_AFTER_REPLACEMENT",
+      errorName: cleanupError instanceof Error ? cleanupError.name : typeof cleanupError
+    });
   }
 }
 
