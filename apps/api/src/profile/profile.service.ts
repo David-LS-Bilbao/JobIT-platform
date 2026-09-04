@@ -10,6 +10,7 @@ import {
 } from "@prisma/client";
 
 import { prisma } from "../lib/prisma.js";
+import { deleteAvatarImage } from "./avatar.storage.js";
 import { ProfileError } from "./profile.ownership.js";
 import {
   findOwnedEducationOrThrow,
@@ -70,13 +71,37 @@ export async function getOrCreateCandidateProfile(
   });
 }
 
+/**
+ * Borra el fichero del avatar anterior cuando deja de estar referenciado.
+ *
+ * Spec: `docs/specs/features/account-lifecycle.md` §"Avatar cleanup". Se invoca
+ * SIEMPRE despues del commit en base de datos: el estado autoritativo es la fila,
+ * y el fichero es un efecto derivado. Por eso un fallo de sistema de ficheros no
+ * revierte una actualizacion ya consolidada; se absorbe aqui de forma explicita.
+ *
+ * `deleteAvatarImage` ignora por diseno cualquier URL que no sea un avatar
+ * interno, de modo que un `avatarUrl` externo nunca intenta tocar disco.
+ */
+async function cleanupReplacedAvatarFile(
+  previousAvatarUrl: string | null,
+  nextAvatarUrl: string | null
+): Promise<void> {
+  if (!previousAvatarUrl || previousAvatarUrl === nextAvatarUrl) return;
+  try {
+    await deleteAvatarImage(previousAvatarUrl);
+  } catch {
+    // Efecto secundario no critico y posterior al commit: no se propaga para no
+    // convertir una actualizacion correcta en un 500.
+  }
+}
+
 export async function updateCandidateProfileBasicInfo(
   userId: string,
   input: UpdateBasicInfoInput
 ): Promise<ProfileWithRelations> {
-  await getOrCreateCandidateProfile(userId);
+  const current = await getOrCreateCandidateProfile(userId);
 
-  return prisma.candidateProfile.update({
+  const updated = await prisma.candidateProfile.update({
     where: { userId },
     data: {
       firstName: input.firstName,
@@ -94,6 +119,14 @@ export async function updateCandidateProfileBasicInfo(
     },
     include: PROFILE_RELATIONS
   });
+
+  // Sustituir el avatar interno por una URL externa, o limpiarlo con `null`,
+  // tambien deja huerfano el fichero anterior.
+  if (input.avatarUrl !== undefined) {
+    await cleanupReplacedAvatarFile(current.avatarUrl, updated.avatarUrl);
+  }
+
+  return updated;
 }
 
 /** Actualiza solo `avatarUrl` (usado por la subida de imagen `POST /me/avatar`). */
@@ -101,13 +134,17 @@ export async function setCandidateAvatarUrl(
   userId: string,
   avatarUrl: string
 ): Promise<ProfileWithRelations> {
-  await getOrCreateCandidateProfile(userId);
+  const current = await getOrCreateCandidateProfile(userId);
 
-  return prisma.candidateProfile.update({
+  const updated = await prisma.candidateProfile.update({
     where: { userId },
     data: { avatarUrl },
     include: PROFILE_RELATIONS
   });
+
+  await cleanupReplacedAvatarFile(current.avatarUrl, updated.avatarUrl);
+
+  return updated;
 }
 
 export function normalizeSkillName(name: string): string {

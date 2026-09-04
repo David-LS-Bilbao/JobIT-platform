@@ -82,6 +82,15 @@ function IconGlobe() {
     </svg>
   );
 }
+function IconUser() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <circle cx="12" cy="8" r="3.5" />
+      <path d="M4.5 20a7.5 7.5 0 0 1 15 0" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function IconMenu() {
   return (
     <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" aria-hidden="true">
@@ -115,7 +124,8 @@ const PRIVATE_NAV: ReadonlyArray<PrivateNavItem> = [
   { label: "Portfolio", href: "/profile/portfolio", status: "available", icon: <IconGlobe /> },
   { label: "JobIT Jobs", href: "/jobs", status: "available", icon: <IconWork /> },
   { label: "Guardadas", href: "/saved-jobs", status: "available", icon: <IconBookmark /> },
-  { label: "JobIT Match", href: "/match", status: "available", icon: <IconTarget /> }
+  { label: "JobIT Match", href: "/match", status: "available", icon: <IconTarget /> },
+  { label: "Cuenta", href: "/profile/account", status: "available", icon: <IconUser /> }
 ];
 
 const activeNavClass =

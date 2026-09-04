@@ -12,7 +12,7 @@ import multer from "multer";
 
 import { requireAuth, type AuthenticatedRequest } from "../auth/require-auth.middleware.js";
 import { avatarMulter } from "./avatar.upload.js";
-import { saveAvatarImage, sniffImageMime } from "./avatar.storage.js";
+import { deleteAvatarImage, saveAvatarImage, sniffImageMime } from "./avatar.storage.js";
 import { ProfileError } from "./profile.ownership.js";
 import {
   createEducationSchema,
@@ -242,7 +242,15 @@ profileRouter.post(
           .json({ error: { code: "STORAGE_ERROR", message: "No se ha podido almacenar la imagen." } });
         return;
       }
-      await setCandidateAvatarUrl(userId, avatarUrl);
+      try {
+        await setCandidateAvatarUrl(userId, avatarUrl);
+      } catch (err) {
+        // Compensacion: la imagen ya esta en disco pero ninguna fila la
+        // referencia. Sin esto quedaria huerfana para siempre. El borrado es
+        // idempotente y su propio fallo no debe enmascarar el error original.
+        await deleteAvatarImage(avatarUrl).catch(() => undefined);
+        throw err;
+      }
       res.status(200).json({ avatarUrl });
     } catch (err) {
       next(err);
