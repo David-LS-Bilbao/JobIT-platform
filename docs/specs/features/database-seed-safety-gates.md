@@ -141,12 +141,16 @@ clasificador actual, que deriva la clasificación de forma determinista del prop
 
 ## 7. Invariantes de DATA-04
 
-1. El entrypoint CLI del seed solo puede ejecutarse cuando el destino de `DATABASE_URL`
-   clasifica como `DEVELOPMENT` o `E2E`.
-2. `TEST`, `STAGING`, `PRODUCTION`, `UNKNOWN` y `AMBIGUOUS` se rechazan.
+> **Enmendado por la Fase C** (`C — STAGING TECHNICAL READINESS`). Las invariantes 1, 2 y 4
+> se sustituyen por las de §7.bis. Se conservan aquí, tachadas conceptualmente, para que la
+> enmienda quede trazable y no se reinterprete en silencio.
+
+1. ~~El entrypoint CLI del seed solo puede ejecutarse cuando el destino de `DATABASE_URL`
+   clasifica como `DEVELOPMENT` o `E2E`.~~ → ver §7.bis
+2. ~~`TEST`, `STAGING`, `PRODUCTION`, `UNKNOWN` y `AMBIGUOUS` se rechazan.~~ → ver §7.bis
 3. `DATABASE_URL` ausente, vacía, inválida o con protocolo no permitido se rechaza.
-4. `NODE_ENV === "production"` bloquea la ejecución aunque el nombre de base clasifique como
-   `DEVELOPMENT` o `E2E` (defensa en profundidad).
+4. ~~`NODE_ENV === "production"` bloquea la ejecución aunque el nombre de base clasifique
+   como `DEVELOPMENT` o `E2E` (defensa en profundidad).~~ → ver §7.bis
 5. La guarda se ejecuta antes de instanciar `PrismaClient` y antes de cualquier operación
    sobre `Job`.
 6. No existe ningún `deleteMany()`, `delete()` ni `TRUNCATE` global sobre `Job` en el flujo
@@ -155,6 +159,68 @@ clasificador actual, que deriva la clasificación de forma determinista del prop
    actualizar; ninguna fila ajena (otro `source`, otro `externalId`) puede ser alcanzada por
    sus operaciones.
 8. Ningún `SavedJob` puede perderse como efecto de ejecutar el seed.
+
+## 7.bis Enmienda de la Fase C — excepción controlada de staging sintético
+
+**Unidad:** `C — STAGING TECHNICAL READINESS` · **Decisión del Director:** `D1`
+**Spec de la unidad:** [`staging-technical-readiness.md`](staging-technical-readiness.md) §8
+
+### Invariante anterior
+
+El seed solo admitía `DEVELOPMENT` y `E2E`. `STAGING` se rechazaba siempre con
+`UNSAFE_CLASSIFICATION`, y `NODE_ENV === "production"` bloqueaba en todos los casos.
+
+### Motivo de la enmienda
+
+El procedimiento de staging documentado en
+[`staging-vps-deploy-runbook.md`](../../deployment/staging-vps-deploy-runbook.md) §10
+dejó de ser ejecutable al introducirse esta guarda: el destino se llama `jobit_staging`
+(clasifica `STAGING`) y staging corre con `NODE_ENV=production`, de modo que las
+invariantes 2 y 4 lo rechazaban por partida doble. Sin ofertas en la base, los recorridos
+de jobs, guardadas y match no pueden validarse en un staging sintético.
+
+La alternativa —renombrar la base para que clasificara `DEVELOPMENT`— se descartó: falsearía
+el clasificador, que es precisamente el límite de seguridad del sistema.
+
+### Invariante nuevo (controlado)
+
+| Clasificación | `JOBIT_DATA_MODE` | Seed | Código de rechazo |
+|---|---|---|---|
+| `DEVELOPMENT` / `E2E` | ausente o `SYNTHETIC_STAGING` | permitido | — (reglas anteriores intactas, incluido el bloqueo por `NODE_ENV=production`) |
+| `STAGING` | ausente | **rechazado** | `DATA_MODE_REQUIRED` |
+| `STAGING` | valor inválido | **rechazado** | `INVALID_DATA_MODE` |
+| `STAGING` | `SYNTHETIC_STAGING` | **permitido**, incluso con `NODE_ENV=production` | — |
+| `PRODUCTION` | `SYNTHETIC_STAGING` | **rechazado** | `PRODUCTION_MODE_CONFLICT` |
+| `PRODUCTION` | cualquier otro | **rechazado** | `UNSAFE_CLASSIFICATION` / `PRODUCTION_ENVIRONMENT` |
+| `TEST` | cualquiera | **rechazado** | `UNSAFE_CLASSIFICATION` |
+| `UNKNOWN` / `AMBIGUOUS` | cualquiera | **rechazado** | `UNSAFE_CLASSIFICATION` / `PRODUCTION_ENVIRONMENT` |
+
+Precisiones que acotan la enmienda:
+
+- La relajación de `NODE_ENV=production` alcanza **exclusivamente** a la rama
+  `STAGING` + `SYNTHETIC_STAGING`. En cualquier otra clasificación sigue bloqueando.
+- `PRODUCTION` permanece **inalcanzable bajo cualquier combinación** de variables. El caso
+  `PRODUCTION` + modo sintético se comprueba **antes** que ninguna otra rama, para que
+  declarar el modo no pueda abrir ningún camino.
+- La llave es **única**. No existen `JOBIT_SEED_SYNTHETIC_STAGING`, `ALLOW_SEED` ni
+  `FORCE_SEED`: una segunda variable sería una fuente de verdad capaz de discrepar de
+  `JOBIT_DATA_MODE`.
+- Sin `JOBIT_DATA_MODE`, el comportamiento en desarrollo, test y CI es idéntico al anterior.
+- Las invariantes 3, 5, 6, 7 y 8 se conservan sin cambios.
+
+### Tests que protegen el invariante nuevo
+
+En `apps/api/src/lib/database-safety.test.ts`, bloque
+*"assertSeedableDatabaseUrl — contrato de staging sintetico"*:
+
+- las nueve filas de la tabla anterior, una por una;
+- `PRODUCTION` recorrido sobre el producto cartesiano de `NODE_ENV` × modo, exigiendo
+  rechazo en todos los casos;
+- regresión explícita de `DEVELOPMENT`, `E2E` y `TEST` con y sin modo declarado;
+- ausencia de credenciales en el mensaje de error.
+
+En `apps/api/src/config/synthetic-mode.test.ts`: vocabulario cerrado, fail-fast ante valor
+desconocido o de distinta caja, y ausencia del valor recibido en el mensaje de error.
 
 ## 8. Flujo seguro del globalSetup
 
@@ -308,7 +374,10 @@ acepta; `NODE_ENV` no está definido a nivel de job en ese step, lo cual tambié
   usuario/contraseña/URL completa/query string en los errores.
 - `assertSeedableDatabaseUrl`: variable ausente/inválida, `DEVELOPMENT` acepta, `E2E` acepta,
   `TEST`/`STAGING`/`PRODUCTION`/`UNKNOWN`/`AMBIGUOUS` rechazan, `NODE_ENV=production` rechaza
-  incluso con nombre `DEVELOPMENT`, sanitización de errores.
+  incluso con nombre `DEVELOPMENT`, sanitización de errores. **Desde la enmienda de §7.bis**,
+  el rechazo de `STAGING` sin modo emite `DATA_MODE_REQUIRED` en lugar de
+  `UNSAFE_CLASSIFICATION` —cambia el motivo, no la permisividad— y se añade la batería del
+  contrato de staging sintético descrita en §7.bis.
 - Orden previo a efectos secundarios: un efecto inyectado (spy) nunca se invoca cuando la
   guarda correspondiente lanza.
 

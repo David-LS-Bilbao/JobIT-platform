@@ -251,9 +251,9 @@ Dieciocho. El código de salida cero no se acepta como evidencia.
 |---|---|
 | 1 | Lista de tablas de `public` — 12 de aplicación + `_prisma_migrations` = 13 |
 | 2 | `pg_restore --list` con objetos > 0, sin restaurar |
-| 3 | `_prisma_migrations` `COUNT(*)` = 8 |
-| 4 | Nombres de las 8 migraciones, ordenados |
-| 5 | `finished_at IS NOT NULL AND rolled_back_at IS NULL` en las 8 |
+| 3 | `_prisma_migrations` `COUNT(*)` = 9 |
+| 4 | Nombres de las 9 migraciones, ordenados |
+| 5 | `finished_at IS NOT NULL AND rolled_back_at IS NULL` en las 9 |
 | 6 | Row counts de las 12 tablas de aplicación |
 | 7 | Cuatro valores sentinela |
 | 8 | Joins `User⋈CandidateProfile⋈Skill` y `User⋈SavedJob⋈Job` |

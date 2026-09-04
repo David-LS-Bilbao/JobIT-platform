@@ -65,7 +65,7 @@ distintos, para acreditar reproducibilidad sin dependencia de residuos.
 
 ```text
 origen sintético (postgres:16)
-→ prisma migrate deploy (8 migraciones)
+→ prisma migrate deploy (9 migraciones)
 → fixtures.sql (27 filas sintéticas en 12 tablas)
 → uploads sintéticos (3 archivos, uno referenciado desde avatarUrl)
 → baseline de integridad del origen
@@ -111,7 +111,7 @@ Estado esperado tras el restore:
 
 ```text
 tablas en `public`:            13   (12 de aplicación + _prisma_migrations)
-migraciones aplicadas:          8
+migraciones aplicadas:          9
 filas sintéticas:              27
 manifiesto origen vs destino:  sin diferencias
 coherencia avatarUrl↔archivo:  100 %

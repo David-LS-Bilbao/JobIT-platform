@@ -42,6 +42,9 @@ Si se genera una contraseña de DB nueva, recuerda actualizarla **en los dos sit
 | `NEXT_PUBLIC_API_BASE_URL` | `https://api-jobit-staging.davlos.es` | Pública por diseño; se INLINEA en el build de Next |
 | `NEXT_PUBLIC_PUBLIC_BASE_URL` | `https://jobit-staging.davlos.es` | URL pública ABSOLUTA de la web; **obligatoria y `https` en cualquier entorno desplegado**; se INLINEA en el build de Next |
 | `TRUST_PROXY_HOPS` | `1` | Un único salto de Nginx Proxy Manager delante de la API. El default del código sigue siendo `0` (local/test/CI, sin proxy) |
+| `JOBIT_DATA_MODE` | `SYNTHETIC_STAGING` | Contrato de datos sintéticos. **La API no arranca** si la base clasifica `STAGING` y esta variable falta o es inválida |
+| `NEXT_PUBLIC_JOBIT_DATA_MODE` | `SYNTHETIC_STAGING` | Equivalente público; activa el marcador global de entorno. Se INLINEA en el build de Next |
+| `JOBIT_IMAGE_TAG` | SHA del commit | Tag inmutable de las imágenes. Nunca `latest` ni un tag móvil |
 
 - Ambos subdominios cuelgan de `davlos.es` (mismo eTLD+1) → **same-site**: la cookie
   `refresh_token` actual (`SameSite=Lax`, `httpOnly`, `secure` en producción) funciona sin
@@ -49,6 +52,46 @@ Si se genera una contraseña de DB nueva, recuerda actualizarla **en los dos sit
 - **Si algún día se cambia a dominios cruzados** (raíces distintas), deja de ser same-site:
   exigiría `SameSite=None; Secure`, revisión de CSRF y un **ADR nuevo** antes de tocar nada
   (criterio de revisión del ADR-0012).
+
+## Modo de datos sintéticos (Fase C)
+
+`JOBIT_DATA_MODE` es la **única** llave del contrato. No existe ninguna segunda variable
+(`JOBIT_SEED_SYNTHETIC_STAGING`, `ALLOW_SEED`, `FORCE_SEED`): una segunda fuente de verdad
+podría discrepar de la primera.
+
+Qué gobierna, exactamente:
+
+- **Arranque.** Una base clasificada `STAGING` sin `JOBIT_DATA_MODE=SYNTHETIC_STAGING`
+  **aborta** el arranque de la API. La ausencia no degrada a modo normal.
+- **Seed.** Es lo único que permite sembrar un destino `STAGING`, incluso con
+  `NODE_ENV=production`. Un destino `PRODUCTION` sigue siendo inalcanzable bajo cualquier
+  combinación.
+- **Registro.** Solo se admiten direcciones del dominio reservado
+  `synthetic.jobit.invalid` (RFC 2606: no resoluble). Un correo ordinario se rechaza con
+  `400 SYNTHETIC_STAGING_EMAIL_REQUIRED`.
+- **Interfaz.** `NEXT_PUBLIC_JOBIT_DATA_MODE` activa el marcador global. Al inlinearse en
+  el build, **debe viajar como build-arg**: ponerla solo en el entorno del contenedor no
+  cambia el bundle y el marcador no aparecería.
+
+Alcance real de la protección, sin exagerarlo: bloquea el registro ordinario con un correo
+real y deja el entorno y los datos visiblemente marcados. **No impide** que alguien
+introduzca deliberadamente un nombre, una biografía o un avatar reales una vez registrado.
+
+## Contrato del compose canónico
+
+`docker-compose.staging.yml` usa interpolación fail-closed `${VAR:?...}` en todas las
+variables obligatorias:
+
+```bash
+docker compose -f docker-compose.staging.yml config                       # FALLA sin env
+docker compose --env-file /srv/jobit-staging/.env -f docker-compose.staging.yml config   # OK
+```
+
+Hasta la Fase C el compose llevaba valores literales `change_me`, de modo que el
+`--env-file` era **inerte** y un despliegue habría arrancado con secretos de ejemplo.
+
+Ningún servicio publica puertos al host —tampoco la API ni la Web—: NPM se une a la red
+`jobit-staging` y los alcanza por hostname interno.
 
 ## Reglas de red y build
 
@@ -74,6 +117,10 @@ Si se genera una contraseña de DB nueva, recuerda actualizarla **en los dos sit
       reconstruyó con ese build-arg.
 - [ ] `NEXT_PUBLIC_PUBLIC_BASE_URL` apunta a la URL pública real de la web, es `https` y la
       imagen web se reconstruyó con ese build-arg.
+- [ ] `JOBIT_DATA_MODE=SYNTHETIC_STAGING` y `NEXT_PUBLIC_JOBIT_DATA_MODE=SYNTHETIC_STAGING`.
+- [ ] La imagen web se construyó con las TRES `NEXT_PUBLIC_*` como build-args.
+- [ ] `JOBIT_IMAGE_TAG` fijado al SHA a desplegar.
+- [ ] `docker compose --env-file … config` en verde; sin `--env-file`, falla.
 - [ ] `TRUST_PROXY_HOPS` vale `1` y coincide con el número REAL de proxies delante de la API.
       Un valor mayor que la topología real permite falsificar la IP del cliente vía
       `X-Forwarded-For` y evadir el rate limiting; uno menor agrupa a todos los clientes bajo

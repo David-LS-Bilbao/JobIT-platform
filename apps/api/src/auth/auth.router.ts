@@ -1,6 +1,10 @@
 import { Router, type CookieOptions, type NextFunction, type Request, type Response } from "express";
 import { ZodError } from "zod";
 
+import {
+  isSyntheticStagingEmail,
+  isSyntheticStagingMode
+} from "../config/synthetic-mode.js";
 import { prisma } from "../lib/prisma.js";
 import { deleteAvatarImage } from "../profile/avatar.storage.js";
 import { logServerError } from "../lib/server-error-log.js";
@@ -99,6 +103,20 @@ authRouter.post(
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const body = registerSchema.parse(req.body);
+
+      // Guarda de staging sintetico (Fase C, spec staging-technical-readiness §10).
+      // Se evalua ANTES de tocar la base: la respuesta depende solo del dominio
+      // recibido y nunca de si la cuenta existe, asi que no anade enumeracion.
+      if (isSyntheticStagingMode(process.env) && !isSyntheticStagingEmail(body.email)) {
+        sendError(
+          res,
+          400,
+          "SYNTHETIC_STAGING_EMAIL_REQUIRED",
+          "Este entorno es de staging sintetico: solo admite direcciones del dominio de pruebas reservado."
+        );
+        return;
+      }
+
       const result = await register(body.email, body.password);
       setRefreshCookie(res, result.refreshToken);
       res.status(201).json({ accessToken: result.accessToken, user: result.user });

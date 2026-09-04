@@ -1,8 +1,9 @@
 # Runbook — Deploy staging JobIT en VPS
 
-Manual operativo (Sprint 20.5) para desplegar el staging de JobIT en el VPS. **Este
-documento no ejecuta nada**: convierte lo validado en las fases 20.1–20.4 en un
-procedimiento revisable para la futura fase 20.6 (deploy real, con autorización expresa).
+Manual operativo para desplegar el staging sintético de JobIT en el VPS. Escrito en el
+Sprint 20.5 y **reconciliado en la Fase C** con el contrato realmente implementado y
+acreditado en un ensayo local aislado. **Este documento no ejecuta nada ni autoriza nada**:
+el deploy real sigue requiriendo autorización humana expresa y separada.
 Referencias: spec [deploy-staging-readiness](../specs/features/deploy-staging-readiness.md),
 [ADR-0012](../decisions/ADR-0012-staging-deploy-architecture.md),
 [staging-env](staging-env.md) y el
@@ -17,16 +18,27 @@ sea posible.
 
 ## 2. Estado actual validado
 
-Todo lo siguiente está mergeado en `dev` y validado en local (Sprint 20.4):
+Todo lo siguiente está en la rama de la Fase C y validado **en local**, mediante un ensayo
+aislado con imágenes equivalentes a producción (`docs/deployment/staging-local-rehearsal.md`):
 
 - Imágenes Docker de API y Web construyen y ejecutan (`apps/api/Dockerfile`,
   `apps/web/Dockerfile`, Next standalone).
-- `docker-compose.staging.yml`: 3 servicios healthy, red interna, DB sin puerto publicado,
-  volúmenes persistentes (DB + uploads), rotación de logs.
-- Migraciones gated con el stage `builder` (idempotentes) y seed mock idempotente.
-- Flujo candidato completo: smoke API 12/12 y Playwright E2E 7/7 contra el stack
-  dockerizado; persistencia verificada en PostgreSQL por red interna.
+- `docker-compose.staging.yml` es el **contrato canónico** del entorno: sin puertos de host
+  en ningún servicio, interpolación obligatoria de todas las variables, imágenes por tag
+  inmutable y healthcheck de la API contra `/ready`.
+- Migraciones gated con el stage `builder` y **gate de `prisma migrate status`** antes y
+  después del deploy: 9 migraciones aplicadas, estado posterior limpio.
+- Seed sintético ejecutable contra una base clasificada `STAGING` bajo
+  `JOBIT_DATA_MODE=SYNTHETIC_STAGING`: 14 ofertas marcadas (`created=14`).
+- Golden staging journey de identidad única, ejecutado **dos veces** contra la misma base
+  persistente con los límites canónicos, sin crecimiento neto de `User`.
+- Persistencia acreditada con reinicio real del contenedor de la API: perfil, skill y
+  avatar sobreviven; tras el borrado de cuenta el avatar devuelve 404 y el fichero
+  desaparece del volumen.
 - Plantilla `.env.staging.example` y guía de secretos (`staging-env.md`).
+
+Lo que **no** está validado: la topología real de Nginx Proxy Manager, TLS y el valor
+efectivo de `TRUST_PROXY_HOPS` contra ese proxy. Pertenece a la fase de deploy.
 
 ## 3. Fuera de alcance
 
@@ -53,9 +65,10 @@ Internet ──HTTPS──> Nginx Proxy Manager (VPS, 80/443, Let's Encrypt, For
 - Ambos subdominios bajo `davlos.es` → **same-site**: la cookie `refresh_token`
   (`SameSite=Lax`, `httpOnly`, `secure` con `NODE_ENV=production`) funciona sin tocar
   código. Cambiar a dominios cruzados exige ADR nuevo.
-- En el escenario VPS ideal, **ni API ni Web publican puertos al host**: NPM llega por la
-  red interna Docker. La alternativa conservadora (publicar solo en `127.0.0.1`) queda
-  como decisión pendiente (§19).
+- **Ningún servicio publica puertos al host** — ni la base, ni la API, ni la Web. Es
+  estructural en el compose canónico, no configurable: NPM llega por la red interna
+  `jobit-staging`. Publicar solo en `127.0.0.1` queda como plan B de recuperación (§12), no
+  como contrato.
 - Volúmenes persistentes: `jobit-staging-db-data` y `jobit-staging-api-uploads`.
 - Backups de DB y uploads (§14). Migraciones siempre gated con el stage builder (§10).
 
@@ -89,18 +102,30 @@ Base: `.env.staging.example` (plantilla versionada) y la guía `staging-env.md`.
 - Sin GitHub Secrets ni CD desde Actions (requeriría ADR propio).
 - Nunca imprimir secretos en terminal, logs ni documentación.
 
-### Compose ↔ env real (pendiente resuelto documentalmente)
+### Compose ↔ env real (RESUELTO en la Fase C)
 
-`docker-compose.staging.yml` lleva hoy dummies `change_me` hardcodeados (fue diseñado para
-validación local). Para el VPS:
+`docker-compose.staging.yml` ya **no** lleva dummies. Toda variable obligatoria usa
+interpolación fail-closed `${VAR:?...}`, de modo que:
 
-- **Opción recomendada para 20.6**: adaptar el compose a interpolación `${VAR}` y arrancar
-  con `docker compose --env-file /srv/jobit-staging/.env -f docker-compose.staging.yml up -d`.
-  Un solo archivo de verdad, sin duplicación.
-- **Alternativa**: mantener el compose local intacto y crear un override de VPS
-  (`docker-compose.staging.vps.yml`) que sobrescriba `environment` desde el `.env`.
-- En ambos casos: **el cambio se hace por PR en el repo, nunca editando a mano en el VPS**
-  (regla de este runbook; el VPS solo hace `git pull` de commits revisados).
+```bash
+# Sin --env-file, esto FALLA en lugar de arrancar con valores de relleno:
+docker compose -f docker-compose.staging.yml config
+```
+
+El arranque real usa un único fichero de verdad, fuera del repo:
+
+```bash
+docker compose --env-file /srv/jobit-staging/.env -f docker-compose.staging.yml up -d
+```
+
+Nota histórica: hasta la Fase C el compose llevaba valores literales `change_me`, así que
+el `--env-file` documentado aquí era **inerte** y un deploy habría arrancado con un secreto
+de ejemplo. Ese es el motivo del cambio.
+
+Variables obligatorias (el arranque falla si falta cualquiera): `POSTGRES_DB`,
+`POSTGRES_USER`, `POSTGRES_PASSWORD`, `DATABASE_URL`, `JWT_ACCESS_SECRET`, `CORS_ORIGIN`,
+`TRUST_PROXY_HOPS`, `JOBIT_DATA_MODE`, `JOBIT_IMAGE_TAG` y las tres `NEXT_PUBLIC_*` del
+contrato de build.
 
 ## 7. Preparación del VPS
 
@@ -122,89 +147,139 @@ validación local). Para el VPS:
    (rollback, §16).
 3. Verificar que el working tree del VPS está limpio: `git status --short`.
 
-## 9. Build de imágenes
+## 9. Build de imágenes (paso SEPARADO de la ejecución)
 
-Build **in situ en el VPS** (recomendado para MVP/staging: evita registry y secretos
-adicionales; un registry queda como evolución futura si el proyecto crece — §19).
+El compose canónico **no declara `build:`**: construir y ejecutar son dos actos distintos.
+Así `docker compose up` no puede construir sin supervisión ni recuperar en silencio una
+imagen antigua del host.
 
 ```bash
 SHA=$(git rev-parse --short HEAD)
 
 # API runtime:
-docker build -f apps/api/Dockerfile -t jobit-api:staging-$SHA .
+docker build -f apps/api/Dockerfile -t jobit-api:$SHA .
 
-# Web (el build-arg PÚBLICO se hornea en la imagen; si cambia, rebuild):
+# Web: las NEXT_PUBLIC_* se INLINEAN en el build. Pasarlas al contenedor en
+# runtime NO cambia el bundle; si no viajan aquí, no viajan nunca.
 docker build -f apps/web/Dockerfile \
   --build-arg NEXT_PUBLIC_API_BASE_URL=https://api-jobit-staging.davlos.es \
-  -t jobit-web:staging-$SHA .
+  --build-arg NEXT_PUBLIC_PUBLIC_BASE_URL=https://jobit-staging.davlos.es \
+  --build-arg NEXT_PUBLIC_JOBIT_DATA_MODE=SYNTHETIC_STAGING \
+  -t jobit-web:$SHA .
 
-# API builder (para migraciones/seed gated):
+# API builder (tooling de migraciones/seed; la imagen runtime NO trae la CLI de Prisma):
 docker build --target builder -f apps/api/Dockerfile -t jobit-api:builder-$SHA .
 ```
 
-Nota: el compose referencia `jobit-api:staging-local`/`jobit-web:staging-local`; el mapeo
-de tags SHA ↔ tags del compose se cerrará con la decisión compose↔env de 20.6 (retag
-`docker tag jobit-api:staging-$SHA jobit-api:staging-local` es el puente simple mientras
-tanto).
+El `.env` real debe declarar `JOBIT_IMAGE_TAG=$SHA`. El compose referencia
+`jobit-api:${JOBIT_IMAGE_TAG}` y `jobit-web:${JOBIT_IMAGE_TAG}`: **nunca** `latest` ni un
+tag móvil, porque un tag móvil hace indistinguibles «reiniciar» y «desplegar».
 
-## 10. Migraciones y seed
+## 10. Secuencia de despliegue con gate de migraciones
 
-**Nunca automáticos; siempre gated y con backup previo.**
+**Orden obligatorio. La API y la Web NO arrancan antes del gate.** Ese orden es el que
+acredita el ensayo local, no una recomendación teórica.
 
-```bash
-# 1. BACKUP OBLIGATORIO antes de migrar (ver §14 para el comando completo).
-# 2. Migrar (misma red interna; DATABASE_URL leída del .env real, sin imprimirla):
-docker run --rm --network jobit-staging \
-  --env-file /srv/jobit-staging/.env \
-  jobit-api:builder-$SHA pnpm --filter @jobit/api exec prisma migrate deploy
-
-# 3. Seed mock inicial (OPCIONAL; idempotente, solo tabla Job; decisión en §19):
-docker run --rm --network jobit-staging \
-  --env-file /srv/jobit-staging/.env \
-  jobit-api:builder-$SHA pnpm --filter @jobit/api exec tsx prisma/seed.ts
+```text
+backup → build de imágenes por SHA → SOLO la base → migrate status
+       → migrate deploy → migrate status (GATE: cero pendientes) → seed
+       → API → /ready 200 → Web
 ```
-
-Sin ingesta real Jooble/Greenhouse ni API keys reales en este deploy inicial (decisión
-posterior con su propio alcance).
-
-## 11. Arranque del stack
 
 ```bash
 cd /srv/jobit-staging/JobIT-platform
-docker compose --env-file /srv/jobit-staging/.env -f docker-compose.staging.yml up -d
-docker compose -f docker-compose.staging.yml ps   # esperar 3/3 healthy
+ENVFILE=/srv/jobit-staging/.env
+COMPOSE="docker compose --env-file $ENVFILE -f docker-compose.staging.yml"
+
+# 1. BACKUP OBLIGATORIO antes de migrar (§14). Sin dump previo verificado no se migra.
+
+# 2. Solo la base.
+$COMPOSE up -d --wait jobit-staging-db
+
+# 3. Estado previo (informativo: en una base nueva habrá pendientes).
+docker run --rm --network jobit-staging --env-file "$ENVFILE" \
+  jobit-api:builder-$SHA pnpm --filter @jobit/api exec prisma migrate status
+
+# 4. Migrar. Si falla: PARADA DURA. No se arranca ni API ni Web (§16).
+docker run --rm --network jobit-staging --env-file "$ENVFILE" \
+  jobit-api:builder-$SHA pnpm --filter @jobit/api exec prisma migrate deploy
+
+# 5. GATE: el estado posterior debe estar limpio ("Database schema is up to date").
+docker run --rm --network jobit-staging --env-file "$ENVFILE" \
+  jobit-api:builder-$SHA pnpm --filter @jobit/api exec prisma migrate status
+
+# 6. Seed sintético (14 ofertas marcadas, idempotente y convergente).
+#    Exige JOBIT_DATA_MODE=SYNTHETIC_STAGING: la base clasifica STAGING y sin esa
+#    variable el seed se rechaza (y la API ni siquiera arranca).
+docker run --rm --network jobit-staging --env-file "$ENVFILE" \
+  jobit-api:builder-$SHA pnpm --filter @jobit/api exec tsx prisma/seed.ts
+
+# 7. API, y esperar readiness real (no liveness).
+$COMPOSE up -d --wait jobit-staging-api
+
+# 8. Web, solo después de que la API esté ready.
+$COMPOSE up -d --wait jobit-staging-web
+$COMPOSE ps      # 3/3 healthy
 ```
 
-(El flag `--env-file` aplica con la opción recomendada de §6; con el compose actual de
-dummies, el arranque en VPS NO es válido hasta resolver esa decisión en 20.6.)
+La imagen runtime de la API **no** incluye la CLI de Prisma (`prisma` es devDependency y el
+stage `runner` instala `--prod`): migrar y sembrar usan el stage `builder` del mismo
+Dockerfile, mismo commit y mismo lockfile.
+
+Sin ingesta real Jooble/Greenhouse ni API keys reales en este deploy (decisión posterior
+con su propio alcance).
+
+## 11. Verificación de arranque
+
+```bash
+# Readiness DB-aware: 200 solo si PostgreSQL responde.
+docker exec jobit-staging-api node -e "fetch('http://localhost:4000/ready').then(r=>console.log(r.status))"
+$COMPOSE ps    # los tres servicios healthy
+```
+
+`GET /health` es **liveness**: responde 200 aunque PostgreSQL esté caído, así que no sirve
+como criterio de despliegue. El healthcheck del contenedor de la API apunta a `/ready`
+precisamente por eso, y el `depends_on` de la web se apoya en él.
 
 ## 12. Nginx Proxy Manager
 
-Solo documentación; no configurar todavía. Dos proxy hosts en NPM:
+Solo documentación; la Fase C **no** configura ni toca NPM. Dos proxy hosts:
 
-| Proxy host | Dominio | Destino (opción red compartida) | Destino (opción localhost) |
-|---|---|---|---|
-| Web | `jobit-staging.davlos.es` | `jobit-staging-web:3000` | `127.0.0.1:3000` |
-| API | `api-jobit-staging.davlos.es` | `jobit-staging-api:4000` | `127.0.0.1:4000` |
+| Proxy host | Dominio | Destino |
+|---|---|---|
+| Web | `jobit-staging.davlos.es` | `jobit-staging-web:3000` |
+| API | `api-jobit-staging.davlos.es` | `jobit-staging-api:4000` |
 
-- **Opción red compartida** (ideal, sin puertos host): conectar el contenedor de NPM a la
-  red `jobit-staging` (`docker network connect jobit-staging <contenedor-npm>`) y apuntar
-  a los hostnames internos.
-- **Opción localhost**: publicar los puertos de API/Web SOLO en `127.0.0.1` (requeriría
-  ajustar `ports:` del compose vía PR) y apuntar NPM a `127.0.0.1:<puerto>`.
-- En ambos proxy hosts: SSL con **Let's Encrypt**, **Force SSL** activado, HTTP/2;
-  "Websockets support" activado (inofensivo; Next puede usarlo en algunas features).
-- PostgreSQL: **nada que configurar en NPM** — no tiene puerto publicado y no debe
-  tenerlo jamás; ninguna regla de proxy debe apuntar a la DB.
+**Topología canónica: red Docker compartida.** Ningún servicio publica puertos al host, así
+que NPM alcanza los contenedores por hostname interno tras unirse a la red:
+
+```bash
+# Fase D, NO ahora:
+docker network connect jobit-staging <contenedor-npm>
+```
+
+- En ambos proxy hosts: SSL con **Let's Encrypt**, **Force SSL**, HTTP/2 y "Websockets
+  support" activado.
+- PostgreSQL: **nada que configurar en NPM**. No tiene puerto publicado y no debe tenerlo
+  jamás; ninguna regla de proxy debe apuntar a la base.
+- `TRUST_PROXY_HOPS=1` corresponde a **un único** salto de NPM. Su valor efectivo contra la
+  topología real debe verificarse durante el despliegue: un valor mayor que la realidad
+  permite falsificar la IP vía `X-Forwarded-For` y evadir el rate limiting; uno menor agrupa
+  a todos los clientes bajo la IP del proxy.
+- Alternativa de recuperación (no canónica): publicar API y Web solo en `127.0.0.1` y
+  apuntar NPM ahí. Exigiría una PR del compose y se documenta únicamente como plan B.
 
 ## 13. Validación HTTPS, CORS y cookies
 
 Tras el arranque y NPM configurados (fase 20.6):
 
-1. `curl -I https://api-jobit-staging.davlos.es/health` → `HTTP/2 200` (o `HTTP/1.1 200`).
+1. `curl -I https://api-jobit-staging.davlos.es/ready` → 200. **`/ready`, no `/health`**:
+   este último responde 200 aunque PostgreSQL esté caído.
 2. Abrir `https://jobit-staging.davlos.es` en navegador → landing carga sin mixed content.
-3. Registrar un usuario dummy de staging (email tipo `staging-smoke-<fecha>@example.com`,
-   password dummy; jamás credenciales reales).
+3. Registrar una identidad **sintética**: con `JOBIT_DATA_MODE=SYNTHETIC_STAGING` la API
+   solo acepta direcciones del dominio reservado, p. ej.
+   `staging-smoke-<fecha>@synthetic.jobit.invalid`. Un correo ordinario se rechaza con
+   `400 SYNTHETIC_STAGING_EMAIL_REQUIRED`. Jamás credenciales ni datos reales.
 4. Login → dashboard privado visible.
 5. En las DevTools del navegador (pestaña Application/Cookies), confirmar que
    `refresh_token` llega con **`Secure`**, **`HttpOnly`** y **`SameSite=Lax`**.
@@ -212,8 +287,10 @@ Tras el arranque y NPM configurados (fase 20.6):
 7. Prueba negativa de CORS (opcional):
    `curl -s -o /dev/null -w "%{http_code}" -H "Origin: https://evil.example" -H "Access-Control-Request-Method: GET" -X OPTIONS https://api-jobit-staging.davlos.es/api/jobs`
    → la respuesta no debe incluir `Access-Control-Allow-Origin` para ese origen.
-8. Flujo funcional: jobs → detalle → guardar → guardadas → quitar → match (equivalente al
-   smoke 12/12 de 20.4, ahora sobre HTTPS real).
+8. Comprobar el marcador global de entorno sintético en la interfaz y el prefijo
+   `JobIT Synthetic ·` en las ofertas.
+9. Flujo funcional: jobs → detalle → guardar → guardadas → quitar → match. Equivale al
+   Golden staging journey ya acreditado en el ensayo local, ahora sobre HTTPS real.
 
 ## 14. Backups
 
@@ -254,13 +331,61 @@ en compose; los logs no deben contener tokens/cookies/secretos).
 
 ## 16. Rollback
 
-1. Las imágenes van taggeadas por SHA (§9): volver atrás = arrancar el stack con los tags
-   del SHA anterior (retag/compose), **sin rebuild**.
-2. Si el despliegue incluyó migración y hay que revertirla: **restaurar el dump
-   pre-migración** (`pg_restore` sobre la DB de staging) y arrancar con el tag anterior.
-3. **Nunca rollback "ciego" de la DB**: sin dump previo verificado no se revierte una
-   migración (por eso el backup de §10 es obligatorio, no opcional).
-4. Verificar tras el rollback: health 200, login de un usuario dummy, logs limpios.
+Cuatro mecanismos DISTINTOS. Confundirlos es el error que este apartado existe para evitar.
+
+| Mecanismo | Qué hace | Cuándo |
+|---|---|---|
+| `IMAGE_ROLLBACK` | Arrancar el stack con el tag SHA anterior, sin rebuild | Fallo de imagen o de aplicación **sin** cambio de schema por medio |
+| `CONFIG_ROLLBACK` | Corregir `/srv/jobit-staging/.env` y recrear | Variable mal puesta. Si es una `NEXT_PUBLIC_*`, exige **rebuild** de la web: se inlinea en el bundle |
+| `DATABASE_RESTORE` | `pg_restore` del dump pre-migración | Cuando hay que revertir el schema |
+| `FORWARD_FIX` | Desplegar un SHA nuevo que corrige | Preferible cuando la migración es aditiva y compatible |
+
+**Principio, sin excepciones:**
+
+```text
+Una imagen anterior puede restaurarse tras un cambio de schema
+SOLO si la compatibilidad hacia atrás se ha establecido EXPLÍCITAMENTE.
+
+En caso contrario:
+  forward fix
+  o
+  restaurar la base pre-migración + imagen compatible.
+```
+
+### Caso concreto acreditado
+
+La migración `20260819091121_add_refresh_token_rotation_lineage` añade
+`RefreshToken.familyId` y lo eleva a `NOT NULL` **sin `DEFAULT`**. El código inmediatamente
+anterior insertaba el token sin ese campo:
+
+```text
+git show 869522e~1:apps/api/src/auth/auth.service.ts
+  → prisma.refreshToken.create({ data: { userId, tokenHash, expiresAt } })
+```
+
+Consecuencia: una vez aplicada esa migración, **volver a una imagen anterior rompe todo
+`register` y `login`** por violación de `NOT NULL`. Ese retroceso exige también restaurar el
+dump previo. No es una hipótesis: se deduce del SQL de la migración y del código anterior.
+
+### Lo que NO existe
+
+- **No existe `prisma migrate down`** en este proyecto: cero ficheros `down.sql`, y Prisma
+  no los genera aquí. Nunca se documente como mecanismo disponible.
+- **No se afirma atomicidad** de `migrate deploy` por migración: no está acreditada en este
+  repositorio y no debe suponerse.
+
+### Ante un fallo de migración
+
+```text
+PARADA DURA
+→ API y Web NO arrancan
+→ inspeccionar el estado real del schema (`prisma migrate status`)
+→ NUNCA reparación automática, `db push` ni reset
+→ forward fix cuando sea seguro, o restore del dump previo + imagen compatible
+```
+
+Tras cualquier rollback: verificar `/ready` 200, login de un usuario sintético y logs
+limpios.
 
 ## 17. Checklist pre-deploy
 
@@ -268,17 +393,22 @@ en compose; los logs no deben contener tokens/cookies/secretos).
 - [ ] DNS de ambos subdominios resolviendo al VPS.
 - [ ] NPM sano, con 80/443 operativos.
 - [ ] Directorio de backups creado y cron preparado; dump manual de prueba hecho.
-- [ ] Imagen web construida con el build-arg público correcto (URL API de staging).
+- [ ] Imagen web construida con las TRES `NEXT_PUBLIC_*` como build-args (API, URL pública
+      y modo de datos). Si falta el modo, staging no queda identificado como sintético.
+- [ ] `JOBIT_IMAGE_TAG` fijado al SHA a desplegar; sin `latest` ni tags móviles.
+- [ ] `JOBIT_DATA_MODE=SYNTHETIC_STAGING` en el `.env` real. Sin ella la API **no arranca**
+      contra una base clasificada `STAGING`.
 - [ ] `CORS_ORIGIN` exacto al origen público de la web.
-- [ ] `DATABASE_URL` con hostname interno; Postgres sin `ports:`.
-- [ ] Decisiones de §19 resueltas (compose↔env, NPM↔red, seed).
-- [ ] Smoke local (20.4) re-ejecutado en verde sobre el commit a desplegar.
+- [ ] `DATABASE_URL` con hostname interno; ningún servicio con `ports:`.
+- [ ] `docker compose --env-file … config` en verde (y sin `--env-file`, falla).
+- [ ] Ensayo local (`run-local-rehearsal.sh`) en verde sobre el commit a desplegar.
 
 ## 18. Checklist post-deploy
 
-- [ ] `GET /health` de la API → 200 por HTTPS.
+- [ ] `GET /ready` de la API → 200 por HTTPS (y `/health` → 200).
 - [ ] Landing web carga por HTTPS sin mixed content.
-- [ ] Register + login de usuario dummy funcionan.
+- [ ] Register + login con identidad sintética funcionan; un dominio ordinario se rechaza.
+- [ ] Marcador global de entorno sintético visible en la web.
 - [ ] Dashboard privado con datos.
 - [ ] Jobs: listado y detalle.
 - [ ] Saved jobs: guardar y quitar.
@@ -287,17 +417,24 @@ en compose; los logs no deben contener tokens/cookies/secretos).
 - [ ] Logs de los 3 servicios sin secretos ni errores recurrentes.
 - [ ] Backup post-deploy creado y visible en `/srv/jobit-staging/backups`.
 
-## 19. Decisiones pendientes antes de 20.6
+## 19. Decisiones pendientes
 
-1. **Compose ↔ env real**: ¿interpolación `${VAR}` en el compose (recomendada) u override
-   VPS? Cualquiera de las dos exige PR autorizada antes del deploy.
-2. **NPM ↔ stack**: ¿conectar NPM a la red `jobit-staging` (sin puertos host, ideal) o
-   publicar API/Web solo en `127.0.0.1` (requiere PR del compose)?
-3. **Build de imágenes**: in situ en VPS (recomendado ahora) vs registry (futuro).
-4. **Retención final de backups**: confirmar 7 diarios + 4 semanales o ajustar.
-5. **Seed inicial en VPS**: ¿ejecutar el seed mock en staging real o dejar la DB vacía?
-6. **Momento del deploy real**: fecha/sprint y quién lo ejecuta (fase 20.6 con
-   autorización expresa del Director).
+Cerradas en la Fase C:
+
+| Decisión | Estado |
+|---|---|
+| Compose ↔ env real | **CERRADA**: interpolación `${VAR:?}` fail-closed en el compose canónico (§6) |
+| NPM ↔ stack | **CERRADA**: red Docker compartida, cero puertos de host (§12) |
+| Tags de imagen | **CERRADA**: `JOBIT_IMAGE_TAG` = SHA inmutable, sin `latest` (§9) |
+| Seed inicial en staging | **CERRADA**: seed sintético de 14 ofertas marcadas bajo `JOBIT_DATA_MODE=SYNTHETIC_STAGING` |
+
+Siguen abiertas:
+
+1. **Build de imágenes**: in situ en el VPS (recomendado ahora) frente a registry (futuro).
+2. **Retención final de backups**: confirmar 7 diarios + 4 semanales o ajustar.
+3. **Almacenamiento de backups fuera del host** y cifrado cuando dejen de ser sintéticos.
+4. **Momento del deploy real**: fecha, autorización expresa y quién lo ejecuta.
+5. **Verificación runtime de `TRUST_PROXY_HOPS`** contra la topología NPM real.
 
 ## 20. Estado final esperado
 

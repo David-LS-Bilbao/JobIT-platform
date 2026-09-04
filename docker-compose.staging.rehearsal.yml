@@ -1,0 +1,174 @@
+# docker-compose.staging.rehearsal.yml — ENSAYO LOCAL AISLADO del staging sintético.
+#
+# Fase C (bloque 2). NO es staging y NO es producción. Levanta una réplica
+# desechable del stack con imágenes equivalentes a producción, para acreditar el
+# contrato completo —migraciones gated, seed sintético, readiness, Golden E2E,
+# persistencia— sin desplegar nada y sin poder tocar los recursos reales.
+#
+# AISLAMIENTO. Todo lo que crea lleva el `JSR_RUN_ID` en el nombre y en las
+# etiquetas, y NINGÚN recurso es `external`. `docker compose -p <project> down -v`
+# solo elimina volúmenes con nombre declarados aquí, nunca volúmenes externos ni
+# de otro proyecto. Los recursos protegidos del host —`jobit-staging-db-data`,
+# `jobit-staging-api-uploads`, `jobit-postgres-test`— no se nombran en este
+# fichero y por tanto no pueden montarse ni borrarse desde él.
+#
+# INVOCACIÓN: siempre con project name y env-file explícitos, nunca el `.env` del
+# repo. El harness `scripts/operations/staging/run-local-rehearsal.sh` lo hace.
+#
+# PUERTOS: la base NO publica nada; la API y la Web publican solo en loopback y
+# con puerto DINÁMICO, porque Playwright corre desde el host. Un puerto fijo
+# colisionaría con los servidores de desarrollo del operador.
+
+name: jobit-staging-rehearsal-${JSR_RUN_ID:?JSR_RUN_ID is required}
+
+x-run-labels: &run-labels
+  com.jobit.task: "c-staging-rehearsal"
+  com.jobit.run-id: "${JSR_RUN_ID:?JSR_RUN_ID is required}"
+
+services:
+  rehearsal-db:
+    image: postgres:16
+    container_name: jobit-staging-rehearsal-${JSR_RUN_ID}-db
+    environment:
+      # El nombre contiene `staging` A PROPÓSITO: debe clasificar STAGING para
+      # que el ensayo ejercite de verdad la guarda de arranque y la del seed,
+      # y no una ruta más permisiva.
+      POSTGRES_DB: ${JSR_DB_NAME:?JSR_DB_NAME is required}
+      POSTGRES_USER: ${JSR_DB_USER:?JSR_DB_USER is required}
+      POSTGRES_PASSWORD: ${JSR_DB_PASSWORD:?JSR_DB_PASSWORD is required}
+    volumes:
+      - rehearsal-db-data:/var/lib/postgresql/data
+    networks:
+      - net
+    # Sin `ports:`. Ni siquiera en loopback: el tooling de Prisma corre DENTRO
+    # de la red como contenedor efímero, así que la base nunca necesita salir.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+    restart: "no"
+    labels: *run-labels
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  rehearsal-api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: runner
+    image: jobit-api:rehearsal-${JSR_RUN_ID}
+    container_name: jobit-staging-rehearsal-${JSR_RUN_ID}-api
+    depends_on:
+      rehearsal-db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: ${JSR_DATABASE_URL:?JSR_DATABASE_URL is required}
+      JWT_ACCESS_SECRET: ${JSR_JWT_ACCESS_SECRET:?JSR_JWT_ACCESS_SECRET is required}
+      CORS_ORIGIN: ${JSR_CORS_ORIGIN:?JSR_CORS_ORIGIN is required}
+      # 0 y no 1: en el ensayo no hay reverse proxy delante. Declararlo a 1 aquí
+      # haría que la API confiase en un `X-Forwarded-For` que nadie fija.
+      TRUST_PROXY_HOPS: 0
+      JOBIT_DATA_MODE: ${JSR_JOBIT_DATA_MODE:?JSR_JOBIT_DATA_MODE is required}
+    volumes:
+      - rehearsal-uploads:/repo/apps/api/uploads
+    networks:
+      - net
+    ports:
+      # Loopback + puerto resuelto dinámicamente por el harness en el preflight
+      # (busca uno libre y rechaza 3000/4000/5432/5434). No se deja a Docker
+      # elegirlo porque `CORS_ORIGIN` de la API y `NEXT_PUBLIC_API_BASE_URL` de
+      # la web se necesitan mutuamente: conocer ambos puertos ANTES de arrancar
+      # rompe esa circularidad. Nunca 0.0.0.0, nunca un puerto fijo del código.
+      - "127.0.0.1:${JSR_API_HOST_PORT:?JSR_API_HOST_PORT is required}:4000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4000/ready').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+    restart: "no"
+    labels: *run-labels
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  rehearsal-web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        # Se INLINEAN en el build de Next. Apuntan al puerto dinámico publicado
+        # en loopback, que el harness resuelve en tiempo de ejecución ANTES de
+        # construir la imagen web.
+        NEXT_PUBLIC_API_BASE_URL: ${JSR_WEB_API_BASE_URL:?JSR_WEB_API_BASE_URL is required}
+        NEXT_PUBLIC_PUBLIC_BASE_URL: ${JSR_WEB_PUBLIC_BASE_URL:?JSR_WEB_PUBLIC_BASE_URL is required}
+        NEXT_PUBLIC_JOBIT_DATA_MODE: ${JSR_JOBIT_DATA_MODE:?JSR_JOBIT_DATA_MODE is required}
+    image: jobit-web:rehearsal-${JSR_RUN_ID}
+    container_name: jobit-staging-rehearsal-${JSR_RUN_ID}-web
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+    networks:
+      - net
+    ports:
+      - "127.0.0.1:${JSR_WEB_HOST_PORT:?JSR_WEB_HOST_PORT is required}:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+    restart: "no"
+    labels: *run-labels
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  # One-shot de Prisma. La imagen runtime NO trae la CLI (`prisma` es
+  # devDependency y el stage `runner` instala `--prod`), así que migrar o sembrar
+  # exige el stage `builder` del MISMO Dockerfile, mismo commit y mismo lockfile.
+  # `profiles` impide que arranque con el stack: solo corre bajo
+  # `docker compose run --rm rehearsal-tooling <comando>`.
+  rehearsal-tooling:
+    profiles: ["tooling"]
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: builder
+    image: jobit-api:rehearsal-tooling-${JSR_RUN_ID}
+    environment:
+      DATABASE_URL: ${JSR_DATABASE_URL:?JSR_DATABASE_URL is required}
+      JOBIT_DATA_MODE: ${JSR_JOBIT_DATA_MODE:?JSR_JOBIT_DATA_MODE is required}
+      # NODE_ENV=production a propósito: es lo que corre staging, y el seed debe
+      # demostrar que la excepción controlada de la fase C funciona ahí.
+      NODE_ENV: production
+    networks:
+      - net
+    # Sin `ports:`: alcanza la base por hostname interno.
+    labels: *run-labels
+
+networks:
+  net:
+    name: jobit-staging-rehearsal-${JSR_RUN_ID}_net
+    labels: *run-labels
+
+# Exactamente dos volúmenes, ambos propios del run y NINGUNO `external`.
+volumes:
+  rehearsal-db-data:
+    name: jobit-staging-rehearsal-${JSR_RUN_ID}_db-data
+    labels: *run-labels
+  rehearsal-uploads:
+    name: jobit-staging-rehearsal-${JSR_RUN_ID}_uploads
+    labels: *run-labels

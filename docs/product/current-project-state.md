@@ -66,14 +66,24 @@ ORCHESTRATOR_V3_LEAN_MIGRATION:
 CLOSED
 
 ACTIVE_FUNCTIONAL_UNIT:
-NONE
+C — STAGING TECHNICAL READINESS
 
 A — CANONICAL RECONCILIATION:
 COMPLETED
 
 B — CANDIDATE-FIRST FUNCTIONAL CLOSURE:
 COMPLETED
+
+C — STAGING TECHNICAL READINESS:
+LOCAL_IMPLEMENTATION_COMPLETED
+REPOSITORY_INTEGRATION_PENDING
 ```
+
+La unidad `C` está implementada y acreditada **en local** sobre la rama
+`feat/c-staging-technical-readiness`, sin commit. La evidencia vive en
+[`docs/sprints/c-staging-technical-readiness-final-report.md`](../sprints/c-staging-technical-readiness-final-report.md).
+Los gates de integración (`COMMIT`, `PUSH`, `PR`, CI requerido, `MERGE`) siguen cerrados y
+requieren autorización humana separada.
 
 La fase `A` se cerró con el merge de PR #121 (`docs(governance): reconcile Global Review+ state`). La fase `B` cerró los cinco P1 abiertos en dos bloques: `B-CORE` (PR #123) y `B-HARDENING`. No hay unidad funcional activa; la siguiente acción de gobernanza es el rollover del Orquestador (§OPEN_DECISIONS).
 
@@ -265,16 +275,16 @@ Catálogo compacto de requisitos por eje. Ninguna entrada está marcada como com
 READINESS_REQUIREMENTS
 
 PRE_STAGING_TECHNICAL
-- CI green
-- reverse proxy / TRUST_PROXY_HOPS
-- staging env/config
-- TLS
-- versioned migrations + migrate deploy protocol
-- synthetic seed
-- healthchecks
-- safe diagnostic logging
-- Golden E2E readiness
-- guards against real candidate data
+- CI green                                  local gates PASS · CI de PR pendiente
+- reverse proxy / TRUST_PROXY_HOPS          cableado y versionado · runtime NPM pendiente
+- staging env/config                        canonical compose fail-closed · local PASS
+- TLS                                       pendiente (fase de deploy)
+- versioned migrations + migrate deploy     9 migraciones · status gate limpio · local PASS
+- synthetic seed                            created=14 en base STAGING sintetica · local PASS
+- healthchecks                              /health liveness + /ready DB-aware · local PASS
+- safe diagnostic logging                   resuelto en la fase B
+- Golden E2E readiness                      staging golden x2 · sin crecimiento de User
+- guards against real candidate data        startup + seed + registro + marcado · local PASS
 
 PRE_PRODUCTION_TECHNICAL
 - off-host backups / retention
@@ -299,6 +309,22 @@ PRE_PRODUCTION_LEGAL
 These are readiness requirements, not assertions of completion.
 No individual requirement or gate authorizes staging, real data or production.
 ```
+
+Estado del eje tras la unidad `C`:
+
+```text
+PRE_STAGING_TECHNICAL:
+NOT_YET_READY
+
+BLOCKING_REMAINDER:
+REPOSITORY_INTEGRATION_ONLY
+```
+
+Todos los requisitos técnicos del eje tienen ya evidencia local acreditada, salvo `TLS` y la
+validación runtime de la topología NPM, que pertenecen a la fase de deploy. Lo único que
+falta para poder revisar el eje es la integración en el repositorio: `COMMIT`, `PUSH`, `PR`,
+required CI y `MERGE`. Ninguno de ellos está concedido. Este snapshot **no** declara el eje
+`READY` y **no** autoriza despliegue.
 
 `PRE_STAGING_TECHNICAL` reutiliza la arquitectura de staging ya existente y no la rediseña: [`docs/decisions/ADR-0012-staging-deploy-architecture.md`](../decisions/ADR-0012-staging-deploy-architecture.md), [`docs/specs/features/deploy-staging-readiness.md`](../specs/features/deploy-staging-readiness.md), [`docs/deployment/staging-env.md`](../deployment/staging-env.md), [`docs/deployment/staging-vps-deploy-runbook.md`](../deployment/staging-vps-deploy-runbook.md), [`docs/deployment/backup-restore-runbook.md`](../deployment/backup-restore-runbook.md).
 
@@ -395,7 +421,8 @@ B — CANDIDATE-FIRST FUNCTIONAL CLOSURE
     B-HARDENING public URL + TRUST_PROXY_HOPS + observability
 
 C — STAGING TECHNICAL READINESS
-    NOT_AUTHORIZED
+    LOCAL_IMPLEMENTATION_COMPLETED
+    REPOSITORY_INTEGRATION_PENDING
 
 D — SYNTHETIC STAGING DEPLOY
     NOT_AUTHORIZED
@@ -420,7 +447,7 @@ J — PRODUCTION
     NOT_AUTHORIZED
 ```
 
-`A` y `B` están completadas. Ninguna fase posterior está autorizada: `C`–`J` requieren decisión expresa del Orquestador y, donde corresponda, autorización humana adicional.
+`A` y `B` están completadas. `C` está implementada y acreditada en local, pendiente de integración en el repositorio. Ninguna fase posterior está autorizada: `D`–`J` requieren decisión expresa del Orquestador y, donde corresponda, autorización humana adicional.
 
 La fase `B` se ejecutó como un bloque técnico indivisible en dos PR funcionales, sin PR documental separada. No se incorporó ningún P2: la posibilidad quedó descartada por falta de evidencia que la justificara.
 

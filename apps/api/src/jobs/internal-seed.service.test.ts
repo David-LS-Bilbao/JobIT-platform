@@ -492,3 +492,181 @@ describe("static regression: no destructive global operations in seed sources", 
     expect(source).not.toMatch(/\berr(or)?\.message\b/);
   });
 });
+
+/**
+ * Fase C — marcado sintetico y convergencia del dataset gestionado.
+ * Spec: `docs/specs/features/staging-technical-readiness.md` §9.1 y §9.2.
+ */
+
+const SYNTHETIC_COMPANY_PREFIX = "JobIT Synthetic · ";
+const SYNTHETIC_DESCRIPTION_PREFIX = "[SYNTHETIC TEST DATA] ";
+
+describe("INTERNAL_SEED_JOBS — marcado sintetico", () => {
+  it("marca la empresa de las 14 ofertas con el prefijo canonico", () => {
+    for (const job of INTERNAL_SEED_JOBS) {
+      expect(job.company.startsWith(SYNTHETIC_COMPANY_PREFIX)).toBe(true);
+    }
+  });
+
+  it("marca la descripcion de las 14 ofertas con el prefijo canonico", () => {
+    for (const job of INTERNAL_SEED_JOBS) {
+      expect(job.description.startsWith(SYNTHETIC_DESCRIPTION_PREFIX)).toBe(true);
+    }
+  });
+
+  it("el prefijo va al PRINCIPIO de company: el truncado de la tarjeta recorta por el final", () => {
+    for (const job of INTERNAL_SEED_JOBS) {
+      expect(job.company.indexOf(SYNTHETIC_COMPANY_PREFIX)).toBe(0);
+    }
+  });
+
+  it("conserva la empresa original detras del marcador", () => {
+    const companies = INTERNAL_SEED_JOBS.map((job) =>
+      job.company.slice(SYNTHETIC_COMPANY_PREFIX.length)
+    );
+    expect(companies).toContain("Nova Labs");
+    expect(companies).toContain("Datapeak");
+    expect(companies.every((company) => company.length > 0)).toBe(true);
+  });
+
+  it("no marca dos veces si el dataset se lee repetidamente", () => {
+    for (const job of INTERNAL_SEED_JOBS) {
+      expect(job.company.split(SYNTHETIC_COMPANY_PREFIX).length - 1).toBe(1);
+      expect(job.description.split(SYNTHETIC_DESCRIPTION_PREFIX).length - 1).toBe(1);
+    }
+  });
+
+  it("conserva source, externalId y titulo intactos", () => {
+    expect(INTERNAL_SEED_JOBS).toHaveLength(14);
+    for (const job of INTERNAL_SEED_JOBS) {
+      expect(job.source).toBe("INTERNAL");
+      expect(job.externalId).toMatch(/^jobit-seed-\d{3}$/);
+      expect(job.title.startsWith(SYNTHETIC_COMPANY_PREFIX)).toBe(false);
+      expect(job.title.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("no introduce el marcador en tags ni en requirements", () => {
+    for (const job of INTERNAL_SEED_JOBS) {
+      for (const value of [...job.tags, ...job.requirements]) {
+        expect(value).not.toContain("SYNTHETIC");
+        expect(value).not.toContain("JobIT Synthetic");
+      }
+    }
+  });
+
+  it("conserva la logica salarial y los casos especiales del dataset", () => {
+    const closed = INTERNAL_SEED_JOBS.filter((job) => job.status === "CLOSED");
+    const expired = INTERNAL_SEED_JOBS.filter(
+      (job) => job.status === "ACTIVE" && job.expiresAt !== null && job.expiresAt < SEED_REFERENCE_DATE
+    );
+    expect(closed).toHaveLength(1);
+    expect(expired).toHaveLength(1);
+    expect(INTERNAL_SEED_JOBS.filter((job) => job.salaryMin === null)).toHaveLength(1);
+  });
+});
+
+describe("seedInternalJobs — convergencia del dataset gestionado", () => {
+  it("converge una fila gestionada con valores antiguos SIN marcar al valor canonico, sin duplicar", async () => {
+    const canonical = INTERNAL_SEED_JOBS[0];
+    expect(canonical).toBeDefined();
+    if (!canonical) return;
+
+    // Estado tipico de una base persistente sembrada ANTES del marcado.
+    const stale: FakeJobRecord = {
+      id: "persisted-1",
+      source: "INTERNAL",
+      externalId: canonical.externalId,
+      title: canonical.title,
+      company: "Nova Labs",
+      description: "Desarrollo de interfaces con React y TypeScript para producto SaaS.",
+      status: "ACTIVE"
+    };
+
+    const { client, jobs } = createFakeClient([stale]);
+    await seedInternalJobs(client);
+
+    // Misma fila logica: mismo id, sin duplicado.
+    const matching = [...jobs.values()].filter(
+      (job) => job.source === "INTERNAL" && job.externalId === canonical.externalId
+    );
+    expect(matching).toHaveLength(1);
+    expect(matching[0]?.id).toBe("persisted-1");
+
+    // Valores canonicos marcados restaurados.
+    expect(matching[0]?.["company"]).toBe(canonical.company);
+    expect(matching[0]?.["description"]).toBe(canonical.description);
+    expect(String(matching[0]?.["company"])).toContain(SYNTHETIC_COMPANY_PREFIX);
+    expect(String(matching[0]?.["description"])).toContain(SYNTHETIC_DESCRIPTION_PREFIX);
+  });
+
+  it("converge las 14 filas gestionadas cuando TODAS estan sin marcar", async () => {
+    const staleAll: FakeJobRecord[] = INTERNAL_SEED_JOBS.map((job, index) => ({
+      id: `persisted-${index}`,
+      source: "INTERNAL",
+      externalId: job.externalId,
+      company: job.company.slice(SYNTHETIC_COMPANY_PREFIX.length),
+      description: job.description.slice(SYNTHETIC_DESCRIPTION_PREFIX.length)
+    }));
+
+    const { client, jobs } = createFakeClient(staleAll);
+    const summary = await seedInternalJobs(client);
+
+    expect(summary).toEqual({ created: 0, updated: 14, total: 14 });
+    expect(jobs.size).toBe(14);
+    for (const job of jobs.values()) {
+      expect(String(job["company"]).startsWith(SYNTHETIC_COMPANY_PREFIX)).toBe(true);
+      expect(String(job["description"]).startsWith(SYNTHETIC_DESCRIPTION_PREFIX)).toBe(true);
+    }
+  });
+
+  it("no toca una oferta ajena: ni externa por proveedor ni interna fuera del namespace", async () => {
+    const providerJob: FakeJobRecord = {
+      id: "provider-1",
+      source: "JOOBLE",
+      externalId: "jooble-42",
+      company: "Empresa Real S.L.",
+      description: "Oferta de proveedor externo."
+    };
+    const foreignInternal: FakeJobRecord = {
+      id: "internal-foreign-1",
+      source: "INTERNAL",
+      externalId: "otro-namespace-001",
+      company: "Empresa Ajena",
+      description: "Oferta interna fuera del namespace gestionado."
+    };
+    const providerSnapshot = { ...providerJob };
+    const foreignSnapshot = { ...foreignInternal };
+
+    const { client, jobs } = createFakeClient([providerJob, foreignInternal]);
+    await seedInternalJobs(client);
+
+    expect(jobs.get("provider-1")).toEqual(providerSnapshot);
+    expect(jobs.get("internal-foreign-1")).toEqual(foreignSnapshot);
+    // 2 ajenas + 14 gestionadas creadas.
+    expect(jobs.size).toBe(16);
+  });
+
+  it("es idempotente: una segunda ejecucion no crea filas nuevas ni cambia valores", async () => {
+    const { client, jobs } = createFakeClient();
+    const first = await seedInternalJobs(client);
+    const afterFirst = new Map([...jobs.entries()].map(([id, job]) => [id, { ...job }]));
+
+    const second = await seedInternalJobs(client);
+
+    expect(first).toEqual({ created: 14, updated: 0, total: 14 });
+    expect(second).toEqual({ created: 0, updated: 14, total: 14 });
+    expect(jobs.size).toBe(14);
+    for (const [id, job] of jobs.entries()) {
+      expect(job).toEqual(afterFirst.get(id));
+    }
+  });
+
+  it("no ejecuta ningun borrado: el cliente gestionado no expone delete ni deleteMany", () => {
+    const { client } = createFakeClient();
+    const jobDelegate = client.job as unknown as Record<string, unknown>;
+    expect(jobDelegate["delete"]).toBeUndefined();
+    expect(jobDelegate["deleteMany"]).toBeUndefined();
+    expect(Object.keys(jobDelegate).sort()).toEqual(["create", "findFirst", "update"]);
+  });
+});
