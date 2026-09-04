@@ -2,8 +2,17 @@ import { Router, type CookieOptions, type NextFunction, type Request, type Respo
 import { ZodError } from "zod";
 
 import { prisma } from "../lib/prisma.js";
-import { registerSchema, loginSchema } from "./auth.schemas.js";
-import { AppError, login, logout, refreshSession, register } from "./auth.service.js";
+import { deleteAvatarImage } from "../profile/avatar.storage.js";
+import { deleteAccountSchema, loginSchema, registerSchema, stepUpSchema } from "./auth.schemas.js";
+import {
+  AppError,
+  deleteAccount,
+  exportAccountData,
+  login,
+  logout,
+  refreshSession,
+  register
+} from "./auth.service.js";
 import { signAccessToken } from "./jwt.util.js";
 import { requireAuth, type AuthenticatedRequest } from "./require-auth.middleware.js";
 
@@ -184,6 +193,78 @@ authRouter.get(
       }
       res.status(200).json({ id: user.id, email: user.email, role: user.role, createdAt: user.createdAt });
     } catch (err) {
+      next(err);
+    }
+  }
+);
+
+/**
+ * Exportacion de los datos del titular (`ACCOUNT_LIFECYCLE_V1`).
+ *
+ * Spec: `docs/specs/features/account-lifecycle.md`.
+ *
+ * Es POST y no GET porque transporta la contraseña en el cuerpo: nunca en la
+ * query string, nunca en la URL y por tanto nunca en un log de acceso ni en el
+ * historial del navegador.
+ */
+authRouter.post(
+  "/me/export",
+  requireAuth,
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as unknown as AuthenticatedRequest).auth;
+      const body = stepUpSchema.parse(req.body);
+      const document = await exportAccountData(userId, body.password);
+      res.status(200).json(document);
+    } catch (err) {
+      if (err instanceof ZodError) {
+        res.status(400).json({
+          error: { code: "VALIDATION_ERROR", message: "Validation failed", details: err.issues }
+        });
+        return;
+      }
+      if (err instanceof AppError) {
+        sendError(res, err.statusCode, err.code, err.message);
+        return;
+      }
+      next(err);
+    }
+  }
+);
+
+/**
+ * Borrado permanente e irreversible de la cuenta.
+ *
+ * Orden deliberado: primero se consolida el borrado en base de datos y solo
+ * despues se limpia el fichero del avatar. El estado autoritativo es la fila; un
+ * fallo de sistema de ficheros NO revierte una cuenta ya borrada ni convierte la
+ * respuesta en un error, porque dejaria a la persona con la cuenta destruida y
+ * un 500 en pantalla. El fichero huerfano es el residuo aceptado de ese orden.
+ */
+authRouter.delete(
+  "/me",
+  requireAuth,
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as unknown as AuthenticatedRequest).auth;
+      const body = deleteAccountSchema.parse(req.body);
+      const { avatarUrl } = await deleteAccount(userId, body.password);
+
+      await deleteAvatarImage(avatarUrl).catch(() => undefined);
+
+      clearRefreshCookie(res);
+      res.status(204).send();
+    } catch (err) {
+      if (err instanceof ZodError) {
+        res.status(400).json({
+          error: { code: "VALIDATION_ERROR", message: "Validation failed", details: err.issues }
+        });
+        return;
+      }
+      if (err instanceof AppError) {
+        sendError(res, err.statusCode, err.code, err.message);
+        return;
+      }
       next(err);
     }
   }

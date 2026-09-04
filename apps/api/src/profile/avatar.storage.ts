@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
+import { mkdir, unlink, writeFile } from "node:fs/promises";
+import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const currentDir = dirname(fileURLToPath(import.meta.url));
@@ -77,4 +77,56 @@ export async function saveAvatarImage(
   }
   await writeFile(destination, buffer);
   return `/uploads/avatars/${filename}`;
+}
+
+/** Prefijo publico bajo el que se sirven los avatares (ver `app.ts`). */
+export const AVATAR_URL_PREFIX = "/uploads/avatars/";
+
+/**
+ * Traduce la URL publica almacenada en base de datos a una ruta absoluta segura
+ * dentro de `AVATAR_DIR`, o devuelve `null` si no es una ruta de avatar valida.
+ *
+ * NUNCA debe invocarse con una ruta suministrada por el cliente: la entrada
+ * legitima es `CandidateProfile.avatarUrl`. Aun asi se valida en profundidad,
+ * porque el borrado fisico es una operacion destructiva y no puede depender de
+ * la confianza en el origen del dato.
+ */
+export function resolveAvatarFilePath(avatarUrl: string | null | undefined): string | null {
+  if (!avatarUrl || !avatarUrl.startsWith(AVATAR_URL_PREFIX)) return null;
+
+  const filename = avatarUrl.slice(AVATAR_URL_PREFIX.length);
+  // Un nombre vacio, con separadores o con segmentos relativos no es un avatar
+  // nuestro: `saveAvatarImage` solo genera `<user>_<uuid>.<ext>`.
+  if (!filename || filename !== basename(filename) || filename === "." || filename === "..") {
+    return null;
+  }
+
+  const candidate = join(AVATAR_DIR, filename);
+  // Guardia anti path traversal simetrica a la de `saveAvatarImage`.
+  if (dirname(candidate) !== AVATAR_DIR) return null;
+
+  return candidate;
+}
+
+/**
+ * Borra el fichero fisico de un avatar. Idempotente: un fichero ya ausente
+ * (`ENOENT`) no es un error, porque el ciclo de vida de la cuenta no puede
+ * romperse por una limpieza que ya ocurrio.
+ *
+ * Devuelve `true` si habia fichero y se borro; `false` si no habia nada que
+ * borrar o la URL no correspondia a un avatar valido. Cualquier otro error de
+ * sistema de ficheros se propaga: la decision de tolerarlo o no pertenece a
+ * quien invoca, que conoce el contexto transaccional.
+ */
+export async function deleteAvatarImage(avatarUrl: string | null | undefined): Promise<boolean> {
+  const filePath = resolveAvatarFilePath(avatarUrl);
+  if (!filePath) return false;
+
+  try {
+    await unlink(filePath);
+    return true;
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") return false;
+    throw err;
+  }
 }

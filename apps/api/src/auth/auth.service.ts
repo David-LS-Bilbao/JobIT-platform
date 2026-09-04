@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { Prisma, type PrismaClient } from "@prisma/client";
 
 import { prisma } from "../lib/prisma.js";
+import { buildAccountExport, type AccountExport } from "./account-export.js";
 import { signAccessToken } from "./jwt.util.js";
 import { hash, verify } from "./password.util.js";
 import { generateRefreshToken, hashRefreshToken } from "./refresh-token.util.js";
@@ -364,4 +365,104 @@ async function classifyCasLost(tx: TxClient, ctx: AttemptContext): Promise<Refre
   if (!user) return { outcome: "FAIL" };
 
   return { outcome: "LEGITIMATE_CONCURRENT_REFRESH", user: toPublicUser(user) };
+}
+
+// ─── Account lifecycle ───────────────────────────────────────────────────────
+//
+// Spec: `docs/specs/features/account-lifecycle.md`. Contrato ACCOUNT_LIFECYCLE_V1:
+// borrado duro, sin soft delete, sin anonimizacion y sin estado de ciclo de vida
+// adicional. La propagacion la hacen las cascadas ya declaradas en el schema.
+
+/**
+ * Mensaje unico de todos los fallos de step-up. Identico al de `requireAuth`:
+ * un JWT valido con contraseña incorrecta no se distingue de un token invalido
+ * ni de una cuenta que ya no existe.
+ */
+const STEP_UP_GENERIC_ERROR = "Authentication required.";
+
+type UserRecord = { id: string; email: string; role: string; createdAt: Date; passwordHash: string };
+
+/**
+ * Reverificacion de la contraseña actual para operaciones destructivas o de
+ * portabilidad. El access token demuestra que la sesion sigue viva; la
+ * contraseña demuestra que quien la usa es la persona titular y no alguien ante
+ * un dispositivo desatendido.
+ *
+ * La contraseña recibida no se registra, no se almacena y no se devuelve.
+ */
+async function requireStepUp(userId: string, password: string): Promise<UserRecord> {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) {
+    throw new AppError("UNAUTHORIZED", 401, STEP_UP_GENERIC_ERROR);
+  }
+
+  const passwordMatch = await verify(password, user.passwordHash);
+  if (!passwordMatch) {
+    throw new AppError("UNAUTHORIZED", 401, STEP_UP_GENERIC_ERROR);
+  }
+
+  return user;
+}
+
+export interface AccountLifecycleDeps {
+  clock?: { now: () => Date };
+  /** Suspension entre la lectura del avatar y el borrado. Solo tests de interleaving. */
+  hooks?: { beforeUserDelete?: () => Promise<void> };
+}
+
+/** Exporta los datos que pertenecen al titular. Requiere step-up. */
+export async function exportAccountData(
+  userId: string,
+  password: string,
+  deps: AccountLifecycleDeps = {}
+): Promise<AccountExport> {
+  const clock = deps.clock ?? { now: () => new Date() };
+  const user = await requireStepUp(userId, password);
+  return buildAccountExport(user, clock.now());
+}
+
+export interface DeleteAccountResult {
+  /** Avatar vigente en el momento del borrado; el fichero lo limpia el router tras el commit. */
+  avatarUrl: string | null;
+}
+
+/**
+ * Borrado permanente e irreversible de la cuenta. Requiere step-up.
+ *
+ * La ruta del avatar se lee ANTES del borrado: despues, la fila que la
+ * referenciaba ya no existe. El fichero se elimina fuera de esta funcion, una
+ * vez consolidado el commit, porque el estado autoritativo es la base de datos y
+ * un fallo de sistema de ficheros no puede revertir un borrado ya consolidado.
+ *
+ * Todas las familias de refresh del usuario, en todos los dispositivos,
+ * desaparecen por la cascada `RefreshToken.user onDelete: Cascade`. No se revoca
+ * familia por familia: la fila `User` se va y se lleva las suyas.
+ */
+export async function deleteAccount(
+  userId: string,
+  password: string,
+  deps: AccountLifecycleDeps = {}
+): Promise<DeleteAccountResult> {
+  const user = await requireStepUp(userId, password);
+
+  const profile = await prisma.candidateProfile.findUnique({
+    where: { userId: user.id },
+    select: { avatarUrl: true }
+  });
+
+  await deps.hooks?.beforeUserDelete?.();
+
+  try {
+    await prisma.user.delete({ where: { id: user.id } });
+  } catch (error) {
+    // `P2025` = la fila ya no existe: otro borrado concurrente gano la carrera.
+    // El resultado observable es el mismo —la cuenta no esta— y se comunica con
+    // el mismo 401 generico, sin revelar la carrera.
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
+      throw new AppError("UNAUTHORIZED", 401, STEP_UP_GENERIC_ERROR);
+    }
+    throw error;
+  }
+
+  return { avatarUrl: profile?.avatarUrl ?? null };
 }
