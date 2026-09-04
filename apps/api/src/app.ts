@@ -24,6 +24,7 @@ import { portfolioRouter } from "./profile/portfolio.router.js";
 import { publicPortfolioRouter } from "./profile/public-portfolio.router.js";
 import { UPLOADS_ROOT } from "./profile/avatar.storage.js";
 import { healthRouter } from "./routes/health.routes.js";
+import { readyRouter } from "./routes/ready.routes.js";
 
 export const app = express();
 
@@ -54,6 +55,12 @@ app.use(cookieParser());
 // Health check ANTES de los limitadores: `GET /health` queda exento por montaje,
 // no por lista de exclusión. Es la sonda de liveness de NPM, Docker y CI.
 app.use(healthRouter);
+
+// Readiness DB-aware, exenta por el mismo mecanismo de montaje. Responde a una
+// pregunta distinta de `/health`: no si el proceso vive, sino si puede servir
+// (ver `routes/ready.routes.ts`). El cableado del healthcheck de Docker contra
+// esta ruta pertenece al bloque de infraestructura, todavía no autorizado.
+app.use(readyRouter);
 
 // Almacenamiento local MVP de avatares: servido estáticamente. `Cross-Origin-Resource-Policy: cross-origin`
 // permite que el frontend (otro origen) pinte la imagen pese al CORP same-origin por defecto de helmet.

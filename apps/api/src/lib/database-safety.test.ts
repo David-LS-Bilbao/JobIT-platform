@@ -1,9 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  assertRuntimeDataModeContract,
   assertSeedableDatabaseUrl,
   assertTestDatabaseUrl,
   classifyDatabaseName,
+  formatStartupGuardFailure,
   parseDatabaseTarget,
   UnsafeDatabaseTargetError
 } from "./database-safety.js";
@@ -337,9 +339,22 @@ describe("assertSeedableDatabaseUrl", () => {
     expect(err.code).toBe("UNSAFE_CLASSIFICATION");
   });
 
-  it("blocks a STAGING target", () => {
+  /**
+   * ENMIENDA DE LA FASE C (spec `staging-technical-readiness.md` §8).
+   *
+   * Invariante anterior: `STAGING` se rechazaba SIEMPRE, con
+   * `UNSAFE_CLASSIFICATION`, igual que `TEST`, `UNKNOWN` o `AMBIGUOUS`.
+   *
+   * Invariante nuevo: `STAGING` sigue rechazado por defecto —el seed NO se
+   * permite— pero con el motivo preciso `DATA_MODE_REQUIRED`, porque ahora
+   * existe exactamente una forma de habilitarlo: `JOBIT_DATA_MODE=SYNTHETIC_STAGING`.
+   * El cambio es de MOTIVO, no de permisividad: sin la variable, el rechazo es
+   * idéntico. La rama permitida está cubierta en el bloque
+   * "contrato de staging sintético" al final de este archivo.
+   */
+  it("blocks a STAGING target without the synthetic data mode", () => {
     const err = expectRejection(() => assertSeedableDatabaseUrl({ DATABASE_URL: STAGING_URL }));
-    expect(err.code).toBe("UNSAFE_CLASSIFICATION");
+    expect(err.code).toBe("DATA_MODE_REQUIRED");
   });
 
   it("blocks a PRODUCTION target", () => {
@@ -385,5 +400,271 @@ describe("assertSeedableDatabaseUrl", () => {
       sideEffect(target);
     }).toThrow(UnsafeDatabaseTargetError);
     expect(sideEffect).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * Fase C — contrato de modo de datos de staging sintetico.
+ * Spec: `docs/specs/features/staging-technical-readiness.md` §7-§8.
+ */
+
+describe("assertSeedableDatabaseUrl — contrato de staging sintetico", () => {
+  const DEV_URL = fakeUrl("jobit_dev");
+  const E2E_URL = fakeUrl("jobit_e2e");
+  const TEST_URL = fakeUrl("jobit_test");
+  const STAGING_URL = fakeUrl("jobit_staging");
+  const PRODUCTION_URL = fakeUrl("jobit_production");
+  const UNKNOWN_URL = fakeUrl("customer_data");
+  const AMBIGUOUS_URL = fakeUrl("jobit_test_prod");
+  const SYNTHETIC = { JOBIT_DATA_MODE: "SYNTHETIC_STAGING" };
+
+  // --- Regresion: sin la variable, nada cambia --------------------------------
+
+  it("DEVELOPMENT sin modo sigue permitido", () => {
+    expect(assertSeedableDatabaseUrl({ DATABASE_URL: DEV_URL }).classification).toBe(
+      "DEVELOPMENT"
+    );
+  });
+
+  it("E2E sin modo sigue permitido", () => {
+    expect(assertSeedableDatabaseUrl({ DATABASE_URL: E2E_URL }).classification).toBe("E2E");
+  });
+
+  it("DEVELOPMENT con modo sintetico sigue permitido", () => {
+    expect(
+      assertSeedableDatabaseUrl({ DATABASE_URL: DEV_URL, ...SYNTHETIC }).classification
+    ).toBe("DEVELOPMENT");
+  });
+
+  it("DEVELOPMENT con NODE_ENV=production sigue bloqueado aunque se declare el modo", () => {
+    const err = expectRejection(() =>
+      assertSeedableDatabaseUrl({ DATABASE_URL: DEV_URL, NODE_ENV: "production", ...SYNTHETIC })
+    );
+    expect(err.code).toBe("PRODUCTION_ENVIRONMENT");
+  });
+
+  it("TEST sigue rechazado con y sin modo", () => {
+    expect(expectRejection(() => assertSeedableDatabaseUrl({ DATABASE_URL: TEST_URL })).code).toBe(
+      "UNSAFE_CLASSIFICATION"
+    );
+    expect(
+      expectRejection(() => assertSeedableDatabaseUrl({ DATABASE_URL: TEST_URL, ...SYNTHETIC }))
+        .code
+    ).toBe("UNSAFE_CLASSIFICATION");
+  });
+
+  // --- STAGING ---------------------------------------------------------------
+
+  it("STAGING sin modo se rechaza con DATA_MODE_REQUIRED", () => {
+    const err = expectRejection(() => assertSeedableDatabaseUrl({ DATABASE_URL: STAGING_URL }));
+    expect(err.code).toBe("DATA_MODE_REQUIRED");
+  });
+
+  it("STAGING con modo invalido se rechaza con INVALID_DATA_MODE", () => {
+    const err = expectRejection(() =>
+      assertSeedableDatabaseUrl({ DATABASE_URL: STAGING_URL, JOBIT_DATA_MODE: "SYNTHETIC" })
+    );
+    expect(err.code).toBe("INVALID_DATA_MODE");
+  });
+
+  it("STAGING con modo sintetico se permite", () => {
+    expect(
+      assertSeedableDatabaseUrl({ DATABASE_URL: STAGING_URL, ...SYNTHETIC }).classification
+    ).toBe("STAGING");
+  });
+
+  // Staging corre con NODE_ENV=production: sin esta excepcion el modo sintetico
+  // seria inalcanzable justo en el entorno para el que se diseno.
+  it("STAGING con modo sintetico se permite tambien con NODE_ENV=production", () => {
+    expect(
+      assertSeedableDatabaseUrl({
+        DATABASE_URL: STAGING_URL,
+        NODE_ENV: "production",
+        ...SYNTHETIC
+      }).classification
+    ).toBe("STAGING");
+  });
+
+  it("STAGING con NODE_ENV=production y sin modo sigue rechazado", () => {
+    const err = expectRejection(() =>
+      assertSeedableDatabaseUrl({ DATABASE_URL: STAGING_URL, NODE_ENV: "production" })
+    );
+    expect(err.code).toBe("DATA_MODE_REQUIRED");
+  });
+
+  // --- PRODUCTION: invariante absoluta ---------------------------------------
+
+  it("PRODUCTION se rechaza sin modo", () => {
+    expect(
+      expectRejection(() => assertSeedableDatabaseUrl({ DATABASE_URL: PRODUCTION_URL })).code
+    ).toBe("UNSAFE_CLASSIFICATION");
+  });
+
+  it("PRODUCTION se rechaza con modo sintetico y motivo explicito", () => {
+    const err = expectRejection(() =>
+      assertSeedableDatabaseUrl({ DATABASE_URL: PRODUCTION_URL, ...SYNTHETIC })
+    );
+    expect(err.code).toBe("PRODUCTION_MODE_CONFLICT");
+  });
+
+  it("PRODUCTION es inalcanzable bajo toda combinacion probada de NODE_ENV y modo", () => {
+    const nodeEnvs = [undefined, "development", "test", "production"];
+    const modes = [undefined, "SYNTHETIC_STAGING", "synthetic_staging", "", "NORMAL"];
+    for (const nodeEnv of nodeEnvs) {
+      for (const mode of modes) {
+        const env: Record<string, string | undefined> = { DATABASE_URL: PRODUCTION_URL };
+        if (nodeEnv !== undefined) env["NODE_ENV"] = nodeEnv;
+        if (mode !== undefined) env["JOBIT_DATA_MODE"] = mode;
+        expect(() => assertSeedableDatabaseUrl(env)).toThrow(UnsafeDatabaseTargetError);
+      }
+    }
+  });
+
+  // --- UNKNOWN / AMBIGUOUS ---------------------------------------------------
+
+  it("UNKNOWN se rechaza con y sin modo", () => {
+    expect(
+      expectRejection(() => assertSeedableDatabaseUrl({ DATABASE_URL: UNKNOWN_URL })).code
+    ).toBe("UNSAFE_CLASSIFICATION");
+    expect(
+      expectRejection(() => assertSeedableDatabaseUrl({ DATABASE_URL: UNKNOWN_URL, ...SYNTHETIC }))
+        .code
+    ).toBe("UNSAFE_CLASSIFICATION");
+  });
+
+  it("AMBIGUOUS se rechaza con y sin modo", () => {
+    expect(
+      expectRejection(() => assertSeedableDatabaseUrl({ DATABASE_URL: AMBIGUOUS_URL })).code
+    ).toBe("UNSAFE_CLASSIFICATION");
+    expect(
+      expectRejection(() =>
+        assertSeedableDatabaseUrl({ DATABASE_URL: AMBIGUOUS_URL, ...SYNTHETIC })
+      ).code
+    ).toBe("UNSAFE_CLASSIFICATION");
+  });
+
+  it("no filtra credenciales al rechazar un destino STAGING", () => {
+    const err = expectRejection(() => assertSeedableDatabaseUrl({ DATABASE_URL: STAGING_URL }));
+    expect(err.message).not.toContain(FAKE_USER);
+    expect(err.message).not.toContain(FAKE_PASSWORD);
+    expect(err.message).not.toContain(STAGING_URL);
+  });
+});
+
+describe("assertRuntimeDataModeContract — guarda de arranque", () => {
+  const DEV_URL = fakeUrl("jobit_dev");
+  const TEST_URL = fakeUrl("jobit_test");
+  const E2E_URL = fakeUrl("jobit_e2e");
+  const STAGING_URL = fakeUrl("jobit_staging");
+  const PRODUCTION_URL = fakeUrl("jobit_production");
+  const UNKNOWN_URL = fakeUrl("customer_data");
+  const AMBIGUOUS_URL = fakeUrl("jobit_test_prod");
+  const SYNTHETIC = { JOBIT_DATA_MODE: "SYNTHETIC_STAGING" };
+
+  it("DEVELOPMENT / TEST / E2E sin modo arrancan (regresion)", () => {
+    for (const url of [DEV_URL, TEST_URL, E2E_URL]) {
+      expect(() => assertRuntimeDataModeContract({ DATABASE_URL: url })).not.toThrow();
+    }
+  });
+
+  it("DEVELOPMENT / TEST / E2E con modo sintetico arrancan", () => {
+    for (const url of [DEV_URL, TEST_URL, E2E_URL]) {
+      expect(() =>
+        assertRuntimeDataModeContract({ DATABASE_URL: url, ...SYNTHETIC })
+      ).not.toThrow();
+    }
+  });
+
+  // Invariante dura de la fase C.
+  it("STAGING sin modo ABORTA: nunca arranca en modo normal", () => {
+    const err = expectRejection(() =>
+      assertRuntimeDataModeContract({ DATABASE_URL: STAGING_URL })
+    );
+    expect(err.code).toBe("DATA_MODE_REQUIRED");
+  });
+
+  it("STAGING con modo invalido ABORTA", () => {
+    const err = expectRejection(() =>
+      assertRuntimeDataModeContract({ DATABASE_URL: STAGING_URL, JOBIT_DATA_MODE: "SI" })
+    );
+    expect(err.code).toBe("INVALID_DATA_MODE");
+  });
+
+  it("STAGING con modo sintetico arranca y devuelve el contrato resuelto", () => {
+    const result = assertRuntimeDataModeContract({ DATABASE_URL: STAGING_URL, ...SYNTHETIC });
+    expect(result).toEqual({ mode: "SYNTHETIC_STAGING", classification: "STAGING" });
+  });
+
+  it("PRODUCTION sin modo arranca (produccion futura normal)", () => {
+    const result = assertRuntimeDataModeContract({ DATABASE_URL: PRODUCTION_URL });
+    expect(result).toEqual({ mode: null, classification: "PRODUCTION" });
+  });
+
+  it("PRODUCTION con modo sintetico ABORTA", () => {
+    const err = expectRejection(() =>
+      assertRuntimeDataModeContract({ DATABASE_URL: PRODUCTION_URL, ...SYNTHETIC })
+    );
+    expect(err.code).toBe("PRODUCTION_MODE_CONFLICT");
+  });
+
+  it("UNKNOWN / AMBIGUOUS sin modo arrancan (compatibilidad)", () => {
+    for (const url of [UNKNOWN_URL, AMBIGUOUS_URL]) {
+      expect(() => assertRuntimeDataModeContract({ DATABASE_URL: url })).not.toThrow();
+    }
+  });
+
+  it("UNKNOWN / AMBIGUOUS con modo sintetico ABORTAN", () => {
+    for (const url of [UNKNOWN_URL, AMBIGUOUS_URL]) {
+      const err = expectRejection(() =>
+        assertRuntimeDataModeContract({ DATABASE_URL: url, ...SYNTHETIC })
+      );
+      expect(err.code).toBe("UNVERIFIABLE_TARGET_MODE_CONFLICT");
+    }
+  });
+
+  it("DATABASE_URL ausente o malformada sin modo arranca (comportamiento actual intacto)", () => {
+    expect(assertRuntimeDataModeContract({})).toEqual({ mode: null, classification: "UNRESOLVED" });
+    expect(assertRuntimeDataModeContract({ DATABASE_URL: "not-a-url" })).toEqual({
+      mode: null,
+      classification: "UNRESOLVED"
+    });
+  });
+
+  it("DATABASE_URL ausente o malformada CON modo declarado ABORTA", () => {
+    expect(expectRejection(() => assertRuntimeDataModeContract({ ...SYNTHETIC })).code).toBe(
+      "UNVERIFIABLE_TARGET_MODE_CONFLICT"
+    );
+    expect(
+      expectRejection(() =>
+        assertRuntimeDataModeContract({ DATABASE_URL: "not-a-url", ...SYNTHETIC })
+      ).code
+    ).toBe("UNVERIFIABLE_TARGET_MODE_CONFLICT");
+  });
+
+  it("no filtra credenciales al abortar", () => {
+    const err = expectRejection(() =>
+      assertRuntimeDataModeContract({ DATABASE_URL: STAGING_URL })
+    );
+    expect(err.message).not.toContain(FAKE_USER);
+    expect(err.message).not.toContain(FAKE_PASSWORD);
+    expect(err.message).not.toContain(STAGING_URL);
+    expect(err.message).not.toContain(FAKE_HOST);
+  });
+});
+
+describe("formatStartupGuardFailure — vocabulario cerrado", () => {
+  it("emite el code sanitizado de la guarda", () => {
+    const err = new UnsafeDatabaseTargetError("DATA_MODE_REQUIRED", "irrelevante");
+    expect(formatStartupGuardFailure(err)).toBe(
+      "[startup] ABORTED: UNSAFE_DATABASE_TARGET:DATA_MODE_REQUIRED"
+    );
+  });
+
+  it("colapsa cualquier otro error sin reenviar su texto", () => {
+    const leaky = new Error(`connection refused for ${fakeUrl("jobit_production")}`);
+    const formatted = formatStartupGuardFailure(leaky);
+    expect(formatted).toBe("[startup] ABORTED: STARTUP_GUARD_FAILED");
+    expect(formatted).not.toContain(FAKE_PASSWORD);
+    expect(formatted).not.toContain(FAKE_HOST);
   });
 });

@@ -121,6 +121,49 @@ HTTPS real como primer paso del deploy real (20.6), con rollback preparado.
   variables dummy scopeadas).
 - El smoke 20.4 puede reutilizar el E2E de Playwright apuntando al stack dockerizado local.
 
+## Reconciliación de la Fase C (2026-09-04)
+
+`C — STAGING TECHNICAL READINESS` **implementa y precisa** este ADR; no lo sustituye ni lo
+revoca. Ninguna decisión original cae: subdominios same-site, NPM como único punto expuesto,
+DB sin puerto, uploads en volumen, migraciones gated con backup previo, tags por SHA y
+secretos fuera del repo siguen vigentes.
+
+Lo que la Fase C **cierra o precisa**:
+
+| Punto | Estado tras la Fase C |
+|---|---|
+| **Topología NPM** | **CERRADA**: red Docker compartida `jobit-staging`. En la fase D, NPM se une con `docker network connect jobit-staging <contenedor-npm>`. La alternativa `127.0.0.1` queda como plan B de recuperación, no como contrato |
+| **Puertos de host** | **AMPLIADA**: la decisión 4 solo obligaba a PostgreSQL. Ahora **ningún** servicio publica puertos —tampoco API ni Web—: es estructural en el compose canónico |
+| **Compose ↔ env** | **CERRADA**: interpolación fail-closed `${VAR:?}`. El compose ya no contiene dummies, así que `--env-file` deja de ser inerte |
+| **Tags de imagen** | **PRECISADA**: `JOBIT_IMAGE_TAG` obligatorio y sin default. Sin `latest` ni tags móviles; el compose canónico no declara `build:`, de modo que construir y ejecutar son actos separados |
+| **Modo de datos sintéticos** | **NUEVO**: `JOBIT_DATA_MODE=SYNTHETIC_STAGING` como llave única. Una base clasificada `STAGING` no arranca sin ella; el seed la exige; el registro queda limitado al dominio reservado `synthetic.jobit.invalid` |
+| **Seed ficticio (decisión 7)** | **PRECISADA**: sigue siendo el seed versionado, ahora con las 14 ofertas marcadas (`JobIT Synthetic ·` y `[SYNTHETIC TEST DATA]`) y bajo la excepción controlada de la guarda de destino |
+| **Healthchecks** | **CORREGIDA**: la spec original usaba `GET /health` como gate de arranque. `/health` es liveness y responde 200 con PostgreSQL caído; el healthcheck de la API pasa a `/ready`, DB-aware |
+| **Migraciones (decisión 6)** | **REFORZADA**: además del paso manual con backup previo, se añade `prisma migrate status` como gate antes y después, y API/Web no arrancan hasta que ese gate está limpio |
+| **`trust proxy`** | **RESUELTA**: la nota técnica anticipaba un cambio de código futuro. Ya existe (`TRUST_PROXY_HOPS`, default 0, staging 1). Pendiente solo su validación runtime contra NPM |
+| **Ensayo aislado** | **NUEVO**: `docker-compose.staging.rehearsal.yml` + `scripts/operations/staging/`, incapaz de tocar los recursos reales `jobit-staging-*` |
+
+El riesgo residual que este ADR declaraba —«el smoke local no puede reproducir al 100% el
+comportamiento de NPM/TLS del VPS»— **sigue vigente y no se levanta**. El ensayo local
+acredita todo lo demás; NPM, TLS y el valor efectivo de `TRUST_PROXY_HOPS` pertenecen a la
+validación runtime de la fase D.
+
+```text
+STAGING_DEPLOY:
+NOT_AUTHORIZED_BY_THIS_ADR_UPDATE
+
+PUBLIC_STAGING:
+NOT_AUTHORIZED
+
+REAL_CANDIDATE_DATA:
+NOT_AUTHORIZED
+
+PRODUCTION:
+NOT_AUTHORIZED
+```
+
+Esta reconciliación documenta arquitectura acreditada en local. No autoriza desplegar.
+
 ## Criterios para revisar la decisión
 
 - Si cambian los dominios y dejan de ser same-site → nuevo ADR (cookies/CSRF).

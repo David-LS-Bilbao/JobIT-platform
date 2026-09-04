@@ -13,16 +13,40 @@ import { expect, type Locator, type Page } from "@playwright/test";
  * client-side, que es lo más cercano al uso real.
  */
 
+/**
+ * Base de la API. Vive fuera del `baseURL` de Playwright (que apunta a la web),
+ * así que se resuelve aparte. Un único punto para los dos modos del config:
+ * `E2E_API_BASE_URL` (modo externo) → `NEXT_PUBLIC_API_BASE_URL` → local.
+ */
+export function apiBase(): string {
+  return (
+    process.env["E2E_API_BASE_URL"] ??
+    process.env["NEXT_PUBLIC_API_BASE_URL"] ??
+    "http://localhost:4000"
+  );
+}
+
+/**
+ * Dominio reservado de las identidades sintéticas (Fase C).
+ *
+ * `.invalid` es un TLD reservado por la RFC 2606: no resuelve en ningún
+ * resolutor y ningún correo puede entregarse a él, de modo que una dirección de
+ * este dominio no puede corresponder a una persona real. Es además el único
+ * dominio que acepta el registro cuando la API corre con
+ * `JOBIT_DATA_MODE=SYNTHETIC_STAGING`.
+ */
+export const SYNTHETIC_EMAIL_DOMAIN = "synthetic.jobit.invalid";
+
 export type E2eUser = {
   email: string;
   password: string;
 };
 
 /** Usuario único por ejecución. Password local de test (min 8, mayúscula, número). */
-export function createE2eUser(): E2eUser {
+export function createE2eUser(prefix = "e2e"): E2eUser {
   const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   return {
-    email: `e2e+${suffix}@jobit.local`,
+    email: `${prefix}+${suffix}@${SYNTHETIC_EMAIL_DOMAIN}`,
     password: "JobitE2e123!"
   };
 }

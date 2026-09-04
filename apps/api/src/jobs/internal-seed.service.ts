@@ -7,13 +7,29 @@ import {
 } from "../lib/database-safety.js";
 
 /**
- * Dataset controlado del seed de desarrollo (Sprint 23 — DATA-04).
+ * Dataset controlado del seed de desarrollo (Sprint 23 — DATA-04; marcado
+ * sintético añadido en la Fase C).
  *
  * Cada entrada declara su propio `externalId` estático (namespace reservado
  * `jobit-seed-*`), nunca derivado de título, empresa ni posición en el array.
  * Las fechas parten de `SEED_REFERENCE_DATE`, una constante fija: no dependen
  * del instante de ejecución, por lo que dos ejecuciones en procesos distintos
  * producen el mismo dataset lógico.
+ *
+ * MARCADO SINTÉTICO (spec `staging-technical-readiness.md` §9.1). `externalId`
+ * identifica el registro pero NUNCA se expone: el DTO público lo excluye por
+ * contrato (`jobs-api-visibility`), de modo que no sirve como marca visible.
+ * Por eso el marcado vive en dos campos que sí viajan en el DTO y se pintan en
+ * la interfaz:
+ *
+ *   company      "JobIT Synthetic · <empresa>"  → visible también en la tarjeta
+ *                del listado, cuyo truncado recorta por el final y por tanto
+ *                nunca se come el prefijo.
+ *   description  "[SYNTHETIC TEST DATA] …"      → visible en el detalle y en
+ *                cualquier inspección por API o captura de pantalla.
+ *
+ * El scoring de match consume `tags` y campos estructurados, nunca `company` ni
+ * `description`: el marcado no altera ninguna afinidad.
  */
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -48,10 +64,10 @@ export const INTERNAL_SEED_JOBS: readonly InternalSeedJob[] = [
     source: "INTERNAL",
     externalId: "jobit-seed-001",
     title: "Frontend Developer",
-    company: "Nova Labs",
+    company: "JobIT Synthetic · Nova Labs",
     location: "Bilbao",
     remoteType: "HYBRID",
-    description: "Desarrollo de interfaces con React y TypeScript para producto SaaS.",
+    description: "[SYNTHETIC TEST DATA] Desarrollo de interfaces con React y TypeScript para producto SaaS.",
     requirements: ["React", "TypeScript", "CSS"],
     seniority: "JUNIOR",
     contractType: "FULL_TIME",
@@ -66,10 +82,10 @@ export const INTERNAL_SEED_JOBS: readonly InternalSeedJob[] = [
     source: "INTERNAL",
     externalId: "jobit-seed-002",
     title: "Backend Engineer",
-    company: "Datapeak",
+    company: "JobIT Synthetic · Datapeak",
     location: "Madrid",
     remoteType: "REMOTE",
-    description: "APIs en Node.js con PostgreSQL y Prisma. Cultura de testing.",
+    description: "[SYNTHETIC TEST DATA] APIs en Node.js con PostgreSQL y Prisma. Cultura de testing.",
     requirements: ["Node.js", "PostgreSQL", "Prisma"],
     seniority: "MID",
     contractType: "FULL_TIME",
@@ -84,10 +100,10 @@ export const INTERNAL_SEED_JOBS: readonly InternalSeedJob[] = [
     source: "INTERNAL",
     externalId: "jobit-seed-003",
     title: "Full Stack Developer",
-    company: "Orbital",
+    company: "JobIT Synthetic · Orbital",
     location: "Valencia",
     remoteType: "REMOTE",
-    description: "Stack TypeScript de extremo a extremo con Next.js y Node.js.",
+    description: "[SYNTHETIC TEST DATA] Stack TypeScript de extremo a extremo con Next.js y Node.js.",
     requirements: ["TypeScript", "Next.js", "Node.js"],
     seniority: "SENIOR",
     contractType: "FULL_TIME",
@@ -102,10 +118,10 @@ export const INTERNAL_SEED_JOBS: readonly InternalSeedJob[] = [
     source: "INTERNAL",
     externalId: "jobit-seed-004",
     title: "Android Engineer",
-    company: "Mobika",
+    company: "JobIT Synthetic · Mobika",
     location: "Bilbao",
     remoteType: "ON_SITE",
-    description: "Aplicaciones nativas Android con Kotlin y Jetpack Compose.",
+    description: "[SYNTHETIC TEST DATA] Aplicaciones nativas Android con Kotlin y Jetpack Compose.",
     requirements: ["Kotlin", "Android", "Jetpack Compose"],
     seniority: "MID",
     contractType: "FULL_TIME",
@@ -120,10 +136,10 @@ export const INTERNAL_SEED_JOBS: readonly InternalSeedJob[] = [
     source: "INTERNAL",
     externalId: "jobit-seed-005",
     title: "DevOps Engineer",
-    company: "Cloudforge",
+    company: "JobIT Synthetic · Cloudforge",
     location: "Remoto",
     remoteType: "REMOTE",
-    description: "Infraestructura como código, CI/CD y observabilidad.",
+    description: "[SYNTHETIC TEST DATA] Infraestructura como código, CI/CD y observabilidad.",
     requirements: ["Docker", "Kubernetes", "Terraform"],
     seniority: "SENIOR",
     contractType: "CONTRACT",
@@ -138,10 +154,10 @@ export const INTERNAL_SEED_JOBS: readonly InternalSeedJob[] = [
     source: "INTERNAL",
     externalId: "jobit-seed-006",
     title: "Junior QA Engineer",
-    company: "Testly",
+    company: "JobIT Synthetic · Testly",
     location: "Sevilla",
     remoteType: "HYBRID",
-    description: "Automatización de pruebas end-to-end y de integración.",
+    description: "[SYNTHETIC TEST DATA] Automatización de pruebas end-to-end y de integración.",
     requirements: ["TypeScript", "Testing"],
     seniority: "JUNIOR",
     contractType: "PART_TIME",
@@ -156,10 +172,10 @@ export const INTERNAL_SEED_JOBS: readonly InternalSeedJob[] = [
     source: "INTERNAL",
     externalId: "jobit-seed-007",
     title: "React Native Developer",
-    company: "Appnest",
+    company: "JobIT Synthetic · Appnest",
     location: "Barcelona",
     remoteType: "HYBRID",
-    description: "Apps móviles multiplataforma con React Native.",
+    description: "[SYNTHETIC TEST DATA] Apps móviles multiplataforma con React Native.",
     requirements: ["React", "React Native", "TypeScript"],
     seniority: "MID",
     contractType: "FREELANCE",
@@ -174,10 +190,10 @@ export const INTERNAL_SEED_JOBS: readonly InternalSeedJob[] = [
     source: "INTERNAL",
     externalId: "jobit-seed-008",
     title: "Data Engineer",
-    company: "Streamline",
+    company: "JobIT Synthetic · Streamline",
     location: "Madrid",
     remoteType: "REMOTE",
-    description: "Pipelines de datos y modelado en PostgreSQL.",
+    description: "[SYNTHETIC TEST DATA] Pipelines de datos y modelado en PostgreSQL.",
     requirements: ["Python", "PostgreSQL", "SQL"],
     seniority: "SENIOR",
     contractType: "FULL_TIME",
@@ -192,10 +208,10 @@ export const INTERNAL_SEED_JOBS: readonly InternalSeedJob[] = [
     source: "INTERNAL",
     externalId: "jobit-seed-009",
     title: "Software Engineer (Open level)",
-    company: "Polyglot",
+    company: "JobIT Synthetic · Polyglot",
     location: "Remoto",
     remoteType: "REMOTE",
-    description: "Buscamos talento de cualquier nivel; te ubicamos según experiencia.",
+    description: "[SYNTHETIC TEST DATA] Buscamos talento de cualquier nivel; te ubicamos según experiencia.",
     requirements: ["TypeScript", "Node.js"],
     seniority: "ANY",
     contractType: "FULL_TIME",
@@ -210,10 +226,10 @@ export const INTERNAL_SEED_JOBS: readonly InternalSeedJob[] = [
     source: "INTERNAL",
     externalId: "jobit-seed-010",
     title: "Platform Engineer",
-    company: "Gridscale",
+    company: "JobIT Synthetic · Gridscale",
     location: "Bilbao",
     remoteType: "ON_SITE",
-    description: "Plataforma interna de desarrollo, tooling y automatización.",
+    description: "[SYNTHETIC TEST DATA] Plataforma interna de desarrollo, tooling y automatización.",
     requirements: ["Go", "Docker", "PostgreSQL"],
     seniority: "MID",
     contractType: "FULL_TIME",
@@ -228,10 +244,10 @@ export const INTERNAL_SEED_JOBS: readonly InternalSeedJob[] = [
     source: "INTERNAL",
     externalId: "jobit-seed-011",
     title: "Frontend Intern",
-    company: "Brightside",
+    company: "JobIT Synthetic · Brightside",
     location: "Zaragoza",
     remoteType: "ON_SITE",
-    description: "Prácticas en desarrollo frontend con Next.js.",
+    description: "[SYNTHETIC TEST DATA] Prácticas en desarrollo frontend con Next.js.",
     requirements: ["JavaScript", "React"],
     seniority: "JUNIOR",
     contractType: "PART_TIME",
@@ -246,10 +262,10 @@ export const INTERNAL_SEED_JOBS: readonly InternalSeedJob[] = [
     source: "INTERNAL",
     externalId: "jobit-seed-012",
     title: "Lead Backend Engineer",
-    company: "Corewave",
+    company: "JobIT Synthetic · Corewave",
     location: "Madrid",
     remoteType: "HYBRID",
-    description: "Liderazgo técnico de un equipo backend en Node.js.",
+    description: "[SYNTHETIC TEST DATA] Liderazgo técnico de un equipo backend en Node.js.",
     requirements: ["Node.js", "PostgreSQL", "Prisma", "Leadership"],
     seniority: "SENIOR",
     contractType: "FULL_TIME",
@@ -265,10 +281,10 @@ export const INTERNAL_SEED_JOBS: readonly InternalSeedJob[] = [
     source: "INTERNAL",
     externalId: "jobit-seed-013",
     title: "Closed Role - Fullstack",
-    company: "Legacy Systems",
+    company: "JobIT Synthetic · Legacy Systems",
     location: "Bilbao",
     remoteType: "ON_SITE",
-    description: "Oferta ya cerrada; sirve para validar el filtrado de status CLOSED.",
+    description: "[SYNTHETIC TEST DATA] Oferta ya cerrada; sirve para validar el filtrado de status CLOSED.",
     requirements: ["TypeScript"],
     seniority: "MID",
     contractType: "FULL_TIME",
@@ -284,10 +300,10 @@ export const INTERNAL_SEED_JOBS: readonly InternalSeedJob[] = [
     source: "INTERNAL",
     externalId: "jobit-seed-014",
     title: "Expired Role - Frontend",
-    company: "Timeout Inc",
+    company: "JobIT Synthetic · Timeout Inc",
     location: "Remoto",
     remoteType: "REMOTE",
-    description: "Oferta vigente por estado pero expirada por fecha; valida la regla de expiración.",
+    description: "[SYNTHETIC TEST DATA] Oferta vigente por estado pero expirada por fecha; valida la regla de expiración.",
     requirements: ["React"],
     seniority: "JUNIOR",
     contractType: "FREELANCE",

@@ -40,7 +40,7 @@ B3B_PROTECTED_RESOURCES=(
 # Nombres de tablas de aplicación esperadas (12). `_prisma_migrations` va aparte.
 B3B_EXPECTED_APPLICATION_TABLES=12
 B3B_EXPECTED_PUBLIC_TABLES=13
-B3B_EXPECTED_MIGRATIONS=8
+B3B_EXPECTED_MIGRATIONS=9
 
 B3B_APPLICATION_TABLES=(
   "CandidateProfile" "Education" "Experience" "Job" "JobPreferences" "Link"

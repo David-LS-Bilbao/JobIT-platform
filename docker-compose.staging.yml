@@ -1,45 +1,64 @@
-# docker-compose.staging.yml — stack staging de JobIT (Sprint 20.2, ADR-0012).
+# docker-compose.staging.yml — CONTRATO CANÓNICO del staging sintético de JobIT.
 #
-# USO LOCAL DE VALIDACIÓN. Diferencias con el VPS real (manual en fase 20.5):
-# - Aquí API y Web publican puertos al host SOLO para el smoke local; en el
-#   VPS no se publicarían: Nginx Proxy Manager accede por la red interna.
-# - PostgreSQL NUNCA publica puertos, en ningún entorno (decisión estructural).
-# - Todos los valores sensibles de este archivo son DUMMIES de validación
-#   local ("change_me"); los valores reales de staging vivirán en el VPS,
-#   fuera del repo (plantillas env en fase 20.3).
+# Fase C (bloque 2). Sustituye al compose de smoke local del Sprint 20.2: este
+# fichero ya NO es un harness de validación local, es el contrato del entorno.
+# El ensayo local vive en `docker-compose.staging.rehearsal.yml`.
 #
-# MIGRACIONES Y SEED: nunca automáticos (spec deploy-staging-readiness).
-# La imagen runtime de la API no incluye la CLI de Prisma (solo dependencias
-# de producción); migrar/seedear usa el stage `builder` del mismo Dockerfile,
-# sin modificar ningún archivo:
+# CONTRATO
+#   - Ningún servicio publica puertos al host: ni PostgreSQL, ni la API, ni la
+#     Web. El único punto expuesto será Nginx Proxy Manager, que en la fase D se
+#     une a la red `jobit-staging` y alcanza a los contenedores por su hostname
+#     interno. Publicar un puerto convertiría un descuido de firewall en una
+#     superficie pública.
+#   - Sin `build:`. Las imágenes se construyen en un paso explícito y auditable
+#     (runbook §9) y se referencian por un tag INMUTABLE. Con `build:` presente,
+#     `docker compose up` reutiliza en silencio una imagen previa o construye sin
+#     supervisión: exactamente el riesgo de las imágenes de hace semanas que hoy
+#     viven en el host del operador.
+#   - Toda variable obligatoria usa interpolación fail-closed `${VAR:?...}`: sin
+#     `--env-file`, `docker compose config` FALLA en lugar de arrancar con
+#     valores de relleno. El compose anterior llevaba dummies `change_me`
+#     literales, de modo que el `--env-file` del runbook era inerte y un deploy
+#     habría arrancado con secretos de ejemplo.
 #
-#   docker build --target builder -f apps/api/Dockerfile -t jobit-api:builder .
-#   docker run --rm --network jobit-staging \
-#     -e DATABASE_URL="postgresql://jobit_staging:jobit_staging_password_change_me@jobit-staging-db:5432/jobit_staging?schema=public" \
-#     jobit-api:builder pnpm --filter @jobit/api exec prisma migrate deploy
+# USO (los valores reales viven en el VPS, fuera del repo):
+#   docker compose --env-file /srv/jobit-staging/.env \
+#     -f docker-compose.staging.yml up -d
 #
-#   # Seed opcional (14 ofertas mock, idempotente):
-#   docker run --rm --network jobit-staging \
-#     -e DATABASE_URL="postgresql://jobit_staging:jobit_staging_password_change_me@jobit-staging-db:5432/jobit_staging?schema=public" \
-#     jobit-api:builder pnpm --filter @jobit/api exec tsx prisma/seed.ts
+# MIGRACIONES Y SEED: nunca automáticos y nunca en el arranque del contenedor.
+# Son pasos explícitos y gated del protocolo de deploy, con backup previo
+# obligatorio (ADR-0012, runbook §10). La imagen runtime de la API no incluye la
+# CLI de Prisma: se usa el stage `builder` del mismo Dockerfile.
 
 name: jobit-staging
+
+# --- Contrato de BUILD de la web (NO son variables de runtime) ----------------
+# Las `NEXT_PUBLIC_*` se INLINEAN durante `next build`: añadirlas al entorno del
+# contenedor no cambia el bundle. Se declaran aquí, en un campo de extensión que
+# el runtime ignora, por una razón concreta: el MISMO `--env-file` alimenta el
+# comando de build del runbook, y así `docker compose config` falla pronto si
+# alguna falta, en vez de descubrirse con una imagen ya horneada contra la URL
+# equivocada.
+x-web-build-contract:
+  NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:?NEXT_PUBLIC_API_BASE_URL is required (build-arg de la imagen web)}
+  NEXT_PUBLIC_PUBLIC_BASE_URL: ${NEXT_PUBLIC_PUBLIC_BASE_URL:?NEXT_PUBLIC_PUBLIC_BASE_URL is required (build-arg de la imagen web)}
+  NEXT_PUBLIC_JOBIT_DATA_MODE: ${NEXT_PUBLIC_JOBIT_DATA_MODE:?NEXT_PUBLIC_JOBIT_DATA_MODE is required (build-arg de la imagen web)}
 
 services:
   jobit-staging-db:
     image: postgres:16
     container_name: jobit-staging-db
     environment:
-      POSTGRES_DB: jobit_staging
-      POSTGRES_USER: jobit_staging
-      POSTGRES_PASSWORD: jobit_staging_password_change_me
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
     volumes:
       - jobit-staging-db-data:/var/lib/postgresql/data
     networks:
       - jobit-staging
     # Sin `ports:`: la DB jamás se expone fuera de la red interna (ADR-0012).
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U jobit_staging -d jobit_staging"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -52,10 +71,9 @@ services:
         max-file: "3"
 
   jobit-staging-api:
-    build:
-      context: .
-      dockerfile: apps/api/Dockerfile
-    image: jobit-api:staging-local
+    # Tag inmutable (SHA del commit desplegado). Nunca `latest` ni un tag móvil:
+    # un tag móvil hace que «reiniciar» y «desplegar» dejen de ser distinguibles.
+    image: jobit-api:${JOBIT_IMAGE_TAG:?JOBIT_IMAGE_TAG is required (SHA de commit inmutable)}
     container_name: jobit-staging-api
     depends_on:
       jobit-staging-db:
@@ -63,25 +81,29 @@ services:
     environment:
       NODE_ENV: production
       PORT: 4000
-      DATABASE_URL: postgresql://jobit_staging:jobit_staging_password_change_me@jobit-staging-db:5432/jobit_staging?schema=public
-      JWT_ACCESS_SECRET: change-me-staging-jwt-access-secret
-      CORS_ORIGIN: http://localhost:3000
-      # Smoke LOCAL: no hay reverse proxy delante, luego 0 es el valor correcto y
-      # seguro. En el VPS real la API va tras un salto de NPM y el valor lo aporta
-      # el `.env` de staging (TRUST_PROXY_HOPS=1), no este fichero.
-      TRUST_PROXY_HOPS: 0
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?JWT_ACCESS_SECRET is required}
+      CORS_ORIGIN: ${CORS_ORIGIN:?CORS_ORIGIN is required}
+      # Saltos de proxy de confianza. En staging vale 1: un único salto de Nginx
+      # Proxy Manager. Sin él, el rate limiting identificaría a todos los
+      # clientes por la IP del proxy; con un valor mayor, `X-Forwarded-For`
+      # permitiría falsificar la IP. NUNCA `true`.
+      TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:?TRUST_PROXY_HOPS is required (1 tras un unico salto de NPM)}
+      # Contrato de datos sintéticos. La API ABORTA el arranque si el destino
+      # clasifica STAGING y esta variable no vale exactamente SYNTHETIC_STAGING.
+      JOBIT_DATA_MODE: ${JOBIT_DATA_MODE:?JOBIT_DATA_MODE is required (SYNTHETIC_STAGING en staging sintetico)}
     volumes:
-      # Único estado en disco de la API (avatares); incluido en backups (spec).
+      # Único estado en disco de la API (avatares); incluido en backups.
       - jobit-staging-api-uploads:/repo/apps/api/uploads
     networks:
       - jobit-staging
-    # Publicado SOLO para el smoke local; en el VPS real este puerto no se
-    # publicaría (NPM llega a jobit-staging-api:4000 por la red interna).
-    ports:
-      - "4000:4000"
+    # Sin `ports:`: NPM llega por la red interna a jobit-staging-api:4000.
     healthcheck:
+      # READINESS, no liveness: `/health` responde 200 aunque PostgreSQL esté
+      # caído, así que usarlo aquí marcaría `healthy` una API incapaz de servir
+      # y el `depends_on` de la web no significaría nada.
       # La imagen no trae curl; Node 20 tiene fetch global.
-      test: ["CMD", "node", "-e", "fetch('http://localhost:4000/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4000/ready').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -94,18 +116,7 @@ services:
         max-file: "3"
 
   jobit-staging-web:
-    build:
-      context: .
-      dockerfile: apps/web/Dockerfile
-      args:
-        # Se INLINEA en el build de Next: en el VPS real sería la URL pública
-        # de la API (https://api-jobit-staging.davlos.es) y exigiría rebuild.
-        NEXT_PUBLIC_API_BASE_URL: http://localhost:4000
-        # URL pública de la web (AUDIT03-URL-SCHEME-01). También se inlinea. En
-        # el VPS real sería https://jobit-staging.davlos.es; aquí es el valor del
-        # smoke local, que corre fuera de un entorno desplegado.
-        NEXT_PUBLIC_PUBLIC_BASE_URL: http://localhost:3000
-    image: jobit-web:staging-local
+    image: jobit-web:${JOBIT_IMAGE_TAG:?JOBIT_IMAGE_TAG is required (SHA de commit inmutable)}
     container_name: jobit-staging-web
     depends_on:
       jobit-staging-api:
@@ -116,10 +127,7 @@ services:
       HOSTNAME: 0.0.0.0
     networks:
       - jobit-staging
-    # Publicado SOLO para el smoke local; en el VPS real se conectaría según
-    # el manual de deploy (fase 20.5), sin puerto de host.
-    ports:
-      - "3000:3000"
+    # Sin `ports:`: NPM llega por la red interna a jobit-staging-web:3000.
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://localhost:3000/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
       interval: 10s
@@ -134,6 +142,9 @@ services:
         max-file: "3"
 
 networks:
+  # Red estable y con nombre fijo. En la fase D, Nginx Proxy Manager se une a
+  # ella (`docker network connect jobit-staging <contenedor-npm>`) y enruta por
+  # hostname interno. La fase C NO ejecuta esa conexión ni valida TLS.
   jobit-staging:
     name: jobit-staging
 

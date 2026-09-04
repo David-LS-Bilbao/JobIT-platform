@@ -6,8 +6,21 @@
  * toda entrada llega por parámetro (`EnvLike`). No hace logging ni efectos
  * secundarios de ningún tipo.
  *
- * Ver `docs/specs/features/database-seed-safety-gates.md` para el contrato completo.
+ * Única dependencia interna: `config/synthetic-mode.ts`, que también es puro y no
+ * importa nada del proyecto. La dirección es siempre esta y nunca la inversa, de
+ * modo que no hay ciclo.
+ *
+ * Ver `docs/specs/features/database-seed-safety-gates.md` para el contrato completo
+ * y `docs/specs/features/staging-technical-readiness.md` §7-§8 para la extensión de
+ * staging sintético.
  */
+
+import {
+  InvalidDataModeError,
+  parseDataMode,
+  SYNTHETIC_STAGING,
+  type JobitDataMode
+} from "../config/synthetic-mode.js";
 
 export type DatabaseClassification =
   | "DEVELOPMENT"
@@ -35,7 +48,16 @@ export type UnsafeDatabaseTargetReasonCode =
   | "EMPTY_DATABASE_NAME"
   | "UNSAFE_CLASSIFICATION"
   | "TARGET_COLLISION"
-  | "PRODUCTION_ENVIRONMENT";
+  | "PRODUCTION_ENVIRONMENT"
+  // --- Contrato de modo de datos (Fase C) ---
+  /** `JOBIT_DATA_MODE` fuera del vocabulario cerrado. */
+  | "INVALID_DATA_MODE"
+  /** Destino `STAGING` sin `JOBIT_DATA_MODE=SYNTHETIC_STAGING`. */
+  | "DATA_MODE_REQUIRED"
+  /** Destino `PRODUCTION` con modo sintético declarado. */
+  | "PRODUCTION_MODE_CONFLICT"
+  /** Modo declarado sobre un destino cuya clasificación no puede verificarse. */
+  | "UNVERIFIABLE_TARGET_MODE_CONFLICT";
 
 /**
  * Error sanitizado: `message` es apto para logs/consola (nunca incluye URL
@@ -179,9 +201,61 @@ export function assertTestDatabaseUrl(env: EnvLike): ParsedDatabaseTarget {
   return target;
 }
 
-/** Guarda de DATA-04: exige `DATABASE_URL` clasificado como DEVELOPMENT o E2E. */
+/**
+ * Resuelve `JOBIT_DATA_MODE` traduciendo un valor inválido al vocabulario cerrado
+ * de esta guarda. Así, tanto el seed como el arranque fallan con un
+ * `UnsafeDatabaseTargetError` y un `code` estable, en vez de con dos clases de
+ * error distintas que sus formateadores tendrían que conocer por separado.
+ */
+function readDataMode(env: EnvLike): JobitDataMode | null {
+  try {
+    return parseDataMode(env);
+  } catch (error) {
+    if (error instanceof InvalidDataModeError) {
+      throw new UnsafeDatabaseTargetError("INVALID_DATA_MODE", error.message);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Guarda de DATA-04, extendida por la Fase C con la excepción controlada de
+ * staging sintético.
+ *
+ * Contrato (spec `staging-technical-readiness.md` §8):
+ * - `DEVELOPMENT`/`E2E`: reglas anteriores intactas, incluido el bloqueo por
+ *   `NODE_ENV=production`.
+ * - `STAGING`: permitido SOLO con `JOBIT_DATA_MODE=SYNTHETIC_STAGING`, y solo en
+ *   esa rama `NODE_ENV=production` deja de bloquear — staging corre justamente
+ *   con `NODE_ENV=production`, así que sin esta excepción el modo sintético sería
+ *   inalcanzable en el entorno para el que se diseñó.
+ * - `PRODUCTION`, `TEST`, `UNKNOWN` y `AMBIGUOUS`: rechazados bajo CUALQUIER
+ *   combinación de variables. `PRODUCTION` se rechaza además de forma explícita
+ *   cuando se declara el modo sintético, para que el motivo quede en el `code` y
+ *   no dependa de la rama genérica.
+ */
 export function assertSeedableDatabaseUrl(env: EnvLike): ParsedDatabaseTarget {
   const target = parseDatabaseTarget(env["DATABASE_URL"], "DATABASE_URL");
+  const mode = readDataMode(env);
+
+  // Invariante dura: producción es inalcanzable. Se comprueba ANTES que ninguna
+  // otra rama para que declarar el modo sintético no pueda abrir ningún camino.
+  if (target.classification === "PRODUCTION" && mode === SYNTHETIC_STAGING) {
+    throw new UnsafeDatabaseTargetError(
+      "PRODUCTION_MODE_CONFLICT",
+      "Seeding is never allowed against a PRODUCTION database, including under synthetic staging mode."
+    );
+  }
+
+  if (target.classification === "STAGING") {
+    if (mode !== SYNTHETIC_STAGING) {
+      throw new UnsafeDatabaseTargetError(
+        "DATA_MODE_REQUIRED",
+        "Seeding a STAGING database requires JOBIT_DATA_MODE=SYNTHETIC_STAGING."
+      );
+    }
+    return target;
+  }
 
   const normalizedNodeEnv = env["NODE_ENV"]?.trim().toLowerCase();
   if (normalizedNodeEnv === "production") {
@@ -199,4 +273,81 @@ export function assertSeedableDatabaseUrl(env: EnvLike): ParsedDatabaseTarget {
   }
 
   return target;
+}
+
+/**
+ * Clasificación efectiva del destino en el arranque. `UNRESOLVED` cubre
+ * `DATABASE_URL` ausente, vacía o malformada: la API arranca hoy en ese estado y
+ * falla perezosamente al primer acceso, comportamiento que se conserva mientras
+ * no se declare ningún modo.
+ */
+export type RuntimeTargetClassification = DatabaseClassification | "UNRESOLVED";
+
+export interface RuntimeDataModeContract {
+  mode: JobitDataMode | null;
+  classification: RuntimeTargetClassification;
+}
+
+/**
+ * Guarda de arranque: reconcilia la clasificación de `DATABASE_URL` (safety
+ * boundary) con `JOBIT_DATA_MODE` (behavior contract).
+ *
+ * Invariante dura: una base clasificada `STAGING` nunca arranca en modo normal.
+ * La ausencia de la variable no degrada silenciosamente; aborta.
+ *
+ * Contrato completo en `docs/specs/features/staging-technical-readiness.md` §7.
+ */
+export function assertRuntimeDataModeContract(env: EnvLike): RuntimeDataModeContract {
+  const mode = readDataMode(env);
+
+  let classification: RuntimeTargetClassification;
+  try {
+    classification = parseDatabaseTarget(env["DATABASE_URL"], "DATABASE_URL").classification;
+  } catch {
+    // El motivo exacto no se propaga: aquí solo importa que el destino no es
+    // verificable. Si además se declaró un modo, es una contradicción y aborta.
+    classification = "UNRESOLVED";
+  }
+
+  if (classification === "STAGING" && mode !== SYNTHETIC_STAGING) {
+    throw new UnsafeDatabaseTargetError(
+      "DATA_MODE_REQUIRED",
+      "A STAGING database requires JOBIT_DATA_MODE=SYNTHETIC_STAGING to start."
+    );
+  }
+
+  if (classification === "PRODUCTION" && mode === SYNTHETIC_STAGING) {
+    throw new UnsafeDatabaseTargetError(
+      "PRODUCTION_MODE_CONFLICT",
+      "JOBIT_DATA_MODE=SYNTHETIC_STAGING must never be used against a PRODUCTION database."
+    );
+  }
+
+  const unverifiable =
+    classification === "UNKNOWN" ||
+    classification === "AMBIGUOUS" ||
+    classification === "UNRESOLVED";
+  if (unverifiable && mode !== null) {
+    throw new UnsafeDatabaseTargetError(
+      "UNVERIFIABLE_TARGET_MODE_CONFLICT",
+      "JOBIT_DATA_MODE was declared but the database target classification cannot be verified."
+    );
+  }
+
+  return { mode, classification };
+}
+
+/**
+ * Mensaje de fallo de arranque, de vocabulario cerrado.
+ *
+ * Nunca reenvía el texto original de una excepción ajena, que podría arrastrar
+ * credenciales, URLs o rutas. Para un rechazo de estas guardas emite su `code`
+ * —ya sanitizado por construcción— y para cualquier otro valor colapsa a un
+ * único mensaje genérico. Función pura: no hace logging.
+ */
+export function formatStartupGuardFailure(error: unknown): string {
+  if (error instanceof UnsafeDatabaseTargetError) {
+    return `[startup] ABORTED: UNSAFE_DATABASE_TARGET:${error.code}`;
+  }
+  return "[startup] ABORTED: STARTUP_GUARD_FAILED";
 }

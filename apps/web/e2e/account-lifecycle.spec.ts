@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 import {
+  apiBase,
   createE2eUser,
   createProfileMinimum,
   expectDashboard,
@@ -27,8 +28,8 @@ import {
  * Requiere web :3000 y API :4000 vivas con la BD local (ofertas del seed).
  */
 
-/** La API vive fuera del `baseURL` de Playwright (:3000), asi que se direcciona aparte. */
-const API_BASE = process.env["NEXT_PUBLIC_API_BASE_URL"] ?? "http://localhost:4000";
+/** La API vive fuera del `baseURL` de Playwright, asi que se direcciona aparte. */
+const API_BASE = apiBase();
 
 /**
  * PNG 1x1 REAL y decodificable.
