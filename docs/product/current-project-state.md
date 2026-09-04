@@ -1,6 +1,6 @@
 # Estado actual de JobIT Platform — Lean Snapshot
 
-**Fecha:** 2026-09-02
+**Fecha:** 2026-09-04
 **Estado:** snapshot canónico vigente bajo Orchestrator v3 Lean
 **Rama canónica:** `dev`
 **Repositorio:** `David-LS-Bilbao/JobIT-platform`
@@ -35,7 +35,7 @@ OPEN_P0_CURRENT:
 0
 
 OPEN_P1_CURRENT:
-5
+0
 
 Public staging:                   NOT_AUTHORIZED
 Production / real candidates:     NOT_AUTHORIZED
@@ -70,9 +70,12 @@ NONE
 
 A — CANONICAL RECONCILIATION:
 COMPLETED
+
+B — CANDIDATE-FIRST FUNCTIONAL CLOSURE:
+COMPLETED
 ```
 
-La fase `A` se cerró con el merge de PR #121 (`docs(governance): reconcile Global Review+ state`). No hay unidad funcional activa; la siguiente acción de gobernanza es el rollover del Orquestador (§OPEN_DECISIONS).
+La fase `A` se cerró con el merge de PR #121 (`docs(governance): reconcile Global Review+ state`). La fase `B` cerró los cinco P1 abiertos en dos bloques: `B-CORE` (PR #123) y `B-HARDENING`. No hay unidad funcional activa; la siguiente acción de gobernanza es el rollover del Orquestador (§OPEN_DECISIONS).
 
 ## CLOSED_UNITS
 
@@ -88,6 +91,13 @@ CLOSED
 
 PR:
 #120
+
+CANDIDATE_FIRST_FUNCTIONAL_CLOSURE:
+CLOSED
+
+PR:
+#123 (B-CORE)
+B-HARDENING
 ```
 
 Findings cerrados por estas dos unidades:
@@ -137,41 +147,41 @@ La aplicación de la migración en staging o producción requiere autorización 
 
 ```text
 NEXT_FUNCTIONAL_CANDIDATE:
-ACCOUNT_LIFECYCLE
+ORCHESTRATOR_DECISION_REQUIRED
 
-ACCOUNT_LIFECYCLE_AUTHORIZATION:
-NOT_GRANTED_YET
+Roadmap sugerido:
+C — STAGING TECHNICAL READINESS
 
 Autorización:
 NOT_GRANTED_BY_THIS_SNAPSHOT
 ```
 
-`ACCOUNT_LIFECYCLE` corresponde al P1 abierto `S22-AUTH-06 / B4-OPS-02` y a la fase `B1` del roadmap. Ser candidato no autoriza implementación: `B` y `B1`–`B4` permanecen `NOT_AUTHORIZED` y la autorización requiere decisión expresa del Orquestador.
+`ACCOUNT_LIFECYCLE` era el candidato anterior y quedó implementado en la fase `B`. Con `OPEN_P1_CURRENT: 0`, la siguiente fase natural del roadmap candidate-first es `C`, pero **no está autorizada**: requiere decisión expresa del Orquestador y, en lo que toca a despliegue, autorización humana adicional.
 
 ## LATER
 
-Deuda técnica identificada con `OPEN_P1_CURRENT: 5`. Ninguno se implementa ni se cierra por este snapshot; el detalle vive en el ledger.
+`OPEN_P1_CURRENT: 0`. Los cinco P1 que arrastraba Global Review+ quedaron resueltos en `dev` durante la fase B; el detalle y su evidencia viven en el ledger.
 
 ```text
 S22-AUTH-06 / B4-OPS-02
 Account lifecycle
-OPEN
+RESOLVED_IN_DEV
 
 AUDIT02-LIFE-AVATAR-01
 Physical avatar cleanup
-OPEN
+RESOLVED_IN_DEV
 
 AUDIT03-URL-SCHEME-01
 Public URL protocol hardening
-OPEN
+RESOLVED_IN_DEV
 
 AUDIT05-DEPLOY-PROXY-RATELIMIT-01
 Proxy / TRUST_PROXY_HOPS
-OPEN
+RESOLVED_IN_DEV
 
 AUDIT05-OPS-PROD-ERROR-LOG-01
 Safe staging/production error observability
-OPEN
+RESOLVED_IN_DEV
 ```
 
 Backlog restante por dominios, sin prioridad autorizada:
@@ -379,15 +389,10 @@ A — CANONICAL RECONCILIATION
     COMPLETED
 
 B — CANDIDATE-FIRST FUNCTIONAL CLOSURE
-    NOT_AUTHORIZED
+    COMPLETED
 
-    B1 — Account lifecycle
-    B2 — Avatar physical cleanup + relevant public boundary
-    B3 — Public URL protocol hardening
-    B4 — staging-critical P2 only if demonstrated
-
-    B1-B4:
-    NOT_AUTHORIZED
+    B-CORE      account lifecycle + avatar physical cleanup   PR #123
+    B-HARDENING public URL + TRUST_PROXY_HOPS + observability
 
 C — STAGING TECHNICAL READINESS
     NOT_AUTHORIZED
@@ -415,9 +420,9 @@ J — PRODUCTION
     NOT_AUTHORIZED
 ```
 
-`A` está completada. Ninguna fase posterior está autorizada: `B`–`J` requieren decisión expresa del Orquestador y, donde corresponda, autorización humana adicional.
+`A` y `B` están completadas. Ninguna fase posterior está autorizada: `C`–`J` requieren decisión expresa del Orquestador y, donde corresponda, autorización humana adicional.
 
-El desglose `B1`–`B4` tampoco es numeración de sprint, no reserva numeración y no autoriza implementación. `B4` significa únicamente que un P2 staging-critical podría incorporarse si una evidencia futura demuestra su necesidad; no designa ningún P2 existente y no altera los cinco P1 abiertos, que permanecen `OPEN`.
+La fase `B` se ejecutó como un bloque técnico indivisible en dos PR funcionales, sin PR documental separada. No se incorporó ningún P2: la posibilidad quedó descartada por falta de evidencia que la justificara.
 
 ## OPEN_DECISIONS
 

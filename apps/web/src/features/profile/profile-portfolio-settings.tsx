@@ -65,6 +65,9 @@ export function ProfilePortfolioSettings({
   const [missingFields, setMissingFields] = useState<string[] | null>(null);
   const [copied, setCopied] = useState(false);
 
+  // `null` = entorno desplegado sin `NEXT_PUBLIC_PUBLIC_BASE_URL` valida
+  // (AUDIT03-URL-SCHEME-01). Se prefiere no ofrecer enlace a ofrecer uno
+  // degradado en `http`.
   const publicUrl = buildPublicPortfolioUrl(settings.publicUrlPath);
 
   async function handleSave() {
@@ -127,7 +130,7 @@ export function ProfilePortfolioSettings({
   async function handleCopy() {
     setCopied(false);
     try {
-      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+      if (publicUrl && typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(publicUrl);
         setCopied(true);
       }
@@ -175,19 +178,25 @@ export function ProfilePortfolioSettings({
 
         <div className="mt-4 space-y-1">
           <span className={labelClass}>Enlace público</span>
-          <div className="flex flex-wrap items-center gap-3">
-            <code className="max-w-full break-all rounded-md bg-slate-50 px-2 py-1 text-sm text-slate-700">
-              {publicUrl}
-            </code>
-            <button type="button" onClick={handleCopy} className={ghostBtn}>
-              Copiar enlace
-            </button>
-            {copied ? (
-              <span role="status" className="text-xs font-medium text-emerald-600">
-                Enlace copiado
-              </span>
-            ) : null}
-          </div>
+          {publicUrl ? (
+            <div className="flex flex-wrap items-center gap-3">
+              <code className="max-w-full break-all rounded-md bg-slate-50 px-2 py-1 text-sm text-slate-700">
+                {publicUrl}
+              </code>
+              <button type="button" onClick={handleCopy} className={ghostBtn}>
+                Copiar enlace
+              </button>
+              {copied ? (
+                <span role="status" className="text-xs font-medium text-emerald-600">
+                  Enlace copiado
+                </span>
+              ) : null}
+            </div>
+          ) : (
+            <p role="alert" className="text-sm font-medium text-amber-700">
+              El enlace público no está disponible: falta configurar la URL pública de este entorno.
+            </p>
+          )}
           <p className="text-xs text-slate-500">Ruta pública: {settings.publicUrlPath}</p>
           {settings.isPublished ? (
             <p className="text-xs text-slate-500">Comparte este enlace: tu portfolio está publicado.</p>

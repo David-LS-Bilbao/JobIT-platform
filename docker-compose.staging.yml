@@ -66,6 +66,10 @@ services:
       DATABASE_URL: postgresql://jobit_staging:jobit_staging_password_change_me@jobit-staging-db:5432/jobit_staging?schema=public
       JWT_ACCESS_SECRET: change-me-staging-jwt-access-secret
       CORS_ORIGIN: http://localhost:3000
+      # Smoke LOCAL: no hay reverse proxy delante, luego 0 es el valor correcto y
+      # seguro. En el VPS real la API va tras un salto de NPM y el valor lo aporta
+      # el `.env` de staging (TRUST_PROXY_HOPS=1), no este fichero.
+      TRUST_PROXY_HOPS: 0
     volumes:
       # Único estado en disco de la API (avatares); incluido en backups (spec).
       - jobit-staging-api-uploads:/repo/apps/api/uploads
@@ -97,6 +101,10 @@ services:
         # Se INLINEA en el build de Next: en el VPS real sería la URL pública
         # de la API (https://api-jobit-staging.davlos.es) y exigiría rebuild.
         NEXT_PUBLIC_API_BASE_URL: http://localhost:4000
+        # URL pública de la web (AUDIT03-URL-SCHEME-01). También se inlinea. En
+        # el VPS real sería https://jobit-staging.davlos.es; aquí es el valor del
+        # smoke local, que corre fuera de un entorno desplegado.
+        NEXT_PUBLIC_PUBLIC_BASE_URL: http://localhost:3000
     image: jobit-web:staging-local
     container_name: jobit-staging-web
     depends_on:

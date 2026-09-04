@@ -55,12 +55,13 @@ export function PortfolioQrCard({
   isPublished,
   slug
 }: {
-  url: string;
+  /** `null` cuando el entorno desplegado no tiene una URL publica valida configurada. */
+  url: string | null;
   isPublished: boolean;
   slug: string;
 }) {
   const matrix = useMemo(() => {
-    if (!isPublished) return null;
+    if (!isPublished || !url) return null;
     try {
       return qrMatrix(url);
     } catch {
@@ -105,6 +106,12 @@ export function PortfolioQrCard({
           >
             Descargar QR
           </button>
+        </div>
+      ) : isPublished && !url ? (
+        <div className="mt-4 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
+          <p className="text-sm text-slate-600">
+            No se puede generar el QR: falta configurar la URL pública de este entorno.
+          </p>
         </div>
       ) : isPublished ? (
         <div className="mt-4 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
